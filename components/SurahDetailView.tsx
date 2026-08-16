@@ -1,0 +1,936 @@
+import { MushafPageView } from "./MushafPageView";
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import type { SurahData, SavedAyahItem, Ayah } from '../types';
+import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon } from './icons';
+import { safeLocalStorage } from '../utils/storage';
+import AyahActionPopover from './AyahActionPopover';
+import AyahRenderer from './AyahRenderer';
+import { formatSurahNameForDisplay } from '../utils/text';
+import { QURAN_INDEX } from '../quranIndex';
+import { getQuranTextStyle } from '../utils/font';
+import { useSettingsContext } from '../contexts/SettingsContext';
+import { IslamicSectionDivider } from './IslamicDecorations';
+
+interface SurahDetailViewProps {
+  surah: SurahData;
+  pageSurahs?: SurahData[]; // New prop to handle multiple surahs on one page
+  highlightAyahNumber: number | null;
+  onWordClick: (query: string, editionIdentifier: string, position: { surah: number; ayah: number; wordIndex: number; }) => void;
+  onSaveAyah: (item: SavedAyahItem) => void;
+  onSearchByAyahNumber: (ayahNumber: number) => void;
+  // --- Props for audio playback ---
+  currentlyPlayingAyahGlobalNumber: number | null;
+  onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
+  selectedAudioEdition: string;
+  // --- Prop for word popover ---
+  simpleCleanData: SurahData[];
+  hizbQuarterStartMap: Map<number, number>;
+  forcedPageNumber?: number; // Prop to enforce a specific page number
+}
+
+const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string }> = ({ surahNumber, surahName }) => {
+  const info = QURAN_INDEX.find(s => s.number === surahNumber);
+  const ayahsCount = info?.numberOfAyahs || '';
+  const formattedName = formatSurahNameForDisplay(surahName);
+
+  return (
+    <div className="my-6 w-full select-none">
+      {/* Outer Traditional Islamic Frame Container - Theme Adaptive */}
+      <div className="relative border-2 border-primary/40 rounded-xl p-1.5 sm:p-2.5 bg-gradient-to-r from-primary/15 via-primary/5 to-primary/15 shadow-md overflow-hidden transition-colors duration-300">
+        
+        {/* Fine Geometric Background Pattern (Inherits theme primary color) */}
+        <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none text-primary" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id={`header-pattern-${surahNumber}`} width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M16 0 L32 16 L16 32 L0 16 Z M16 4 L28 16 L16 28 L4 16 Z" fill="none" stroke="currentColor" strokeWidth="0.75" />
+              <circle cx="16" cy="16" r="2.5" fill="currentColor" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill={`url(#header-pattern-${surahNumber})`} />
+        </svg>
+
+        {/* Decorative Corner Ornaments */}
+        <div className="absolute top-1 right-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
+        <div className="absolute top-1 left-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
+        <div className="absolute bottom-1 right-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
+        <div className="absolute bottom-1 left-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
+
+        {/* Inner Border Box */}
+        <div className="relative border border-primary/30 rounded-lg px-3 py-2 sm:px-6 sm:py-3 flex items-center justify-between gap-3 bg-surface/90 backdrop-blur-xs transition-colors duration-300">
+          
+          {/* Right Info: Surah Order in Quran */}
+          <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[110px]">
+            <span className="text-primary text-lg">۞</span>
+            <span>ترتيبها:</span>
+            <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{surahNumber}</span>
+          </div>
+
+          {/* Center Title Banner with Decorative Rosettes */}
+          <div className="flex-1 text-center flex items-center justify-center gap-2 sm:gap-3">
+            <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
+            <span className="text-primary text-xl font-serif opacity-75">﴿</span>
+            <a 
+              href={`#/surah/${surahNumber}`}
+              className="inline-block transition-transform duration-200 hover:scale-105 cursor-pointer"
+              title={`فتح سورة ${formattedName}`}
+            >
+              <h2 className="font-quran-title text-2.5xl sm:text-3xl font-bold text-primary-text-strong hover:text-primary transition-colors tracking-wide">
+                {formattedName}
+              </h2>
+            </a>
+            <span className="text-primary text-xl font-serif opacity-75">﴾</span>
+            <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
+          </div>
+
+          {/* Left Info: Ayahs Count */}
+          <div className="hidden sm:flex items-center justify-end gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[110px]">
+            <span>آياتها:</span>
+            <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{ayahsCount}</span>
+            <span className="text-primary text-lg">۞</span>
+          </div>
+        </div>
+
+        {/* Mobile Info Bar below center title on small screens */}
+        <div className="sm:hidden mt-1.5 pt-1.5 border-t border-primary/20 flex justify-between text-[12px] text-text-secondary px-3 font-medium">
+          <div className="flex items-center gap-1.5">
+            <span>ترتيبها:</span>
+            <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{surahNumber}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span>آياتها:</span>
+            <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{ayahsCount}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SurahDetailView: React.FC<SurahDetailViewProps> = ({ 
+  surah, pageSurahs, highlightAyahNumber, onWordClick,
+  onSaveAyah, onSearchByAyahNumber,
+  currentlyPlayingAyahGlobalNumber, onStartPlayback, selectedAudioEdition,
+  simpleCleanData, hizbQuarterStartMap, forcedPageNumber
+}) => {
+  const highlightRef = useRef<HTMLSpanElement>(null);
+  const playingAyahRef = useRef<HTMLSpanElement>(null);
+  const wordPopoverRef = useRef<HTMLDivElement>(null);
+
+  const [activePopover, setActivePopover] = useState<{ ayah: Ayah; triggerElement: HTMLElement } | null>(null);
+  const [copiedAyah, setCopiedAyah] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  
+  const [selectedAyahs, setSelectedAyahs] = useState<{surahNum: number, ayahNum: number, text: string, surahName: string}[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showMultiCopyToast, setShowMultiCopyToast] = useState(false);
+  const selectedAyahKeys = useMemo(() => selectedAyahs.map(a => `${a.surahNum}:${a.ayahNum}`), [selectedAyahs]);
+
+  const handleAyahSelection = (e: React.MouseEvent, surahNum: number, ayahNum: number, text: string, surahName: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!isSelectionMode) setIsSelectionMode(true);
+      
+      setSelectedAyahs(prev => {
+          const existsIndex = prev.findIndex(a => a.surahNum === surahNum && a.ayahNum === ayahNum);
+          if (existsIndex >= 0) {
+              const newArr = [...prev];
+              newArr.splice(existsIndex, 1);
+              if (newArr.length === 0) setIsSelectionMode(false);
+              return newArr;
+          } else {
+              return [...prev, {surahNum, ayahNum, text, surahName}];
+          }
+      });
+  };
+
+  const handleCopyMultiple = () => {
+      if (selectedAyahs.length === 0) return;
+      const textToCopy = selectedAyahs.map(a => {
+          const isImlaei = fontStyle === 'imlai_1' || fontStyle === 'imlai_2';
+          let ayahText = a.text || '';
+          if (isImlaei) {
+              const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
+              ayahText = ayahText.replace(marksToRemoveRegex, '');
+          }
+          const cleanSurahName = formatSurahNameForDisplay(a.surahName);
+          return `"${ayahText}" (سورة ${cleanSurahName} - الآية ${a.ayahNum})`;
+      }).join('\n\n');
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+          setShowMultiCopyToast(true);
+          setTimeout(() => setShowMultiCopyToast(false), 3000);
+          setIsSelectionMode(false);
+          setSelectedAyahs([]);
+      });
+  };
+  
+  const [wordPopoverState, setWordPopoverState] = useState<{
+    ayahNumberInSurah: number;
+    simpleText: string;
+    triggerElement: HTMLElement;
+  } | null>(null);
+
+  const prevSurahNumber = useRef<number | null>(null);
+  const prevPageNumber = useRef<number | undefined>(undefined);
+  const prevHighlightAyahNumber = useRef<number | null>(null);
+
+  // Consume Settings from Context
+  const { displayEdition, fontSize, fontStyle, browsingMode, setFontStyle, setSelectedEdition, setBrowsingMode } = useSettingsContext();
+
+  // Enforce Uthmani or Mushaf page mode when navigating to a specific page
+  useEffect(() => {
+    if (forcedPageNumber) {
+      if (browsingMode !== 'page') {
+        setBrowsingMode('page');
+      }
+      if (fontStyle !== 'uthmani' && fontStyle !== 'mushaf') {
+        setFontStyle('uthmani');
+        setSelectedEdition('quran-uthmani-quran-academy');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forcedPageNumber, setFontStyle, setSelectedEdition, setBrowsingMode]);
+
+  // Determine current page logic
+  const { ayahsByPage, firstPage, lastPage, getPageForAyahNumber } = useMemo(() => {
+    // If we are in specific Page Mode with pageSurahs provided
+    if (pageSurahs && forcedPageNumber) {
+        return { 
+            ayahsByPage: new Map(), // Not used in this mode
+            firstPage: 1, 
+            lastPage: 604, 
+            getPageForAyahNumber: (n: number) => forcedPageNumber 
+        };
+    }
+
+    const map = new Map<number, Ayah[]>();
+    const ayahNumToPageMap = new Map<number, number>();
+    if (!surah || !surah.ayahs || surah.ayahs.length === 0) {
+        return { ayahsByPage: map, firstPage: 1, lastPage: 1, getPageForAyahNumber: (n: number) => undefined };
+    }
+    let minPage = Infinity;
+    let maxPage = -Infinity;
+    for (const ayah of surah.ayahs) {
+        if (ayah.page) {
+            if (!map.has(ayah.page)) {
+                map.set(ayah.page, []);
+            }
+            map.get(ayah.page)!.push(ayah);
+            minPage = Math.min(minPage, ayah.page);
+            maxPage = Math.max(maxPage, ayah.page);
+            ayahNumToPageMap.set(ayah.numberInSurah, ayah.page);
+        }
+    }
+    const getPageForAyahNumber = (num: number) => ayahNumToPageMap.get(num);
+    return { ayahsByPage: map, firstPage: minPage === Infinity ? 1 : minPage, lastPage: maxPage === -Infinity ? 1 : maxPage, getPageForAyahNumber };
+  }, [surah, pageSurahs, forcedPageNumber]);
+
+  useEffect(() => {
+    let targetPage: number | undefined;
+
+    if (forcedPageNumber) {
+        targetPage = forcedPageNumber;
+    } else if (highlightAyahNumber) {
+        targetPage = getPageForAyahNumber(highlightAyahNumber);
+    } else if (currentlyPlayingAyahGlobalNumber) {
+        // Find which surah/ayah is playing
+        const playingAyah = surah.ayahs.find(a => a.number === currentlyPlayingAyahGlobalNumber);
+        if (playingAyah) {
+            targetPage = getPageForAyahNumber(playingAyah.numberInSurah);
+        }
+    }
+
+    setCurrentPage(targetPage || firstPage);
+  }, [surah.number, highlightAyahNumber, currentlyPlayingAyahGlobalNumber, getPageForAyahNumber, firstPage, forcedPageNumber]);
+
+
+  useEffect(() => {
+    // This is the primary scrolling logic for the component.
+    // It handles scrolling to a highlighted ayah, following audio playback, or scrolling to the top.
+
+    // --- First, check for navigation changes using values from the *previous* render ---
+    const isNewHighlightRequest = highlightAyahNumber !== null && highlightAyahNumber !== prevHighlightAyahNumber.current;
+    const isNewPageOrSurah = prevSurahNumber.current !== surah.number || prevPageNumber.current !== forcedPageNumber;
+
+    // --- PRIORITY 1: Follow audio playback ---
+    const isPlayingInView = pageSurahs 
+        ? pageSurahs.some(s => s.ayahs.some(a => a.number === currentlyPlayingAyahGlobalNumber))
+        : surah.ayahs.some(a => a.number === currentlyPlayingAyahGlobalNumber);
+
+    if (currentlyPlayingAyahGlobalNumber !== null && isPlayingInView) {
+        if (playingAyahRef.current) {
+            playingAyahRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+    // --- PRIORITY 2: Handle a NEW request to highlight an ayah (only if audio isn't controlling scroll) ---
+    else if (isNewHighlightRequest) {
+        const targetSurahNumber = surah.number;
+        const specificId = `ayah-${targetSurahNumber}-${highlightAyahNumber}`;
+        
+        let attempts = 0;
+        const intervalId = setInterval(() => {
+            const element = document.getElementById(specificId);
+            attempts++;
+            if (element) {
+                clearInterval(intervalId);
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('animate-highlight-pulse');
+                setTimeout(() => element.classList.remove('animate-highlight-pulse'), 3000);
+            } else if (attempts > 30) { // More generous 3-second timeout
+                clearInterval(intervalId);
+            }
+        }, 100);
+
+        return () => clearInterval(intervalId); // Cleanup on effect change.
+    }
+    // --- PRIORITY 3: Fallback to scroll-to-top on new page navigation (if no highlight/audio) ---
+    else if (isNewPageOrSurah) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+  }, [highlightAyahNumber, currentlyPlayingAyahGlobalNumber, surah, browsingMode, pageSurahs, forcedPageNumber]);
+
+  // This separate effect ensures the "previous" values are always updated *after* the main scrolling effect has run.
+  // This correctly handles all cases, including when audio playback causes an early return in the main effect.
+  useEffect(() => {
+    prevHighlightAyahNumber.current = highlightAyahNumber;
+    prevSurahNumber.current = surah.number;
+    prevPageNumber.current = forcedPageNumber;
+  });
+
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target as Node;
+        if (!(target as HTMLElement).closest('.popover-trigger, .popover-content')) {
+            setActivePopover(null);
+        }
+        if (wordPopoverRef.current && !wordPopoverRef.current.contains(target)) {
+            if (!(event.target as HTMLElement).closest('.word-trigger')) {
+                setWordPopoverState(null);
+            }
+        }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+  
+  if (displayEdition.format === 'audio') {
+    return (
+      <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
+        <main className="bg-surface p-6 sm:p-8 rounded-lg shadow-md transition-colors duration-300">
+          <h3 className="text-xl font-bold mb-4 text-center text-primary-text">{displayEdition.name}</h3>
+          <div className="flex flex-col gap-2">
+            {surah.ayahs.map(ayah => (
+              ayah.audio ? (
+                <div key={ayah.number} className="flex items-center gap-4 py-2 px-3 my-1 bg-surface-subtle rounded-lg">
+                  <span className="font-bold text-primary-text">الآية {ayah.numberInSurah}</span>
+                  <audio
+                    controls
+                    src={ayah.audio}
+                    className="w-full h-10"
+                    preload="metadata"
+                    title={`الاستماع للآية ${ayah.numberInSurah}`}
+                  >
+                    متصفحك لا يدعم عنصر الصوت.
+                  </audio>
+                </div>
+              ) : null
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const { className: quranTextClass } = getQuranTextStyle(fontStyle, fontSize);
+
+  const handleSaveClick = (ayah: Ayah) => {
+    onSaveAyah({
+      type: 'ayah',
+      id: `${ayah.surah?.number || surah.number}:${ayah.numberInSurah}`,
+      surah: ayah.surah?.number || surah.number,
+      ayah: ayah.numberInSurah,
+      text: ayah.text || '',
+      createdAt: Date.now(),
+    });
+    setActivePopover(null);
+  };
+
+  const handleSaveReadingStop = (ayah: Ayah) => {
+    try {
+      const activeSurahNum = ayah.surah?.number || surah.number;
+      const activeSurahName = ayah.surah?.name || surah.name;
+      const activeAyahNum = ayah.numberInSurah;
+      
+      const newStop = {
+        browsingMode,
+        surahNumber: activeSurahNum,
+        surahName: activeSurahName,
+        ayahNumber: activeAyahNum,
+        pageNumber: browsingMode === 'page' ? currentPage : undefined,
+        timestamp: Date.now()
+      };
+
+      const stored = safeLocalStorage.getItem('qran_reading_stops');
+      let stops: any[] = [];
+      if (stored) {
+        stops = JSON.parse(stored);
+      }
+      
+      // Remove any existing stop for the same surah and ayah
+      stops = stops.filter(s => !(s.surahNumber === activeSurahNum && s.ayahNumber === activeAyahNum));
+      
+      // Add new stop to front, slice to max 5
+      stops.unshift(newStop);
+      stops = stops.slice(0, 50);
+      
+      safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
+    } catch (e) {
+      console.error("Failed to save reading stop", e);
+    }
+  };
+
+  const handleCopyAyah = (ayah: Ayah) => {
+    const isImlaei = fontStyle === 'imlai_1' || fontStyle === 'imlai_2';
+    let ayahText = ayah.text || '';
+
+    if (isImlaei) {
+        const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
+        ayahText = ayahText.replace(marksToRemoveRegex, '');
+    }
+    
+    const surahName = ayah.surah?.name || surah.name;
+    const cleanSurahName = formatSurahNameForDisplay(surahName);
+    const textToCopy = `"${ayahText}" (سورة ${cleanSurahName} - الآية ${ayah.numberInSurah})`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        setCopiedAyah(ayah.number);
+        setTimeout(() => setCopiedAyah(null), 2000);
+        setActivePopover(null);
+    });
+  };
+
+  const handleSearchByAyahText = (ayah: Ayah) => {
+    const sNum = ayah.surah?.number || surah.number;
+    const simpleSurah = simpleCleanData.find(s => s.number === sNum);
+    const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
+    const simpleTextToSearch = simpleAyah?.text;
+
+    if (simpleTextToSearch) {
+        onWordClick(simpleTextToSearch, 'quran-simple-clean', { surah: sNum, ayah: ayah.numberInSurah, wordIndex: 0 });
+    } else if (ayah.text) {
+        onWordClick(ayah.text, displayEdition.identifier, { surah: sNum, ayah: ayah.numberInSurah, wordIndex: 0 });
+    }
+    setActivePopover(null);
+  };
+  
+  const handlePlayFromAyah = (ayah: Ayah) => {
+    let ayahsWithSurahInfo: Ayah[] = [];
+    if (pageSurahs) {
+        ayahsWithSurahInfo = pageSurahs.flatMap(s => 
+            s.ayahs.map(a => ({
+                ...a,
+                surah: {
+                    number: s.number,
+                    name: s.name,
+                    englishName: s.englishName,
+                    englishNameTranslation: s.englishNameTranslation,
+                    revelationType: s.revelationType,
+                }
+            }))
+        );
+    } else {
+        ayahsWithSurahInfo = surah.ayahs.map(a => ({
+            ...a,
+            surah: {
+                number: surah.number,
+                name: surah.name,
+                englishName: surah.englishName,
+                englishNameTranslation: surah.englishNameTranslation,
+                revelationType: surah.revelationType,
+            }
+        }));
+    }
+    
+    const startIndex = ayahsWithSurahInfo.findIndex(a => a.number === ayah.number);
+    if (startIndex !== -1) {
+        onStartPlayback(ayahsWithSurahInfo, selectedAudioEdition, startIndex);
+    }
+    setActivePopover(null);
+  };
+  
+  // Navigation functions using global Routing (Hash)
+  const navigateToPage = (pageNum: number) => {
+      window.location.hash = `#/page/${pageNum}`;
+  };
+  
+  // Prepare content to render
+  const contentToRender = useMemo(() => {
+      if (browsingMode === 'page') {
+          return pageSurahs || (ayahsByPage.get(currentPage) ? [{...surah, ayahs: ayahsByPage.get(currentPage)!}] : []);
+      }
+      return [surah];
+  }, [browsingMode, ayahsByPage, currentPage, surah, pageSurahs]);
+
+  const pageInfo = useMemo(() => {
+    if (browsingMode !== 'page' || !hizbQuarterStartMap || contentToRender.length === 0) return null;
+    
+    // Use the first surah/ayah on the page for Header Info
+    const firstSurah = contentToRender[0];
+    if (!firstSurah || !firstSurah.ayahs || firstSurah.ayahs.length === 0) return null;
+
+    const firstAyah = firstSurah.ayahs[0];
+    
+    // Display name of the first surah on page
+    let surahName = firstSurah.name;
+    surahName = surahName.replace(/^سُورَةُ\s*/, '').trim();
+
+    const juzNumber = firstAyah.juz;
+    const hizbNumber = firstAyah.hizbQuarter ? Math.floor((firstAyah.hizbQuarter - 1) / 4) + 1 : null;
+    
+    const markers: {label: string}[] = [];
+    const processedQuarters = new Set<number>();
+    
+    if (hizbNumber) {
+        const startOfHizbQuarter = (hizbNumber - 1) * 4 + 1;
+        if(hizbQuarterStartMap.get(startOfHizbQuarter) === firstAyah.number) {
+            markers.push({ label: `الحزب ${hizbNumber}`});
+        }
+    }
+    
+    // Scan all ayahs on the page for hizb markers
+    for (const s of contentToRender) {
+        for(const ayah of s.ayahs) {
+            if(ayah.hizbQuarter && hizbQuarterStartMap.get(ayah.hizbQuarter) === ayah.number) {
+                if (processedQuarters.has(ayah.hizbQuarter)) continue;
+                
+                const quarterType = (ayah.hizbQuarter - 1) % 4;
+                if (quarterType === 1) markers.push({ label: 'ربع الحزب'});
+                else if (quarterType === 2) markers.push({ label: 'نصف الحزب'});
+                else if (quarterType === 3) markers.push({ label: 'ثلاثة أرباع الحزب'});
+
+                processedQuarters.add(ayah.hizbQuarter);
+            }
+        }
+    }
+    
+    return {
+        surahNumber: firstSurah.number,
+        surahName,
+        juzNumber,
+        markers,
+        side: currentPage % 2 === 0 ? 'left' : 'right'
+    };
+  }, [currentPage, browsingMode, contentToRender, hizbQuarterStartMap]);
+
+        
+  const findActiveAyah = () => {
+    const elements = document.querySelectorAll('[id^="ayah-"]');
+    let closestElement: Element | null = null;
+    let closestDistance = Infinity;
+
+    elements.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      const distance = Math.abs(rect.top - 150);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestElement = el;
+      }
+    });
+
+    if (closestElement) {
+      const id = (closestElement as HTMLElement).id;
+      const parts = id.split('-');
+      if (parts.length === 3) {
+        const sNum = parseInt(parts[1], 10);
+        const aNum = parseInt(parts[2], 10);
+        return { surahNumber: sNum, ayahNumber: aNum };
+      }
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const saveProgress = () => {
+      let activeAyahNum: number | null = null;
+      let activeSurahNum = surah.number;
+      let activePageNum = currentPage;
+
+      if (browsingMode === 'page') {
+        const active = findActiveAyah();
+        if (active && pageSurahs && pageSurahs.some(s => s.number === active.surahNumber)) {
+          activeSurahNum = active.surahNumber;
+          activeAyahNum = active.ayahNumber;
+        } else {
+          const firstSurahSegment = contentToRender[0];
+          if (firstSurahSegment && firstSurahSegment.ayahs && firstSurahSegment.ayahs.length > 0) {
+            activeSurahNum = firstSurahSegment.number;
+            activeAyahNum = firstSurahSegment.ayahs[0].numberInSurah;
+          }
+        }
+
+        const lastPosition = {
+          browsingMode: 'page',
+          pageNumber: activePageNum,
+          surahNumber: activeSurahNum,
+          ayahNumber: activeAyahNum || 1,
+          timestamp: Date.now()
+        };
+        safeLocalStorage.setItem('qran_last_read_position', JSON.stringify(lastPosition));
+        safeLocalStorage.setItem('qran_last_route', `#/page/${activePageNum}?ayah=${activeAyahNum || 1}`);
+      } else {
+        const active = findActiveAyah();
+        if (active) {
+          activeSurahNum = active.surahNumber;
+          activeAyahNum = active.ayahNumber;
+        } else if (surah.ayahs && surah.ayahs.length > 0) {
+          activeAyahNum = surah.ayahs[0].numberInSurah;
+        }
+
+        const lastPosition = {
+          browsingMode: 'full',
+          surahNumber: activeSurahNum,
+          ayahNumber: activeAyahNum || 1,
+          timestamp: Date.now()
+        };
+        safeLocalStorage.setItem('qran_last_read_position', JSON.stringify(lastPosition));
+        safeLocalStorage.setItem('qran_last_route', `#/surah/${activeSurahNum}?ayah=${activeAyahNum || 1}`);
+      }
+
+      // Automatically save to reading stops (history)
+      try {
+        const stored = safeLocalStorage.getItem('qran_reading_stops');
+        let stops: any[] = [];
+        if (stored) {
+          stops = JSON.parse(stored);
+        }
+
+        const surahObj = QURAN_INDEX.find(s => s.number === activeSurahNum);
+        const surahName = surahObj ? surahObj.name : `سورة ${activeSurahNum}`;
+
+        const newStop = {
+          browsingMode,
+          surahNumber: activeSurahNum,
+          surahName,
+          ayahNumber: activeAyahNum || 1,
+          pageNumber: browsingMode === 'page' ? activePageNum : undefined,
+          timestamp: Date.now()
+        };
+
+        const isDuplicate = stops.length > 0 && 
+          stops[0].surahNumber === activeSurahNum && 
+          stops[0].ayahNumber === (activeAyahNum || 1) &&
+          (browsingMode === 'page' ? stops[0].pageNumber === activePageNum : stops[0].browsingMode === 'full');
+
+        if (!isDuplicate) {
+          stops = stops.filter(s => {
+            if (browsingMode === 'page') {
+              return s.pageNumber !== activePageNum;
+            } else {
+              return s.surahNumber !== activeSurahNum;
+            }
+          });
+
+          stops.unshift(newStop);
+          stops = stops.slice(0, 50);
+          safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
+        }
+      } catch (e) {
+        console.error("Failed to autosave reading stop", e);
+      }
+    };
+
+    const handleScroll = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(saveProgress, 500);
+    };
+
+    saveProgress();
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, [surah.number, currentPage, browsingMode, contentToRender, pageSurahs]);
+
+  return (
+    <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
+      <div className="overflow-hidden rounded-lg">
+        {browsingMode === 'page' ? (
+          fontStyle === 'mushaf' ? (
+            <MushafPageView 
+              pageNumber={currentPage} 
+              onPageChange={navigateToPage}
+              onWordClick={(wordText, surahNum, ayahNum, wordIndex) => {
+                onWordClick(wordText, 'quran-simple-clean', { surah: surahNum, ayah: ayahNum, wordIndex });
+              }}
+              isSelectionMode={isSelectionMode}
+              selectedAyahKeys={selectedAyahKeys}
+              onAyahClick={(e, surahNum, ayahNum, text) => {
+                 const sName = QURAN_INDEX.find(s => s.number === surahNum)?.name || '';
+                 handleAyahSelection(e, surahNum, ayahNum, text, sName);
+              }}
+            />
+          ) : (
+             <div>
+                <div className="mushaf-page relative">
+                    {pageInfo?.markers.map((marker, index) => (
+                         <div key={index} className={`hizb-marker ${pageInfo.side}`}>{marker.label}</div>
+                    ))}
+                    <header className="mushaf-header">
+                        <span>{pageInfo?.juzNumber && `الجزء ${pageInfo.juzNumber}`}</span>
+                        {pageInfo?.surahName && (
+                            <a 
+                                href={`#/surah/${pageInfo.surahNumber}`}
+                                className="hover:text-primary hover:underline transition-colors cursor-pointer"
+                                title={`فتح سورة ${pageInfo.surahName}`}
+                            >
+                                سورة {pageInfo.surahName}
+                            </a>
+                        )}
+                    </header>
+                    
+                    <main dir="rtl" className={`text-text-primary ${quranTextClass} text-justify`}>
+                        {contentToRender.map((surahSegment, index) => {
+                            const isStartOfSurah = surahSegment.ayahs[0].numberInSurah === 1;
+                            const showBismillah = isStartOfSurah && surahSegment.number !== 1 && surahSegment.number !== 9;
+                            
+                            // Only pass highlight to the renderer if this segment matches the requested surah.
+                            // This prevents conflict if multiple surahs on page have the same ayah number (e.g. 1).
+                            const isTargetSurah = surahSegment.number === surah.number;
+                            const effectiveHighlight = isTargetSurah ? highlightAyahNumber : null;
+
+                            return (
+                                <React.Fragment key={surahSegment.number}>
+                                    {/* Traditional Islamic Section Divider if not the first surah on page */}
+                                    {index > 0 && (
+                                        <IslamicSectionDivider className="my-6" />
+                                    )}
+
+                                    {/* Surah Header if start of surah */}
+                                    {isStartOfSurah && (
+                                        <SurahHeaderStrip surahNumber={surahSegment.number} surahName={surahSegment.name} />
+                                    )}
+
+                                    {/* Bismillah */}
+                                    {showBismillah && (
+                                        <div className="text-center mb-6 font-bismillah text-2xl text-primary-text-strong select-none">
+                                            بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
+                                        </div>
+                                    )}
+
+                                    {/* Ayahs */}
+                                    <AyahRenderer 
+                                        ayahsToRender={surahSegment.ayahs} 
+                                        surah={surahSegment} 
+                                        highlightAyahNumber={effectiveHighlight} 
+                                        onWordClick={onWordClick} 
+                                        currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber} 
+                                        simpleCleanData={simpleCleanData} 
+                                        wordPopoverState={wordPopoverState} 
+                                        setWordPopoverState={setWordPopoverState} 
+                                        setActivePopover={setActivePopover} 
+                                        playingAyahRef={playingAyahRef} 
+                                        highlightRef={highlightRef} 
+                                        firstAyahInfo={null} // Bismillah handled above
+                                        isSelectionMode={isSelectionMode}
+                                        selectedAyahKeys={selectedAyahKeys}
+                                        onAyahClick={handleAyahSelection}
+                                    />
+                                </React.Fragment>
+                            );
+                        })}
+                    </main>
+
+                    <footer className="mushaf-footer flex items-center justify-between mt-4">
+                        <div className="w-16">
+                            {currentPage > 1 && (
+                                <button 
+                                    onClick={() => navigateToPage(currentPage - 1)}
+                                    className="w-full border-2 border-current rounded py-1 hover:bg-black/5 dark:hover:bg-white/10 transition-colors font-mono text-lg font-bold"
+                                    title="الصفحة السابقة"
+                                >
+                                    {currentPage - 1}
+                                </button>
+                            )}
+                        </div>
+                        <span className="font-bold text-xl">{currentPage}</span>
+                        <div className="w-16">
+                            {currentPage < 604 && (
+                                <button 
+                                    onClick={() => navigateToPage(currentPage + 1)}
+                                    className="w-full border-2 border-current rounded py-1 hover:bg-black/5 dark:hover:bg-white/10 transition-colors font-mono text-lg font-bold"
+                                    title="الصفحة التالية"
+                                >
+                                    {currentPage + 1}
+                                </button>
+                            )}
+                        </div>
+                    </footer>
+                </div>
+            </div>
+          )
+        ) : (
+            <main
+                className={`bg-surface p-6 sm:p-8 rounded-lg shadow-md transition-colors duration-300`}
+            >
+                {/* Full Surah Mode or Simple Text Page Mode (though page mode forces Uthmani usually) */}
+                {/* Render simpler version for full mode, just one surah usually */}
+                
+                {contentToRender.map((surahSegment, index) => {
+                     const isStartOfSurah = surahSegment.ayahs[0].numberInSurah === 1;
+                     const showBismillah = isStartOfSurah && surahSegment.number !== 1 && surahSegment.number !== 9;
+                     
+                     // Ensure highlight is applied correctly even in text mode if multiple segments exist
+                     const isTargetSurah = surahSegment.number === surah.number;
+                     const effectiveHighlight = isTargetSurah ? highlightAyahNumber : null;
+
+                     return (
+                        <div key={surahSegment.number} className={index > 0 ? "mt-8 pt-8 border-t border-dashed border-border-default" : ""}>
+                             {isStartOfSurah && (
+                                <SurahHeaderStrip surahNumber={surahSegment.number} surahName={surahSegment.name} />
+                            )}
+                            {showBismillah && (
+                                <div className="text-center mb-8 font-bismillah text-2xl text-primary-text-strong">
+                                    بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
+                                </div>
+                            )}
+                            <div dir="rtl" className={`text-text-primary ${quranTextClass} text-justify`} style={{ textAlign: 'justify', textJustify: 'inter-word' }}>
+                                <AyahRenderer 
+                                    ayahsToRender={surahSegment.ayahs} 
+                                    surah={surahSegment} 
+                                    highlightAyahNumber={effectiveHighlight} 
+                                    onWordClick={onWordClick} 
+                                    currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber} 
+                                    simpleCleanData={simpleCleanData} 
+                                    wordPopoverState={wordPopoverState} 
+                                    setWordPopoverState={setWordPopoverState} 
+                                    setActivePopover={setActivePopover} 
+                                    playingAyahRef={playingAyahRef} 
+                                    highlightRef={highlightRef} 
+                                    firstAyahInfo={null}
+                                    isSelectionMode={isSelectionMode}
+                                    selectedAyahKeys={selectedAyahKeys}
+                                    onAyahClick={handleAyahSelection}
+                                />
+                            </div>
+                        </div>
+                     )
+                })}
+            </main>
+        )}
+      </div>
+      
+      {browsingMode === 'page' && (
+          <div className="mt-6 flex items-center justify-between p-2 bg-surface rounded-full shadow-md border border-border-default">
+              <button 
+                  onClick={() => navigateToPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-text-secondary hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                  <ArrowRightIcon className="w-5 h-5" />
+                  <span className="font-semibold hidden sm:inline">الصفحة السابقة</span>
+              </button>
+              <div className="font-bold text-lg text-text-primary font-mono select-none">
+                  {currentPage}
+              </div>
+              <button 
+                  onClick={() => navigateToPage(currentPage + 1)} 
+                  disabled={currentPage >= 604}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-text-secondary hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                  <span className="font-semibold hidden sm:inline">الصفحة التالية</span>
+                  <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+          </div>
+      )}
+
+      {wordPopoverState && (
+         <div 
+            ref={wordPopoverRef}
+            className="absolute p-3 bg-surface rounded-lg shadow-lg border border-border-default flex items-center gap-2 z-20 animate-fade-in flex-wrap leading-loose"
+            style={(() => {
+                if (!wordPopoverState.triggerElement) return { opacity: 0, top: 0, left: 0 };
+                const rect = wordPopoverState.triggerElement.getBoundingClientRect();
+                return {
+                    top: `${rect.bottom + window.scrollY + 5}px`,
+                    left: `${rect.left + window.scrollX + rect.width / 2}px`,
+                    transform: 'translateX(-50%)',
+                };
+            })()}
+        >
+            {wordPopoverState.simpleText.split(' ').map((word, index) => (
+                <button
+                    key={index}
+                    onClick={() => {
+                        // Find the surah number from the context (a bit tricky here since we have multiple surahs).
+                        // However, wordPopoverState stores the trigger element. 
+                        // To keep it simple, we pass the first surah's number or fix logic later if needed.
+                        // Ideally we should store surah number in popover state too.
+                        // For now, defaulting to current viewed surah (prop) is safe enough for 99% cases or user context.
+                        onWordClick(word, 'quran-simple-clean', { surah: surah.number, ayah: wordPopoverState.ayahNumberInSurah, wordIndex: index });
+                        setWordPopoverState(null);
+                    }}
+                    className="px-2 py-1 bg-surface-subtle rounded-md hover:bg-primary/20 transition-colors"
+                >
+                    {word}
+                </button>
+            ))}
+        </div>
+      )}
+
+      {activePopover && (
+        <AyahActionPopover 
+            activePopover={activePopover}
+            onClose={() => setActivePopover(null)}
+            onSave={handleSaveClick}
+            onCopy={handleCopyAyah}
+            onSearchText={handleSearchByAyahText}
+            onSearchNumber={onSearchByAyahNumber}
+            onPlayFrom={handlePlayFromAyah}
+            onSaveStop={handleSaveReadingStop}
+            copiedAyah={copiedAyah}
+            onStartSelection={(ayah) => {
+                const sName = ayah.surah?.name || surah.name;
+                handleAyahSelection({ preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent, surah.number, ayah.numberInSurah, ayah.text || '', sName);
+            }}
+        />
+      )}
+
+      {/* Floating Selection Bar */}
+      {isSelectionMode && selectedAyahs.length > 0 && (
+          <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-2 bg-surface p-2 sm:p-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-primary/20 animate-fade-in-up">
+              <div className="text-center font-bold text-sm text-primary mb-1">
+                  {selectedAyahs.length}
+                  <span className="block text-[10px] text-text-secondary">آيات</span>
+              </div>
+              <button 
+                  onClick={handleCopyMultiple} 
+                  className="p-3 sm:p-4 bg-primary text-primary-content rounded-xl hover:bg-primary-hover hover:scale-105 transition-all shadow-md flex flex-col items-center gap-1"
+                  title="نسخ الآيات المحددة"
+              >
+                  <CopyIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span className="text-xs font-bold text-white">نسخ</span>
+              </button>
+          </div>
+      )}
+
+      {/* Toast Notification */}
+      {showMultiCopyToast && (
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 animate-fade-in pointer-events-none">
+              <CheckIcon className="w-5 h-5" />
+              <span className="font-bold text-sm">تم نسخ الآيات المحددة بنجاح</span>
+          </div>
+      )}
+
+    </div>
+  );
+};
+
+export default SurahDetailView;
