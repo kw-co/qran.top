@@ -13,6 +13,7 @@ import CreateKhatmahModal from './CreateKhatmahModal';
 import ReserveJuzModal from './ReserveJuzModal';
 import PartActionModal from './PartActionModal';
 import DuaaKhatmModal from './DuaaKhatmModal';
+import JoinKhatmahModal from './JoinKhatmahModal';
 import { useSettingsContext } from '../../contexts/SettingsContext';
 
 interface GroupKhatmahViewProps {
@@ -72,6 +73,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [isDuaaModalOpen, setIsDuaaModalOpen] = useState(false);
   const [reservingPartNumber, setReservingPartNumber] = useState<number | null>(null);
   const [selectedPartForAction, setSelectedPartForAction] = useState<number | null>(null);
@@ -608,6 +610,16 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
               <span>إنشاء ختمة جديدة</span>
             </button>
 
+            {/* Join by Code */}
+            <button
+              onClick={() => setIsJoinModalOpen(true)}
+              className="px-3.5 py-2.5 bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary text-xs sm:text-sm font-bold rounded-2xl transition-all flex items-center gap-1.5"
+              title="الانضمام إلى ختمة بواسطة الكود"
+            >
+              <span>🔑</span>
+              <span>انضمام بكود</span>
+            </button>
+
             {/* Copy Share Link */}
             <button
               onClick={() => handleCopyLink()}
@@ -1121,6 +1133,17 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
         <CreateKhatmahModal
           onClose={() => setIsCreateModalOpen(false)}
           onCreate={handleCreateKhatmah}
+        />
+      )}
+
+      {/* Join by Code Modal */}
+      {isJoinModalOpen && (
+        <JoinKhatmahModal
+          onClose={() => setIsJoinModalOpen(false)}
+          onJoin={(id) => {
+            setIsJoinModalOpen(false);
+            handleOpenKhatmah(id);
+          }}
         />
       )}
 
