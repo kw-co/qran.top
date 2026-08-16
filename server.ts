@@ -37,6 +37,15 @@ async function startServer() {
   // API Routes (must be declared BEFORE Vite)
   // ==========================================
 
+  // Middleware to disable HTTP caching on all API responses
+  app.use('/api', (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    next();
+  });
+
   // 1. Health & Status
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
@@ -62,15 +71,37 @@ async function startServer() {
     }
   });
 
-  // 3. Khatmah CRUD & Interactions
-  app.get('/api/khatmah', async (req, res) => {
+  // 3. Khatmah CRUD & Interactions (supporting both /api/khatmah and /api/khatmahs)
+  const getKhatmahsHandler = async (req: express.Request, res: express.Response) => {
     try {
       const list = await getAllKhatmahs();
       res.json(list);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
-  });
+  };
+
+  app.get('/api/khatmah', getKhatmahsHandler);
+  app.get('/api/khatmahs', getKhatmahsHandler);
+
+  const createKhatmahHandler = async (req: express.Request, res: express.Response) => {
+    try {
+      const { title, dedication, targetDate, createdBy, khatmahType } = req.body;
+      const created = await createNewKhatmah({
+        title,
+        dedication,
+        targetDate,
+        createdBy,
+        khatmahType,
+      });
+      res.json(created);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+  app.post('/api/khatmah', createKhatmahHandler);
+  app.post('/api/khatmahs', createKhatmahHandler);
 
   app.get('/api/khatmah/:id', async (req, res) => {
     try {
@@ -79,21 +110,6 @@ async function startServer() {
         return res.status(404).json({ error: 'الختمة غير موجودة' });
       }
       res.json(item);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post('/api/khatmah', async (req, res) => {
-    try {
-      const { title, dedication, targetDate, createdBy } = req.body;
-      const created = await createNewKhatmah({
-        title,
-        dedication,
-        targetDate,
-        createdBy,
-      });
-      res.json(created);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

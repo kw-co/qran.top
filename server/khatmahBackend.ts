@@ -6,6 +6,8 @@ import {
   clearAllKvKhatmahs,
 } from './cloudflareService';
 
+const DEFAULT_WORKER_URL = 'https://qran-khatmah-api.amerawad111.workers.dev';
+
 // In-memory cache for ultra-fast response
 const memoryKhatmahs = new Map<string, GroupKhatmah>();
 let isInitialized = false;
@@ -30,6 +32,25 @@ function initializeEmptyParts(): Record<number, KhatmahPart> {
   return parts;
 }
 
+export function normalizeParts(parts?: Record<any, any>): Record<number, KhatmahPart> {
+  const normalized = initializeEmptyParts();
+  if (!parts) return normalized;
+  for (let i = 1; i <= 30; i++) {
+    const raw = parts[i] || parts[String(i)];
+    if (raw) {
+      normalized[i] = {
+        partNumber: i,
+        status: raw.status || 'available',
+        reservedBy: raw.reservedBy || undefined,
+        reservedAt: raw.reservedAt || undefined,
+        completedBy: raw.completedBy || undefined,
+        completedAt: raw.completedAt || undefined,
+      };
+    }
+  }
+  return normalized;
+}
+
 function getCurrentYearMonth(): string {
   return new Date().toISOString().slice(0, 7);
 }
@@ -50,8 +71,9 @@ function checkAndRenewMonthlyKhatmah(k: GroupKhatmah): GroupKhatmah {
 
 function isRealKhatmah(k: GroupKhatmah | null | undefined): k is GroupKhatmah {
   if (!k || !k.id) return false;
-  if (k.id === 'KHT-7777' || k.id === 'KHT-2026') return false;
-  if (k.title && k.title.includes('الختمة القرآنية المباركة الأولى')) return false;
+  if (!k.title || typeof k.title !== 'string') return false;
+  // Exclude old dummy test IDs if any
+  if (k.id === 'KHT-7777') return false;
   return true;
 }
 
@@ -61,6 +83,41 @@ export async function clearAllBackendKhatmahs(): Promise<void> {
     await clearAllKvKhatmahs();
   } catch (err) {
     console.error('Error clearing KV:', err);
+  }
+  try {
+    await fetch(`${DEFAULT_WORKER_URL}/api/khatmah/admin/clear-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    // Ignore
+  }
+}
+
+// Background sync from Cloudflare Worker to Memory
+async function syncFromCloudflareWorker(): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`${DEFAULT_WORKER_URL}/api/khatmahs?_t=${Date.now()}`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list)) {
+        for (const item of list) {
+          if (isRealKhatmah(item)) {
+            item.parts = normalizeParts(item.parts);
+            const renewed = checkAndRenewMonthlyKhatmah(item);
+            memoryKhatmahs.set(renewed.id, renewed);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Fallback quietly
   }
 }
 
@@ -80,14 +137,16 @@ export async function initBackendStorage() {
           const items: any[] = JSON.parse(indexRaw);
           for (const item of items) {
             if (typeof item === 'object' && item && item.id && isRealKhatmah(item)) {
+              item.parts = normalizeParts(item.parts);
               memoryKhatmahs.set(item.id, checkAndRenewMonthlyKhatmah(item));
             } else if (typeof item === 'string') {
               const id = item.toUpperCase();
-              if (id === 'KHT-7777' || id === 'KHT-2026') continue;
+              if (id === 'KHT-7777') continue;
               const dataRaw = (await getKvValue(`khatmah:${id}`)) || (await getKvValue(`khatmah_${id}`));
               if (dataRaw) {
                 const k: GroupKhatmah = JSON.parse(dataRaw);
                 if (isRealKhatmah(k)) {
+                  k.parts = normalizeParts(k.parts);
                   memoryKhatmahs.set(k.id, checkAndRenewMonthlyKhatmah(k));
                 }
               }
@@ -99,6 +158,9 @@ export async function initBackendStorage() {
         }
       }
     }
+
+    // Also sync from Worker endpoint directly to ensure zero data loss
+    await syncFromCloudflareWorker();
   } catch (err) {
     console.error('Error initializing backend storage:', err);
   }
@@ -106,13 +168,13 @@ export async function initBackendStorage() {
 
 async function saveKhatmah(khatmah: GroupKhatmah): Promise<void> {
   if (!isRealKhatmah(khatmah)) return;
+  khatmah.parts = normalizeParts(khatmah.parts);
   memoryKhatmahs.set(khatmah.id, khatmah);
 
-  // Background sync to Cloudflare KV
+  // 1. Direct Cloudflare KV sync if direct token is present
   try {
     const status = await checkAndInitCloudflare();
     if (status.storageMode === 'cloudflare_kv') {
-      // Store under both formats for total interoperability with Worker
       const json = JSON.stringify(khatmah);
       await putKvValue(`khatmah:${khatmah.id}`, json);
       await putKvValue(`khatmah_${khatmah.id}`, json);
@@ -123,13 +185,34 @@ async function saveKhatmah(khatmah: GroupKhatmah): Promise<void> {
   } catch (err) {
     console.error('Failed to sync to Cloudflare KV:', err);
   }
+
+  // 2. Cloudflare Worker API sync (for global real-time synchronization across all devices)
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    await fetch(`${DEFAULT_WORKER_URL}/api/khatmah`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(khatmah),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+  } catch (err) {
+    // Non-fatal
+  }
 }
 
 export async function getAllKhatmahs(): Promise<GroupKhatmah[]> {
   await initBackendStorage();
+  // Fast background re-sync
+  syncFromCloudflareWorker().catch(() => {});
+
   const list = Array.from(memoryKhatmahs.values())
     .filter(isRealKhatmah)
-    .map(checkAndRenewMonthlyKhatmah);
+    .map(k => {
+      k.parts = normalizeParts(k.parts);
+      return checkAndRenewMonthlyKhatmah(k);
+    });
   return list.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
@@ -138,10 +221,11 @@ export async function getAllKhatmahs(): Promise<GroupKhatmah[]> {
 export async function getKhatmahById(id: string): Promise<GroupKhatmah | null> {
   await initBackendStorage();
   const normalizedId = id.toUpperCase();
-  if (normalizedId === 'KHT-7777' || normalizedId === 'KHT-2026') return null;
+  if (normalizedId === 'KHT-7777') return null;
 
   if (memoryKhatmahs.has(normalizedId)) {
     const k = memoryKhatmahs.get(normalizedId)!;
+    k.parts = normalizeParts(k.parts);
     return checkAndRenewMonthlyKhatmah(k);
   }
 
@@ -151,6 +235,7 @@ export async function getKhatmahById(id: string): Promise<GroupKhatmah | null> {
     if (raw) {
       const parsed: GroupKhatmah = JSON.parse(raw);
       if (isRealKhatmah(parsed)) {
+        parsed.parts = normalizeParts(parsed.parts);
         const renewed = checkAndRenewMonthlyKhatmah(parsed);
         memoryKhatmahs.set(renewed.id, renewed);
         return renewed;
@@ -159,6 +244,20 @@ export async function getKhatmahById(id: string): Promise<GroupKhatmah | null> {
   } catch (e) {
     console.error('Error checking KV for khatmah:', id, e);
   }
+
+  // Try fetching from Worker
+  try {
+    const res = await fetch(`${DEFAULT_WORKER_URL}/api/khatmah/${encodeURIComponent(normalizedId)}?_t=${Date.now()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (isRealKhatmah(data)) {
+        data.parts = normalizeParts(data.parts);
+        const renewed = checkAndRenewMonthlyKhatmah(data);
+        memoryKhatmahs.set(renewed.id, renewed);
+        return renewed;
+      }
+    }
+  } catch (e) {}
 
   return null;
 }
@@ -202,7 +301,7 @@ export async function reserveKhatmahPart(
   partNumber: number,
   reservedBy: string
 ): Promise<GroupKhatmah> {
-  const khatmah = await getKhatmahById(khatmahId);
+  let khatmah = await getKhatmahById(khatmahId);
   if (!khatmah) {
     throw new Error('الختمة غير موجودة');
   }
@@ -211,9 +310,7 @@ export async function reserveKhatmahPart(
     throw new Error('رقم الجزء يجب أن يكون بين 1 و 30');
   }
 
-  if (!khatmah.parts) {
-    khatmah.parts = initializeEmptyParts();
-  }
+  khatmah.parts = normalizeParts(khatmah.parts);
 
   const part = khatmah.parts[partNumber] || {
     partNumber,
@@ -225,6 +322,7 @@ export async function reserveKhatmahPart(
   part.reservedAt = Date.now();
   khatmah.parts[partNumber] = part;
 
+  recomputeKhatmahStatus(khatmah);
   await saveKhatmah(khatmah);
   return khatmah;
 }
@@ -233,21 +331,26 @@ export async function unreserveKhatmahPart(
   khatmahId: string,
   partNumber: number
 ): Promise<GroupKhatmah> {
-  const khatmah = await getKhatmahById(khatmahId);
+  let khatmah = await getKhatmahById(khatmahId);
   if (!khatmah) {
     throw new Error('الختمة غير موجودة');
   }
 
-  if (!khatmah.parts) {
-    khatmah.parts = initializeEmptyParts();
+  if (partNumber < 1 || partNumber > 30) {
+    throw new Error('رقم الجزء يجب أن يكون بين 1 و 30');
   }
 
-  const part = khatmah.parts[partNumber];
-  if (part) {
-    part.status = 'available';
-    delete part.reservedBy;
-    delete part.reservedAt;
-  }
+  khatmah.parts = normalizeParts(khatmah.parts);
+
+  const part = khatmah.parts[partNumber] || {
+    partNumber,
+    status: 'available',
+  };
+
+  part.status = 'available';
+  delete part.reservedBy;
+  delete part.reservedAt;
+  khatmah.parts[partNumber] = part;
 
   recomputeKhatmahStatus(khatmah);
   await saveKhatmah(khatmah);
@@ -259,14 +362,16 @@ export async function completeKhatmahPart(
   partNumber: number,
   completedBy?: string
 ): Promise<GroupKhatmah> {
-  const khatmah = await getKhatmahById(khatmahId);
+  let khatmah = await getKhatmahById(khatmahId);
   if (!khatmah) {
     throw new Error('الختمة غير موجودة');
   }
 
-  if (!khatmah.parts) {
-    khatmah.parts = initializeEmptyParts();
+  if (partNumber < 1 || partNumber > 30) {
+    throw new Error('رقم الجزء يجب أن يكون بين 1 و 30');
   }
+
+  khatmah.parts = normalizeParts(khatmah.parts);
 
   const part = khatmah.parts[partNumber] || {
     partNumber,
@@ -287,27 +392,30 @@ export async function uncompleteKhatmahPart(
   khatmahId: string,
   partNumber: number
 ): Promise<GroupKhatmah> {
-  const khatmah = await getKhatmahById(khatmahId);
+  let khatmah = await getKhatmahById(khatmahId);
   if (!khatmah) {
     throw new Error('الختمة غير موجودة');
   }
 
-  if (!khatmah.parts) {
-    khatmah.parts = initializeEmptyParts();
+  if (partNumber < 1 || partNumber > 30) {
+    throw new Error('رقم الجزء يجب أن يكون بين 1 و 30');
   }
 
-  const part = khatmah.parts[partNumber];
-  if (part) {
-    if (part.reservedBy) {
-      part.status = 'reserved';
-      delete part.completedAt;
-      delete part.completedBy;
-    } else {
-      part.status = 'available';
-      delete part.completedAt;
-      delete part.completedBy;
-    }
+  khatmah.parts = normalizeParts(khatmah.parts);
+
+  const part = khatmah.parts[partNumber] || {
+    partNumber,
+    status: 'available',
+  };
+
+  if (part.reservedBy) {
+    part.status = 'reserved';
+  } else {
+    part.status = 'available';
   }
+  delete part.completedAt;
+  delete part.completedBy;
+  khatmah.parts[partNumber] = part;
 
   recomputeKhatmahStatus(khatmah);
   await saveKhatmah(khatmah);
@@ -328,3 +436,4 @@ function recomputeKhatmahStatus(k: GroupKhatmah) {
     delete k.completedAt;
   }
 }
+

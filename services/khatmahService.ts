@@ -7,13 +7,6 @@ const CLOUDFLARE_WORKER_URL_KEY = 'qran_cloudflare_khatmah_worker_url';
 // Primary Production Cloudflare Worker connected to KV
 export const DEFAULT_WORKER_URL = 'https://qran-khatmah-api.amerawad111.workers.dev';
 
-// Clear legacy storage keys on module load
-try {
-  safeLocalStorage.removeItem('qran_group_khatmahs');
-  safeLocalStorage.removeItem('qran_group_khatmahs_v2');
-  safeLocalStorage.removeItem('qran_group_khatmahs_v3');
-} catch (e) {}
-
 // BroadcastChannel for cross-tab live updates on the same device
 const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('qran_khatmah_sync') : null;
 
@@ -77,14 +70,49 @@ export const checkAndRenewMonthlyKhatmah = (k: GroupKhatmah): GroupKhatmah => {
   return k;
 };
 
-// Filter out test / dummy khatmahs
+// Filter out corrupt / invalid khatmahs
 const isRealKhatmah = (k: GroupKhatmah | null | undefined): k is GroupKhatmah => {
-  if (!k || !k.id) return false;
-  // Exclude old test IDs
-  if (k.id === 'KHT-7777' || k.id === 'KHT-2026') return false;
-  if (k.title && k.title.includes('الختمة القرآنية المباركة الأولى')) return false;
+  if (!k || !k.id || typeof k.id !== 'string') return false;
+  if (!k.title || typeof k.title !== 'string') return false;
+  // Exclude old test ID if needed
+  if (k.id === 'KHT-7777') return false;
   return true;
 };
+
+// Robust fetch helper with timeout, no-cache headers, and cache-busting timestamp
+async function fetchFresh(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 4500
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const separator = url.includes('?') ? '&' : '?';
+  const urlWithCacheBuster = `${url}${separator}_t=${Date.now()}`;
+
+  const headers = new Headers(options.headers || {});
+  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  headers.set('Pragma', 'no-cache');
+  headers.set('Expires', '0');
+  if (!headers.has('Accept')) {
+    headers.set('Accept', 'application/json');
+  }
+
+  try {
+    const res = await fetch(urlWithCacheBuster, {
+      ...options,
+      headers,
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return res;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
 
 // Get stored local khatmahs (for instant offline UI)
 const getLocalKhatmahs = (): Record<string, GroupKhatmah> => {
@@ -96,6 +124,7 @@ const getLocalKhatmahs = (): Record<string, GroupKhatmah> => {
       Object.entries(parsed).forEach(([key, val]) => {
         const k = val as GroupKhatmah;
         if (isRealKhatmah(k)) {
+          k.parts = normalizeKhatmahParts(k.parts);
           cleaned[key] = checkAndRenewMonthlyKhatmah(k);
         }
       });
@@ -113,6 +142,7 @@ const saveLocalKhatmahs = (data: Record<string, GroupKhatmah>) => {
     const cleaned: Record<string, GroupKhatmah> = {};
     Object.entries(data).forEach(([key, val]) => {
       if (isRealKhatmah(val)) {
+        val.parts = normalizeKhatmahParts(val.parts);
         cleaned[key] = val;
       }
     });
@@ -148,9 +178,7 @@ export async function getCloudflareStatus(): Promise<{
 }> {
   const workerUrl = getCloudflareWorkerUrl();
   try {
-    const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmahs`, {
-      headers: { Accept: 'application/json' },
-    });
+    const res = await fetchFresh(`${workerUrl.replace(/\/$/, '')}/api/khatmahs`, {}, 3000);
     if (res.ok) {
       return {
         hasToken: true,
@@ -161,7 +189,7 @@ export async function getCloudflareStatus(): Promise<{
         namespaceTitle: 'QRAN_KHATMAH_KV',
         workerUrl,
         storageMode: 'cloudflare_kv',
-        message: '⚡ متصل بسحابة Cloudflare KV بنجاح.',
+        message: '⚡ متصل بسحابة Cloudflare KV بنجاح والمزامنة نشطة بين كافة الأجهزة.',
       };
     }
   } catch (e) {
@@ -177,12 +205,12 @@ export async function getCloudflareStatus(): Promise<{
     namespaceTitle: 'QRAN_KHATMAH_KV',
     workerUrl,
     storageMode: 'cloudflare_kv',
-    message: 'جاري الاتصال بقاعدة بيانات Cloudflare KV السحابية...',
+    message: 'جاري الاتصال السحابي بقاعدة البيانات وتحديث الأجهزة...',
   };
 }
 
 export const khatmahService = {
-  // Fetch single Khatmah by ID
+  // Fetch single Khatmah by ID (always fresh, zero cache)
   async getKhatmah(id: string): Promise<GroupKhatmah | null> {
     const cleanId = id.trim().toUpperCase();
     const workerUrl = getCloudflareWorkerUrl();
@@ -190,12 +218,11 @@ export const khatmahService = {
     // 1. Direct Cloudflare Worker KV API (Primary for all devices / phones)
     if (workerUrl) {
       try {
-        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}`, {
-          headers: { Accept: 'application/json' },
-        });
+        const res = await fetchFresh(`${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}`);
         if (res.ok) {
           const data = await res.json();
           if (isRealKhatmah(data)) {
+            data.parts = normalizeKhatmahParts(data.parts);
             const renewed = checkAndRenewMonthlyKhatmah(data);
             const local = getLocalKhatmahs();
             local[renewed.id] = renewed;
@@ -208,12 +235,13 @@ export const khatmahService = {
       }
     }
 
-    // 2. Local Express server if available
+    // 2. App Server API fallback
     try {
-      const res = await fetch(`/api/khatmah/${encodeURIComponent(cleanId)}`);
+      const res = await fetchFresh(`/api/khatmah/${encodeURIComponent(cleanId)}`);
       if (res.ok) {
         const data = await res.json();
         if (isRealKhatmah(data)) {
+          data.parts = normalizeKhatmahParts(data.parts);
           const renewed = checkAndRenewMonthlyKhatmah(data);
           const local = getLocalKhatmahs();
           local[renewed.id] = renewed;
@@ -257,21 +285,28 @@ export const khatmahService = {
       cycleNumber: isMonthly ? 1 : undefined,
     };
 
-    // 1. Save directly to Cloudflare KV Worker (syncs to all devices globally)
+    // Save to local cache immediately for zero latency
+    const local = getLocalKhatmahs();
+    local[newKhatmah.id] = newKhatmah;
+    saveLocalKhatmahs(local);
+
+    // 1. Sync to Cloudflare KV Worker (syncs to all devices globally)
+    let savedKhatmah: GroupKhatmah | null = null;
     if (workerUrl) {
       try {
-        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmah`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newKhatmah),
-        });
+        const res = await fetchFresh(
+          `${workerUrl.replace(/\/$/, '')}/api/khatmah`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newKhatmah),
+          },
+          4000
+        );
         if (res.ok) {
           const saved = await res.json();
           if (saved && saved.id) {
-            const local = getLocalKhatmahs();
-            local[saved.id] = saved;
-            saveLocalKhatmahs(local);
-            return saved;
+            savedKhatmah = saved;
           }
         }
       } catch (err) {
@@ -279,53 +314,72 @@ export const khatmahService = {
       }
     }
 
-    // 2. Server API fallback
+    // 2. Also propagate to app server endpoint in parallel
     try {
-      const res = await fetch('/api/khatmah', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newKhatmah),
-      });
+      const res = await fetchFresh(
+        '/api/khatmah',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newKhatmah),
+        },
+        3000
+      );
       if (res.ok) {
-        const data = await res.json();
-        if (data && data.id) {
-          const local = getLocalKhatmahs();
-          local[data.id] = data;
-          saveLocalKhatmahs(local);
-          return data;
+        const serverData = await res.json();
+        if (serverData && serverData.id && !savedKhatmah) {
+          savedKhatmah = serverData;
         }
       }
     } catch (err) {
-      // Fallback
+      // Non-fatal
     }
 
-    // 3. Local storage fallback
-    const local = getLocalKhatmahs();
-    local[newKhatmah.id] = newKhatmah;
+    const finalResult = savedKhatmah || newKhatmah;
+    finalResult.parts = normalizeKhatmahParts(finalResult.parts);
+    local[finalResult.id] = finalResult;
     saveLocalKhatmahs(local);
-    return newKhatmah;
+    return finalResult;
   },
 
   // Reserve a Juz (Part)
   async reservePart(khatmahId: string, partNumber: number, reservedBy: string): Promise<GroupKhatmah> {
     const cleanId = khatmahId.trim().toUpperCase();
     const workerUrl = getCloudflareWorkerUrl();
+    const cleanName = (reservedBy || 'مشارك').trim();
 
-    // 1. Direct Cloudflare Worker API
+    // 1. Update local state immediately
+    const local = getLocalKhatmahs();
+    let current = local[cleanId];
+    if (current) {
+      if (!current.parts) current.parts = createInitialParts();
+      current.parts[partNumber] = {
+        partNumber,
+        status: 'reserved',
+        reservedBy: cleanName,
+        reservedAt: Date.now(),
+      };
+      saveLocalKhatmahs(local);
+    }
+
+    let updatedFromRemote: GroupKhatmah | null = null;
+
+    // 2. Send to Cloudflare Worker API
     if (workerUrl) {
       try {
-        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}/reserve`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ partNumber, reservedBy }),
-        });
+        const res = await fetchFresh(
+          `${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}/reserve`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ partNumber, reservedBy: cleanName }),
+          },
+          4000
+        );
         if (res.ok) {
           const updated = await res.json();
           if (updated && updated.id) {
-            const local = getLocalKhatmahs();
-            local[updated.id] = updated;
-            saveLocalKhatmahs(local);
-            return updated;
+            updatedFromRemote = updated;
           }
         }
       } catch (err) {
@@ -333,42 +387,38 @@ export const khatmahService = {
       }
     }
 
-    // 2. Server API fallback
+    // 3. Send to Server API in parallel
     try {
-      const res = await fetch(`/api/khatmah/${encodeURIComponent(cleanId)}/reserve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ partNumber, reservedBy }),
-      });
+      const res = await fetchFresh(
+        `/api/khatmah/${encodeURIComponent(cleanId)}/reserve`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ partNumber, reservedBy: cleanName }),
+        },
+        3000
+      );
       if (res.ok) {
-        const updated = await res.json();
-        if (updated && updated.id) {
-          const local = getLocalKhatmahs();
-          local[updated.id] = updated;
-          saveLocalKhatmahs(local);
-          return updated;
+        const serverUpdated = await res.json();
+        if (serverUpdated && serverUpdated.id && !updatedFromRemote) {
+          updatedFromRemote = serverUpdated;
         }
       }
     } catch (err) {
-      // fallback
+      // Non-fatal
     }
 
-    // 3. Local storage fallback
-    const local = getLocalKhatmahs();
-    const current = local[cleanId];
-    if (!current) throw new Error('الختمة غير موجودة');
+    if (updatedFromRemote) {
+      updatedFromRemote.parts = normalizeKhatmahParts(updatedFromRemote.parts);
+      local[updatedFromRemote.id] = updatedFromRemote;
+      saveLocalKhatmahs(local);
+      return updatedFromRemote;
+    }
 
-    if (!current.parts) current.parts = createInitialParts();
-    current.parts[partNumber] = {
-      partNumber,
-      status: 'reserved',
-      reservedBy: reservedBy.trim() || 'مشارك',
-      reservedAt: Date.now(),
-    };
-
-    local[cleanId] = current;
-    saveLocalKhatmahs(local);
-    return current;
+    if (current) {
+      return current;
+    }
+    throw new Error('الختمة غير موجودة');
   },
 
   // Unreserve a Juz (cancel reservation)
@@ -376,21 +426,37 @@ export const khatmahService = {
     const cleanId = khatmahId.trim().toUpperCase();
     const workerUrl = getCloudflareWorkerUrl();
 
-    // 1. Direct Cloudflare Worker API
+    // 1. Update local cache
+    const local = getLocalKhatmahs();
+    let current = local[cleanId];
+    if (current) {
+      if (!current.parts) current.parts = createInitialParts();
+      current.parts[partNumber] = {
+        partNumber,
+        status: 'available',
+      };
+      current.isCompleted = false;
+      saveLocalKhatmahs(local);
+    }
+
+    let updatedFromRemote: GroupKhatmah | null = null;
+
+    // 2. Direct Cloudflare Worker API
     if (workerUrl) {
       try {
-        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}/unreserve`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ partNumber }),
-        });
+        const res = await fetchFresh(
+          `${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}/unreserve`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ partNumber }),
+          },
+          4000
+        );
         if (res.ok) {
           const updated = await res.json();
           if (updated && updated.id) {
-            const local = getLocalKhatmahs();
-            local[updated.id] = updated;
-            saveLocalKhatmahs(local);
-            return updated;
+            updatedFromRemote = updated;
           }
         }
       } catch (err) {
@@ -398,41 +464,38 @@ export const khatmahService = {
       }
     }
 
-    // 2. Server API fallback
+    // 3. Server API
     try {
-      const res = await fetch(`/api/khatmah/${encodeURIComponent(cleanId)}/unreserve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ partNumber }),
-      });
+      const res = await fetchFresh(
+        `/api/khatmah/${encodeURIComponent(cleanId)}/unreserve`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ partNumber }),
+        },
+        3000
+      );
       if (res.ok) {
-        const updated = await res.json();
-        if (updated && updated.id) {
-          const local = getLocalKhatmahs();
-          local[updated.id] = updated;
-          saveLocalKhatmahs(local);
-          return updated;
+        const serverUpdated = await res.json();
+        if (serverUpdated && serverUpdated.id && !updatedFromRemote) {
+          updatedFromRemote = serverUpdated;
         }
       }
     } catch (err) {
-      // fallback
+      // Non-fatal
     }
 
-    // 3. Local fallback
-    const local = getLocalKhatmahs();
-    const current = local[cleanId];
-    if (!current) throw new Error('الختمة غير موجودة');
+    if (updatedFromRemote) {
+      updatedFromRemote.parts = normalizeKhatmahParts(updatedFromRemote.parts);
+      local[updatedFromRemote.id] = updatedFromRemote;
+      saveLocalKhatmahs(local);
+      return updatedFromRemote;
+    }
 
-    if (!current.parts) current.parts = createInitialParts();
-    current.parts[partNumber] = {
-      partNumber,
-      status: 'available',
-    };
-    current.isCompleted = false;
-
-    local[cleanId] = current;
-    saveLocalKhatmahs(local);
-    return current;
+    if (current) {
+      return current;
+    }
+    throw new Error('الختمة غير موجودة');
   },
 
   // Mark a Juz as completed
@@ -440,21 +503,47 @@ export const khatmahService = {
     const cleanId = khatmahId.trim().toUpperCase();
     const workerUrl = getCloudflareWorkerUrl();
 
-    // 1. Direct Cloudflare Worker API
+    // 1. Update local cache immediately
+    const local = getLocalKhatmahs();
+    let current = local[cleanId];
+    if (current) {
+      if (!current.parts) current.parts = createInitialParts();
+      const existing: KhatmahPart | undefined = current.parts[partNumber];
+      current.parts[partNumber] = {
+        partNumber,
+        status: 'completed',
+        completedBy: (completedBy || existing?.reservedBy || 'فاعل خير').trim(),
+        completedAt: Date.now(),
+      };
+      let completedCount = 0;
+      for (let i = 1; i <= 30; i++) {
+        if (current.parts[i]?.status === 'completed') completedCount++;
+      }
+      current.isCompleted = completedCount === 30;
+      if (current.isCompleted && !current.completedAt) {
+        current.completedAt = Date.now();
+      }
+      saveLocalKhatmahs(local);
+    }
+
+    let updatedFromRemote: GroupKhatmah | null = null;
+
+    // 2. Direct Cloudflare Worker API
     if (workerUrl) {
       try {
-        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}/complete`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ partNumber, completedBy }),
-        });
+        const res = await fetchFresh(
+          `${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}/complete`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ partNumber, completedBy }),
+          },
+          4000
+        );
         if (res.ok) {
           const updated = await res.json();
           if (updated && updated.id) {
-            const local = getLocalKhatmahs();
-            local[updated.id] = updated;
-            saveLocalKhatmahs(local);
-            return updated;
+            updatedFromRemote = updated;
           }
         }
       } catch (err) {
@@ -462,52 +551,38 @@ export const khatmahService = {
       }
     }
 
-    // 2. Server API fallback
+    // 3. Server API fallback
     try {
-      const res = await fetch(`/api/khatmah/${encodeURIComponent(cleanId)}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ partNumber, completedBy }),
-      });
+      const res = await fetchFresh(
+        `/api/khatmah/${encodeURIComponent(cleanId)}/complete`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ partNumber, completedBy }),
+        },
+        3000
+      );
       if (res.ok) {
-        const updated = await res.json();
-        if (updated && updated.id) {
-          const local = getLocalKhatmahs();
-          local[updated.id] = updated;
-          saveLocalKhatmahs(local);
-          return updated;
+        const serverUpdated = await res.json();
+        if (serverUpdated && serverUpdated.id && !updatedFromRemote) {
+          updatedFromRemote = serverUpdated;
         }
       }
     } catch (err) {
-      // fallback
+      // Non-fatal
     }
 
-    // 3. Local fallback
-    const local = getLocalKhatmahs();
-    const current = local[cleanId];
-    if (!current) throw new Error('الختمة غير موجودة');
-
-    if (!current.parts) current.parts = createInitialParts();
-    const existing: KhatmahPart | undefined = current.parts[partNumber];
-    current.parts[partNumber] = {
-      partNumber,
-      status: 'completed',
-      completedBy: (completedBy || existing?.reservedBy || 'فاعل خير').trim(),
-      completedAt: Date.now(),
-    };
-
-    let completedCount = 0;
-    for (let i = 1; i <= 30; i++) {
-      if (current.parts[i]?.status === 'completed') completedCount++;
-    }
-    current.isCompleted = completedCount === 30;
-    if (current.isCompleted && !current.completedAt) {
-      current.completedAt = Date.now();
+    if (updatedFromRemote) {
+      updatedFromRemote.parts = normalizeKhatmahParts(updatedFromRemote.parts);
+      local[updatedFromRemote.id] = updatedFromRemote;
+      saveLocalKhatmahs(local);
+      return updatedFromRemote;
     }
 
-    local[cleanId] = current;
-    saveLocalKhatmahs(local);
-    return current;
+    if (current) {
+      return current;
+    }
+    throw new Error('الختمة غير موجودة');
   },
 
   // Undo Part completion (mark back to reserved or available)
@@ -515,21 +590,46 @@ export const khatmahService = {
     const cleanId = khatmahId.trim().toUpperCase();
     const workerUrl = getCloudflareWorkerUrl();
 
-    // 1. Direct Cloudflare Worker API
+    // 1. Update local cache
+    const local = getLocalKhatmahs();
+    let current = local[cleanId];
+    if (current) {
+      if (!current.parts) current.parts = createInitialParts();
+      const part = current.parts[partNumber];
+      if (part) {
+        if (part.reservedBy) {
+          part.status = 'reserved';
+          delete part.completedAt;
+          delete part.completedBy;
+        } else {
+          part.status = 'available';
+          delete part.completedAt;
+          delete part.completedBy;
+        }
+      }
+      current.isCompleted = false;
+      delete current.completedAt;
+      saveLocalKhatmahs(local);
+    }
+
+    let updatedFromRemote: GroupKhatmah | null = null;
+
+    // 2. Direct Cloudflare Worker API
     if (workerUrl) {
       try {
-        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}/uncomplete`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ partNumber }),
-        });
+        const res = await fetchFresh(
+          `${workerUrl.replace(/\/$/, '')}/api/khatmah/${encodeURIComponent(cleanId)}/uncomplete`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ partNumber }),
+          },
+          4000
+        );
         if (res.ok) {
           const updated = await res.json();
           if (updated && updated.id) {
-            const local = getLocalKhatmahs();
-            local[updated.id] = updated;
-            saveLocalKhatmahs(local);
-            return updated;
+            updatedFromRemote = updated;
           }
         }
       } catch (err) {
@@ -537,48 +637,38 @@ export const khatmahService = {
       }
     }
 
-    // 2. Server API fallback
+    // 3. Server API fallback
     try {
-      const res = await fetch(`/api/khatmah/${encodeURIComponent(cleanId)}/uncomplete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ partNumber }),
-      });
+      const res = await fetchFresh(
+        `/api/khatmah/${encodeURIComponent(cleanId)}/uncomplete`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ partNumber }),
+        },
+        3000
+      );
       if (res.ok) {
-        const updated = await res.json();
-        if (updated && updated.id) {
-          const local = getLocalKhatmahs();
-          local[updated.id] = updated;
-          saveLocalKhatmahs(local);
-          return updated;
+        const serverUpdated = await res.json();
+        if (serverUpdated && serverUpdated.id && !updatedFromRemote) {
+          updatedFromRemote = serverUpdated;
         }
       }
     } catch (err) {
-      // fallback
+      // Non-fatal
     }
 
-    // 3. Local fallback
-    const local = getLocalKhatmahs();
-    const current = local[cleanId];
-    if (!current) throw new Error('الختمة غير موجودة');
-
-    if (!current.parts) current.parts = createInitialParts();
-    const part = current.parts[partNumber];
-    if (part) {
-      if (part.reservedBy) {
-        part.status = 'reserved';
-        delete part.completedAt;
-        delete part.completedBy;
-      } else {
-        part.status = 'available';
-      }
+    if (updatedFromRemote) {
+      updatedFromRemote.parts = normalizeKhatmahParts(updatedFromRemote.parts);
+      local[updatedFromRemote.id] = updatedFromRemote;
+      saveLocalKhatmahs(local);
+      return updatedFromRemote;
     }
-    current.isCompleted = false;
-    delete current.completedAt;
 
-    local[cleanId] = current;
-    saveLocalKhatmahs(local);
-    return current;
+    if (current) {
+      return current;
+    }
+    throw new Error('الختمة غير موجودة');
   },
 
   // Reset/Restart cycle for a Khatmah
@@ -597,15 +687,23 @@ export const khatmahService = {
     const workerUrl = getCloudflareWorkerUrl();
     if (workerUrl) {
       try {
-        await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmah`, {
+        await fetchFresh(`${workerUrl.replace(/\/$/, '')}/api/khatmah`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(current),
-        });
+        }, 3000);
       } catch (e) {
         console.warn('Error syncing reset to worker', e);
       }
     }
+
+    try {
+      await fetchFresh('/api/khatmah', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(current),
+      }, 3000);
+    } catch (e) {}
 
     const local = getLocalKhatmahs();
     local[current.id] = current;
@@ -613,12 +711,12 @@ export const khatmahService = {
     return current;
   },
 
-  // List all khatmahs globally
+  // List all khatmahs globally across all devices
   async listRecentKhatmahs(): Promise<GroupKhatmah[]> {
     const workerUrl = getCloudflareWorkerUrl();
     const mergedMap = new Map<string, GroupKhatmah>();
 
-    // 0. Seed with existing local data
+    // 0. Seed with existing local data for instant paint
     const existingLocal = getLocalKhatmahs();
     Object.values(existingLocal).forEach(k => {
       if (isRealKhatmah(k)) {
@@ -627,15 +725,16 @@ export const khatmahService = {
       }
     });
 
-    // 1. Direct Cloudflare Worker KV
+    let remoteFetched = false;
+
+    // 1. Direct Cloudflare Worker KV (Real-time global truth)
     if (workerUrl) {
       try {
-        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmahs`, {
-          headers: { Accept: 'application/json' },
-        });
+        const res = await fetchFresh(`${workerUrl.replace(/\/$/, '')}/api/khatmahs`, {}, 4000);
         if (res.ok) {
           const list = await res.json();
           if (Array.isArray(list)) {
+            remoteFetched = true;
             list.forEach((k: any) => {
               if (isRealKhatmah(k)) {
                 k.parts = normalizeKhatmahParts(k.parts);
@@ -652,10 +751,11 @@ export const khatmahService = {
 
     // 2. Server API fallback / augmentation
     try {
-      const res = await fetch('/api/khatmah');
+      const res = await fetchFresh('/api/khatmahs', {}, 3500);
       if (res.ok) {
         const list = await res.json();
         if (Array.isArray(list)) {
+          remoteFetched = true;
           list.forEach((k: any) => {
             if (isRealKhatmah(k)) {
               k.parts = normalizeKhatmahParts(k.parts);
@@ -666,7 +766,7 @@ export const khatmahService = {
         }
       }
     } catch (err) {
-      // Ignore
+      // Fallback
     }
 
     // Persist full merged list back to localStorage
@@ -687,15 +787,15 @@ export const khatmahService = {
     const workerUrl = getCloudflareWorkerUrl();
     if (workerUrl) {
       try {
-        await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmah/admin/clear-all`, {
+        await fetchFresh(`${workerUrl.replace(/\/$/, '')}/api/khatmah/admin/clear-all`, {
           method: 'POST',
-        });
+        }, 3000);
       } catch (e) {}
     }
     try {
-      await fetch('/api/khatmah/admin/clear-all', {
+      await fetchFresh('/api/khatmah/admin/clear-all', {
         method: 'POST',
-      });
+      }, 3000);
     } catch (e) {}
     saveLocalKhatmahs({});
   },

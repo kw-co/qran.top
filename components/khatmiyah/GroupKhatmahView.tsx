@@ -131,8 +131,9 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     init();
   }, [currentKhatmahId, loadKhatmahData, loadKhatmahsList]);
 
-  // Real-time live polling & sync (auto updates without manual refresh button)
+  // Real-time live polling & multi-device sync with visibility detection
   useEffect(() => {
+    // 1. Cross-tab sync
     const unsubscribe = khatmahService.onSync(() => {
       if (currentKhatmahId) {
         loadKhatmahData(currentKhatmahId, true);
@@ -140,17 +141,53 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
       loadKhatmahsList(true);
     });
 
-    const interval = setInterval(() => {
+    // 2. High-frequency polling (every 3 seconds when page is active)
+    let interval: any = null;
+
+    const startPolling = (ms = 3000) => {
+      if (interval) clearInterval(interval);
+      interval = setInterval(() => {
+        if (currentKhatmahId) {
+          loadKhatmahData(currentKhatmahId, true);
+        } else {
+          loadKhatmahsList(true);
+        }
+      }, ms);
+    };
+
+    startPolling(3000);
+
+    // 3. Instant refresh on tab visibility / phone unlock / window focus / network back online
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        if (currentKhatmahId) {
+          loadKhatmahData(currentKhatmahId, true);
+        }
+        loadKhatmahsList(true);
+        startPolling(3000);
+      } else {
+        // Slow down polling to 15s in background to save device battery
+        startPolling(15000);
+      }
+    };
+
+    const handleOnline = () => {
       if (currentKhatmahId) {
         loadKhatmahData(currentKhatmahId, true);
-      } else {
-        loadKhatmahsList(true);
       }
-    }, 4000);
+      loadKhatmahsList(true);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    window.addEventListener('online', handleOnline);
 
     return () => {
       unsubscribe();
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      window.removeEventListener('online', handleOnline);
     };
   }, [currentKhatmahId, loadKhatmahData, loadKhatmahsList]);
 
@@ -539,6 +576,29 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
 
           {/* Action and Sharing Buttons Toolbar */}
           <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border-subtle">
+            {/* Live Sync Status indicator */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>مزامنة سحابية مباشرة</span>
+            </div>
+
+            {/* Quick Refresh Button */}
+            <button
+              onClick={() => {
+                if (currentKhatmahId) {
+                  loadKhatmahData(currentKhatmahId, false);
+                } else {
+                  loadKhatmahsList(false);
+                }
+              }}
+              disabled={isLoading}
+              className="px-3.5 py-2.5 bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary text-xs sm:text-sm font-bold rounded-2xl transition-all flex items-center gap-1.5"
+              title="تحديث البيانات فوراً"
+            >
+              <span className={isLoading ? 'animate-spin' : ''}>🔄</span>
+              <span>تحديث</span>
+            </button>
+
             {/* Create New Khatmah */}
             <button
               onClick={() => setIsCreateModalOpen(true)}

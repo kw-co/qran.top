@@ -66,8 +66,7 @@ export default {
 
     const isRealKhatmah = (k) => {
       if (!k || !k.id) return false;
-      if (k.id === 'KHT-7777' || k.id === 'KHT-2026') return false;
-      if (k.title && k.title.includes('الختمة القرآنية المباركة الأولى')) return false;
+      if (k.id === 'KHT-7777') return false;
       return true;
     };
 
