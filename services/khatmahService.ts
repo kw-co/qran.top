@@ -1,11 +1,45 @@
 import { GroupKhatmah, KhatmahPart } from '../types';
 import { safeLocalStorage } from '../utils/storage';
 
-const KHATMAH_STORAGE_KEY = 'qran_group_khatmahs_v5';
+const KHATMAH_STORAGE_KEY = 'qran_group_khatmahs_v6';
 const CLOUDFLARE_WORKER_URL_KEY = 'qran_cloudflare_khatmah_worker_url';
 
 // Primary Cloudflare Worker connected to global KV storage
 export const DEFAULT_WORKER_URL = 'https://qran-khatmah-api.amerawad111.workers.dev';
+
+// Automatic migration & cleanup: immediately purge old local storage keys from previous versions
+// so returning visitors get live cloud data without needing to manually clear browser data
+(function purgeLegacyStorage() {
+  try {
+    const legacyKeys = [
+      'qran_group_khatmahs',
+      'qran_group_khatmahs_v1',
+      'qran_group_khatmahs_v2',
+      'qran_group_khatmahs_v3',
+      'qran_group_khatmahs_v4',
+      'qran_group_khatmahs_v5',
+      'qran_cloudflare_token',
+      'qran_cloudflare_account_id',
+      'qran_cloudflare_namespace_id',
+    ];
+    legacyKeys.forEach(k => {
+      try {
+        localStorage.removeItem(k);
+      } catch (e) {}
+    });
+
+    const savedWorker = safeLocalStorage.getItem(CLOUDFLARE_WORKER_URL_KEY);
+    if (
+      savedWorker &&
+      (!savedWorker.startsWith('https://') ||
+        savedWorker.includes('localhost') ||
+        savedWorker.includes('127.0.0.1') ||
+        !savedWorker.includes('workers.dev'))
+    ) {
+      safeLocalStorage.removeItem(CLOUDFLARE_WORKER_URL_KEY);
+    }
+  } catch (e) {}
+})();
 
 // BroadcastChannel for cross-tab live updates on the same device
 const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('qran_khatmah_sync') : null;
@@ -198,7 +232,7 @@ export async function getCloudflareStatus(): Promise<{
       };
     }
   } catch (e) {
-    console.warn('Could not reach worker:', e);
+    // Silent fallback
   }
 
   return {
@@ -234,7 +268,7 @@ export const khatmahService = {
           }
         }
       } catch (err) {
-        console.warn('Worker get error:', err);
+        // Silent fallback to server API
       }
     }
 
@@ -307,7 +341,7 @@ export const khatmahService = {
           }
         }
       } catch (err) {
-        console.warn('Worker create error:', err);
+        // Silent fallback
       }
     }
 
@@ -363,7 +397,7 @@ export const khatmahService = {
           }
         }
       } catch (err) {
-        console.warn('Worker reserve error:', err);
+        // Fallback silently
       }
     }
 
@@ -436,7 +470,7 @@ export const khatmahService = {
           }
         }
       } catch (err) {
-        console.warn('Worker unreserve error:', err);
+        // Fallback silently
       }
     }
 
@@ -579,7 +613,7 @@ export const khatmahService = {
           }
         }
       } catch (err) {
-        console.warn('Worker uncomplete error:', err);
+        // Fallback silently
       }
     }
 
@@ -652,7 +686,7 @@ export const khatmahService = {
           4000
         );
       } catch (e) {
-        console.warn('Error syncing reset to worker', e);
+        // Fallback silently
       }
     }
 
@@ -693,7 +727,7 @@ export const khatmahService = {
           }
         }
       } catch (err) {
-        console.warn('Worker list error:', err);
+        // Fallback silently to server API or local cache if worker direct fetch is blocked
       }
     }
 

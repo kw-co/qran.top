@@ -1,7 +1,7 @@
 // service-worker.js
 
-const STATIC_CACHE_NAME = 'qran-top-static-v27'; // Version bump to force update
-const DATA_CACHE_NAME = 'qran-top-data-v19';
+const STATIC_CACHE_NAME = 'qran-top-static-v28'; // Version bump to force update
+const DATA_CACHE_NAME = 'qran-top-data-v20';
 
 // Core data files that are essential for the app to work offline.
 const CORE_DATA_URLS = [
@@ -76,6 +76,9 @@ self.addEventListener('fetch', event => {
   
   if (url.hostname.includes('firebase')) {
     return;
+  }
+  if (url.hostname.includes('workers.dev') || url.pathname.startsWith('/api')) {
+    return; // Pass directly to network for real-time live khatmah data
   }
   if (url.hostname.includes('googleapis.com') && !url.hostname.includes('fonts.googleapis.com') && !url.hostname.includes('storage.googleapis.com')) {
     return;
