@@ -111,7 +111,7 @@ const isRealKhatmah = (k: GroupKhatmah | null | undefined): k is GroupKhatmah =>
   return true;
 };
 
-// Robust fetch helper with timeout, no-cache headers, and cache-busting timestamp
+// Robust fetch helper with timeout and cache-busting timestamp (no CORS preflight header triggers)
 async function fetchFresh(
   url: string,
   options: RequestInit = {},
@@ -124,9 +124,6 @@ async function fetchFresh(
   const urlWithCacheBuster = `${url}${separator}_t=${Date.now()}`;
 
   const headers = new Headers(options.headers || {});
-  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-  headers.set('Pragma', 'no-cache');
-  headers.set('Expires', '0');
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json');
   }

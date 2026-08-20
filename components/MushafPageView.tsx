@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { fetchPageVersesV4, QuranV4Verse } from '../services/quranApiV4';
 import { QURAN_INDEX } from '../quranIndex';
+import { useSettingsContext } from '../contexts/SettingsContext';
+import { injectMushafFontFaces, checkMushafFontsDownloaded } from '../utils/mushafFonts';
 
 interface MushafPageViewProps {
   pageNumber: number;
@@ -21,6 +23,23 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 }) => {
   const [verses, setVerses] = useState<QuranV4Verse[]>([]);
   const [loading, setLoading] = useState(true);
+  const { fontStyle, fontSize } = useSettingsContext();
+  const [isFontReady, setIsFontReady] = useState(false);
+
+  useEffect(() => {
+    if (fontStyle === 'mushaf') {
+        checkMushafFontsDownloaded().then(downloaded => {
+            if (downloaded) {
+                injectMushafFontFaces();
+                setIsFontReady(true);
+            } else {
+                setIsFontReady(false);
+            }
+        });
+    } else {
+        setIsFontReady(false);
+    }
+  }, [fontStyle]);
 
   useEffect(() => {
     let isMounted = true;
@@ -201,20 +220,25 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
              }
           });
 
+          const useMushafFont = fontStyle === 'mushaf' && isFontReady;
+
           return (
             <div 
               key={lineNum} 
-              className={`w-full flex items-center ${shouldCenter ? 'justify-center gap-2' : 'justify-between'} uthmani-font leading-relaxed sm:leading-loose text-text-primary overflow-visible`}
-              style={{ padding: '0.1rem 0', fontSize: 'clamp(0.9rem, 4.2vw, 1.8rem)' }}
+              className={`w-full flex items-center ${shouldCenter ? 'justify-center gap-2' : 'justify-between'} ${useMushafFont ? '' : 'uthmani-font'} leading-relaxed sm:leading-loose text-text-primary overflow-visible`}
+              style={useMushafFont ? { padding: '0', fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', justifyContent: shouldCenter ? 'center' : 'space-between' } : { padding: '0.1rem 0', fontSize: 'clamp(0.9rem, 4.2vw, 1.8rem)' }}
             >
               {groupedItems.map(({ word, verse, pauseMarks }, idx) => {
                 const isEnd = word.char_type_name === 'end';
                 const isSelected = selectedAyahKeys?.includes(verse.verse_key);
+                
+                const displayText = useMushafFont && word.code_v1 ? word.code_v1 : word.text_uthmani;
+                const fontClass = useMushafFont && word.code_v1 ? `font-p${word.v1_page || pageNumber}` : '';
 
                 return (
                   <span 
                     key={word.id || idx}
-                    className={`hover:text-amber-600 transition-colors cursor-pointer shrink-0 inline-flex items-baseline ${isSelected ? 'bg-primary/20 dark:bg-primary/40 rounded' : ''}`}
+                    className={`hover:text-amber-600 transition-colors cursor-pointer shrink-0 inline-flex items-baseline ${isSelected ? 'bg-primary/20 dark:bg-primary/40 rounded' : ''} ${fontClass}`}
                     onClick={(e) => {
                         const sNum = parseInt(verse.verse_key.split(':')[0], 10);
                         if (isSelectionMode || e.ctrlKey || e.metaKey) {
@@ -228,13 +252,21 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     }}
                   >
                     {isEnd ? (
-                        <span className="mx-1 text-amber-600 text-[1.1em]">{`\u06DD${word.text_uthmani || verse.verse_number.toLocaleString('ar-EG')}`}</span>
+                        useMushafFont ? (
+                            <span className={fontClass}>{word.code_v1 || word.text_uthmani}</span>
+                        ) : (
+                            <span className="mx-1 text-amber-600 text-[1.1em]">{`\u06DD${word.text_uthmani || verse.verse_number.toLocaleString('ar-EG')}`}</span>
+                        )
                     ) : (
-                        word.text_uthmani
+                        displayText
                     )}
-                    {pauseMarks && pauseMarks.map((pm: any, pmidx: number) => (
-                        <span key={pmidx} className="text-amber-700/80 mx-0.5" style={{ fontSize: '0.8em', transform: 'translateY(-0.2em)' }}>{pm.text_uthmani}</span>
-                    ))}
+                    {pauseMarks && pauseMarks.map((pm: any, pmidx: number) => {
+                        const pmText = useMushafFont && pm.code_v1 ? pm.code_v1 : pm.text_uthmani;
+                        const pmClass = useMushafFont && pm.code_v1 ? `font-p${pm.v1_page || pageNumber}` : '';
+                        return (
+                            <span key={pmidx} className={`text-amber-700/80 mx-0.5 ${pmClass}`} style={useMushafFont ? {} : { fontSize: '0.8em', transform: 'translateY(-0.2em)' }}>{pmText}</span>
+                        );
+                    })}
                   </span>
                 );
               })}

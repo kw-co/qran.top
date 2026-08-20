@@ -196,7 +196,7 @@ const App: React.FC = () => {
     return (
         <SettingsProvider value={settings}>
             <div className="bg-background text-text-primary min-h-screen transition-colors duration-300">
-                <TopProgressBar isSearching={isSearching || isBackgroundLoading || loadingEditions.length > 0} />
+                <TopProgressBar isSearching={isSearching || isBackgroundLoading || loadingEditions.length > 0 || settings.isDownloadingFonts} />
                     <SidePanel 
                         isOpen={isSidePanelOpen}
                         onClose={() => setIsSidePanelOpen(false)}

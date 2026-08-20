@@ -22,6 +22,12 @@ interface SettingsContextType {
     enableMorphology: boolean;
     setEnableMorphology: (enabled: boolean) => void;
     displayEdition: QuranEdition;
+    fontDownloadProgress: number;
+    setFontDownloadProgress: (progress: number) => void;
+    isDownloadingFonts: boolean;
+    setIsDownloadingFonts: (isDownloading: boolean) => void;
+    cancelFontDownload: () => void;
+    startFontDownload: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

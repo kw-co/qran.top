@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettingsContext } from '../../contexts/SettingsContext';
 import type { FontSize, FontStyleType, BrowsingMode } from '../../types';
 import { BookOpenIcon, CheckIcon } from '../icons';
+import { checkMushafFontsDownloaded, downloadAllMushafFonts } from '../../utils/mushafFonts';
 
 const FONT_SIZES: { id: FontSize; label: string; px: string }[] = [
     { id: 'xs', label: 'صغير جداً', px: '16px' },
@@ -12,11 +13,11 @@ const FONT_SIZES: { id: FontSize; label: string; px: string }[] = [
     { id: 'xxl', label: 'ضخم', px: '40px' },
 ];
 
-const FONT_STYLES: { id: FontStyleType; name: string; description: string; className: string }[] = [
+const FONT_STYLES: { id: FontStyleType; name: string; description: string; className: string; requiresDownload?: boolean }[] = [
     { id: 'imlai_1', name: 'الخط الإملائي النظامي (التفاعلي السريع)', description: 'خط عالي الأداء مع وضوح عالي للتشكيل والحروف', className: 'font-quran-simple' },
     { id: 'uthmani', name: 'خط الحفص بالرسم العثماني الأصيل', description: 'مطابق لرسم مصحف المدينة المنورة مع كافة علامات الضبط والوقف', className: 'font-quran-title' },
     { id: 'imlai_2', name: 'الخط النسخي الأنيق', description: 'نسق كتابي كلاسيكي هادئ ومريح للعين', className: 'font-sans' },
-    { id: 'mushaf', name: 'عرض المصحف الحقيقي (صفحات المصحف)', description: 'يعرض الصفحة مطابقة تماماً للمصحف المطبوع 15 سطراً', className: 'font-quran-title' },
+    { id: 'mushaf', name: 'المصحف', description: 'يعرض الصفحة مطابقة تماماً للمصحف المطبوع بصورة الأصل', className: 'font-quran-title', requiresDownload: true },
 ];
 
 const ReadingSettings: React.FC = () => {
@@ -28,8 +29,28 @@ const ReadingSettings: React.FC = () => {
         enableTajweed, setEnableTajweed,
         enableWordAudio, setEnableWordAudio,
         wordClickBehavior, setWordClickBehavior,
-        enableMorphology, setEnableMorphology
+        enableMorphology, setEnableMorphology,
+        fontDownloadProgress,
+        isDownloadingFonts,
+        startFontDownload,
+        cancelFontDownload
     } = useSettingsContext();
+
+    const [isMushafDownloaded, setIsMushafDownloaded] = useState(false);
+
+    useEffect(() => {
+        checkMushafFontsDownloaded().then(setIsMushafDownloaded);
+    }, [isDownloadingFonts]); // Re-check when download finishes
+
+    const handleDownloadFonts = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        startFontDownload();
+    };
+
+    const handleCancelDownload = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        cancelFontDownload();
+    };
 
     return (
         <div className="animate-fade-in space-y-8">
@@ -251,35 +272,76 @@ const ReadingSettings: React.FC = () => {
                     <p className="text-xs text-text-muted">اختر نوع الخط الافتراضي المستخدم في عرض الآيات</p>
                 </div>
                 <div className="space-y-3">
-                    {FONT_STYLES.map((style) => (
-                        <label
-                            key={style.id}
-                            onClick={() => {
-                                setFontStyle(style.id);
-                                if (style.id === 'mushaf') {
-                                    setBrowsingMode('page');
-                                    setSelectedEdition('quran-uthmani-quran-academy');
-                                }
-                            }}
-                            className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
-                                fontStyle === style.id
-                                    ? 'bg-surface border-primary ring-2 ring-primary/20 shadow-xs'
-                                    : 'bg-surface border-border-default hover:border-border-default/80'
-                            }`}
-                        >
-                            <div className="flex items-start gap-3">
-                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 ${
-                                    fontStyle === style.id ? 'border-primary bg-primary text-white' : 'border-border-default'
-                                }`}>
-                                    {fontStyle === style.id && <CheckIcon className="w-3.5 h-3.5" />}
+                    {FONT_STYLES.map((style) => {
+                        const isDisabled = style.requiresDownload && !isMushafDownloaded;
+                        const isDownloading = style.requiresDownload && isDownloadingFonts;
+                        
+                        return (
+                            <label
+                                key={style.id}
+                                onClick={(e) => {
+                                    if (isDisabled || isDownloading) {
+                                        e.preventDefault();
+                                        return;
+                                    }
+                                    setFontStyle(style.id);
+                                    if (style.id === 'mushaf') {
+                                        setBrowsingMode('page');
+                                        setSelectedEdition('quran-uthmani-quran-academy');
+                                    }
+                                }}
+                                className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                                    (isDisabled || isDownloading) ? 'bg-surface-subtle border-border-subtle cursor-default' : 'cursor-pointer hover:border-border-default/80'
+                                } ${
+                                    fontStyle === style.id && !isDisabled
+                                        ? 'bg-surface border-primary ring-2 ring-primary/20 shadow-xs'
+                                        : (!isDisabled && !isDownloading) ? 'bg-surface border-border-default' : ''
+                                }`}
+                            >
+                                <div className="flex items-start gap-3 w-full">
+                                    <div className={`w-5 h-5 rounded-full border flex flex-shrink-0 items-center justify-center mt-0.5 transition-colors ${
+                                        fontStyle === style.id && !isDisabled ? 'border-primary bg-primary text-white' : 'border-border-default bg-surface'
+                                    }`}>
+                                        {fontStyle === style.id && !isDisabled && <CheckIcon className="w-3.5 h-3.5" />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="font-bold text-base text-text-primary flex flex-wrap items-center gap-2">
+                                            <span>{style.name}</span>
+                                            {isDisabled && !isDownloading && (
+                                                <button 
+                                                    onClick={handleDownloadFonts}
+                                                    className="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                                >
+                                                    تنزيل الخطوط للبدء
+                                                </button>
+                                            )}
+                                            {isDownloading && (
+                                                <button 
+                                                    onClick={handleCancelDownload}
+                                                    className="text-xs font-bold px-3 py-1 rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors"
+                                                >
+                                                    إلغاء
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-text-muted mt-0.5 mb-2">{style.description}</div>
+                                        
+                                        {isDownloading && (
+                                            <div className="w-full mt-2">
+                                                <div className="flex justify-between text-[10px] text-text-muted mb-1">
+                                                    <span>جاري تنزيل ملفات المصحف في الخلفية...</span>
+                                                    <span>{fontDownloadProgress}%</span>
+                                                </div>
+                                                <div className="w-full bg-border-subtle rounded-full h-1.5 overflow-hidden">
+                                                    <div className="bg-primary h-1.5 transition-all duration-300" style={{ width: `${Math.max(0, fontDownloadProgress)}%` }}></div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="font-bold text-base text-text-primary">{style.name}</div>
-                                    <div className="text-xs text-text-muted mt-0.5">{style.description}</div>
-                                </div>
-                            </div>
-                        </label>
-                    ))}
+                            </label>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -342,12 +404,18 @@ const ReadingSettings: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
-                        onClick={() => setBrowsingMode('full')}
+                        onClick={() => {
+                            if (fontStyle === 'mushaf') {
+                                alert('العرض المستمر غير مدعوم مع خط المصحف المطبوع، حيث يعتمد على تقسيم الصفحات الأصلي.');
+                                return;
+                            }
+                            setBrowsingMode('full');
+                        }}
                         className={`p-4 rounded-xl border text-right transition-all ${
                             browsingMode === 'full'
                                 ? 'bg-surface border-primary ring-2 ring-primary/20 shadow-xs'
                                 : 'bg-surface border-border-default hover:border-primary/30'
-                        }`}
+                        } ${fontStyle === 'mushaf' ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <div className="font-bold text-text-primary text-base">العرض المستمر الشامل (كل السورة)</div>
                         <div className="text-xs text-text-muted mt-1">عرض جميع آيات السورة في قائمة واحدة متصلة وسلسة.</div>

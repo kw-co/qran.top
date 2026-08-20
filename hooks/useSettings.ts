@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { QuranEdition, QuranFont, FontSize, BrowsingMode, FontStyleType, WordClickBehavior } from '../types';
+import { downloadAllMushafFonts, checkMushafFontsDownloaded } from '../utils/mushafFonts';
 
 const QURAN_EDITION_KEY = 'qran_app_edition';
 const FONT_SIZE_KEY = 'qran_app_font_size';
@@ -10,6 +11,7 @@ const TAJWEED_MODE_KEY = 'qran_app_enable_tajweed';
 const WORD_AUDIO_KEY = 'qran_app_enable_word_audio';
 const WORD_CLICK_BEHAVIOR_KEY = 'qran_app_word_click_behavior';
 const ENABLE_MORPHOLOGY_KEY = 'qran_app_enable_morphology';
+const DOWNLOADING_FONTS_KEY = 'qran_app_downloading_fonts';
 
 const DEFAULT_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
@@ -72,6 +74,69 @@ export const useSettings = () => {
         () => safeGetItem(ENABLE_MORPHOLOGY_KEY, 'true') === 'true'
     );
 
+    // Font Download State
+    const [fontDownloadProgress, setFontDownloadProgress] = useState(-1);
+    const [isDownloadingFonts, setIsDownloadingFonts] = useState<boolean>(
+        () => safeGetItem(DOWNLOADING_FONTS_KEY, 'false') === 'true'
+    );
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    const cancelFontDownload = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        setIsDownloadingFonts(false);
+        setFontDownloadProgress(-1);
+        safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
+    }, []);
+
+    const startFontDownload = useCallback(async () => {
+        setIsDownloadingFonts(true);
+        safeSetItem(DOWNLOADING_FONTS_KEY, 'true');
+        setFontDownloadProgress(0);
+        
+        abortControllerRef.current = new AbortController();
+        
+        try {
+            await downloadAllMushafFonts(
+                (progress) => setFontDownloadProgress(progress),
+                abortControllerRef.current.signal
+            );
+            // Finished successfully
+            setIsDownloadingFonts(false);
+            setFontDownloadProgress(-1);
+            safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
+            
+            // Auto-activate if setting was pending or just activate anyway if they started it
+            setFontStyle('mushaf');
+            setBrowsingMode('page');
+            setSelectedEdition('quran-uthmani-quran-academy');
+            
+        } catch (e: any) {
+            if (e.message !== 'Download cancelled') {
+                console.error("Font download failed:", e);
+                setIsDownloadingFonts(false);
+                setFontDownloadProgress(-1);
+                safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
+                alert('حدث خطأ أثناء تحميل الخطوط. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.');
+            }
+        }
+    }, []);
+
+    // Resume download on load if it was interrupted
+    useEffect(() => {
+        if (isDownloadingFonts) {
+            startFontDownload();
+        }
+    }, []); // Only run once on mount
+
+    useEffect(() => {
+        if (fontStyle === 'mushaf' && browsingMode !== 'page') {
+            setBrowsingMode('page');
+        }
+    }, [fontStyle, browsingMode]);
+
     useEffect(() => { safeSetItem(QURAN_EDITION_KEY, selectedEdition); }, [selectedEdition]);
     useEffect(() => { safeSetItem(FONT_SIZE_KEY, fontSize); }, [fontSize]);
     useEffect(() => { safeSetItem(FONT_STYLE_KEY, fontStyle); }, [fontStyle]);
@@ -101,6 +166,9 @@ export const useSettings = () => {
         enableWordAudio, setEnableWordAudio,
         wordClickBehavior, setWordClickBehavior,
         enableMorphology, setEnableMorphology,
-        displayEdition
+        displayEdition,
+        fontDownloadProgress, setFontDownloadProgress,
+        isDownloadingFonts, setIsDownloadingFonts,
+        cancelFontDownload, startFontDownload
     };
 };

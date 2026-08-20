@@ -3,6 +3,8 @@ export interface QuranV4Word {
     position: number;
     audio_url?: string;
     text_uthmani: string;
+    code_v1?: string;
+    v1_page?: number;
     text_tajweed?: string;
     location: string;
     line_number?: number;
@@ -34,7 +36,7 @@ export interface QuranV4TajweedVerse {
     text_uthmani_tajweed: string;
 }
 
-const CACHE_KEY_PREFIX = 'quran_v4_chapter_';
+const CACHE_KEY_PREFIX = 'quran_v4_chapter_v2_';
 const TAJWEED_CACHE_PREFIX = 'quran_v4_tajweed_';
 
 const memoryCache = new Map<number, QuranV4Verse[]>();
@@ -56,7 +58,7 @@ export async function fetchChapterVersesV4(chapterNumber: number): Promise<Quran
             return parsed;
         }
 
-        const url = `https://api.quran.com/api/v4/verses/by_chapter/${chapterNumber}?words=true&word_fields=text_uthmani,location,audio_url&per_page=300`;
+        const url = `https://api.quran.com/api/v4/verses/by_chapter/${chapterNumber}?words=true&word_fields=text_uthmani,location,audio_url,code_v1,v1_page,char_type_name&per_page=300`;
         const res = await fetch(url);
         
         if (!res.ok) {
@@ -270,17 +272,17 @@ export async function playSmartWordAudio(
 
 export async function fetchPageVersesV4(pageNumber: number): Promise<QuranV4Verse[]> {
     try {
-        const localCached = localStorage.getItem(`quran_v4_page_${pageNumber}`);
+        const localCached = localStorage.getItem(`quran_v4_page_v2_${pageNumber}`);
         if (localCached) return JSON.parse(localCached);
         
-        const url = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,location,audio_url,char_type_name,line_number,page_number`;
+        const url = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,location,audio_url,char_type_name,line_number,page_number,code_v1,v1_page`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`API response error: ${res.status}`);
         
         const data = await res.json();
         if (data.verses && data.verses.length > 0) {
             try {
-                localStorage.setItem(`quran_v4_page_${pageNumber}`, JSON.stringify(data.verses));
+                localStorage.setItem(`quran_v4_page_v2_${pageNumber}`, JSON.stringify(data.verses));
             } catch (e) {}
             return data.verses;
         }
