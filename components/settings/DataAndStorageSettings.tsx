@@ -9,7 +9,13 @@ const DataAndStorageSettings: React.FC = () => {
         fontDownloadProgress,
         startFontDownload,
         cancelFontDownload,
-        removeMushafFonts
+        removeMushafFonts,
+        isIndoPakDownloaded,
+        isDownloadingIndoPak,
+        indoPakDownloadProgress,
+        startIndoPakDownload,
+        cancelIndoPakDownload,
+        removeIndoPakFonts
     } = useSettingsContext();
 
     const [storageInfo, setStorageInfo] = useState<{ keysCount: number; estimatedKb: string }>({ keysCount: 0, estimatedKb: '0' });
@@ -44,6 +50,16 @@ const DataAndStorageSettings: React.FC = () => {
     const handleDeleteFonts = async () => {
         if (window.confirm('هل أنت متأكد من حذف خطوط المصحف؟')) {
             await removeMushafFonts();
+        }
+    };
+
+    const handleDownloadIndoPak = async () => {
+        await startIndoPakDownload();
+    };
+
+    const handleDeleteIndoPak = async () => {
+        if (window.confirm('هل أنت متأكد من حذف حزمة خطوط مصحف باكستان؟')) {
+            await removeIndoPakFonts();
         }
     };
 
@@ -166,6 +182,69 @@ const DataAndStorageSettings: React.FC = () => {
                         <div className="px-4 py-2.5 bg-emerald-500/5 text-xs text-emerald-700 dark:text-emerald-300 border-t border-emerald-500/10 flex items-center gap-2">
                             <CheckIcon className="w-4 h-4 flex-shrink-0" />
                             <span>تم تنزيل الخطوط بنجاح. يمكنك الآن تفعيل نمط "المصحف" من إعدادات القراءة والخطوط.</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* IndoPak Mushaf Package Section */}
+                <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
+                    <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h4 className="font-bold text-text-primary text-sm mb-1">حزمة مصحف باكستان وجنوب آسيا (IndoPak)</h4>
+                            <p className="text-xs text-text-muted max-w-md">
+                                خط النستعليق الباكستاني الأصيل مع رسم 15 سطر (610 صفحة، حوالي 1.5 ميغابايت).
+                            </p>
+                        </div>
+                        
+                        <div className="flex-shrink-0 min-w-[140px]">
+                            {isDownloadingIndoPak ? (
+                                <div className="space-y-2 w-full">
+                                    <div className="flex justify-between text-xs text-text-muted">
+                                        <span>جاري التنزيل...</span>
+                                        <span className="font-bold text-primary" dir="ltr">{indoPakDownloadProgress}%</span>
+                                    </div>
+                                    <div className="w-full bg-border-subtle rounded-full h-2 overflow-hidden">
+                                        <div 
+                                            className="bg-primary h-2 transition-all duration-300 rounded-full" 
+                                            style={{ width: `${Math.max(0, indoPakDownloadProgress)}%` }}
+                                        ></div>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={cancelIndoPakDownload} 
+                                        className="text-xs text-red-500 hover:text-red-700 underline block text-center w-full mt-1 cursor-pointer"
+                                    >
+                                        إلغاء التنزيل
+                                    </button>
+                                </div>
+                            ) : isIndoPakDownloaded ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1">
+                                        <CheckIcon className="w-3.5 h-3.5" /> تم التنزيل
+                                    </span>
+                                    <button 
+                                        type="button"
+                                        onClick={handleDeleteIndoPak} 
+                                        className="text-xs text-red-500 hover:text-red-700 underline px-2 py-1 cursor-pointer"
+                                    >
+                                        حذف
+                                    </button>
+                                </div>
+                            ) : (
+                                <button 
+                                    type="button"
+                                    onClick={handleDownloadIndoPak}
+                                    className="w-full bg-primary text-white font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/90 active:scale-95 transition-all shadow-xs cursor-pointer"
+                                >
+                                    تنزيل حزمة باكستان
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    {isIndoPakDownloaded && (
+                        <div className="px-4 py-2.5 bg-emerald-500/5 text-xs text-emerald-700 dark:text-emerald-300 border-t border-emerald-500/10 flex items-center gap-2">
+                            <CheckIcon className="w-4 h-4 flex-shrink-0" />
+                            <span>تم تنزيل حزمة مصحف باكستان بنجاح. يمكنك الآن تفعيلها وتصفحها بسلاسة.</span>
                         </div>
                     )}
                 </div>

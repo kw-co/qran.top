@@ -3,6 +3,7 @@ import { fetchPageVersesV4, QuranV4Verse } from '../services/quranApiV4';
 import { QURAN_INDEX } from '../quranIndex';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { injectMushafFontFaces, checkMushafFontsDownloaded } from '../utils/mushafFonts';
+import { injectIndoPakFontFace, checkIndoPakDownloaded, INDOPAK_TOTAL_PAGES } from '../utils/indopakFonts';
 
 interface MushafPageViewProps {
   pageNumber: number;
@@ -29,11 +30,22 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 }) => {
   const [verses, setVerses] = useState<QuranV4Verse[]>([]);
   const [loading, setLoading] = useState(true);
-  const { fontStyle, fontSize } = useSettingsContext();
+  const { fontStyle, mushafType } = useSettingsContext();
   const [isFontReady, setIsFontReady] = useState(false);
 
+  const isIndoPak = mushafType === 'indopak';
+  const totalPages = isIndoPak ? INDOPAK_TOTAL_PAGES : 604;
+
   useEffect(() => {
-    if (fontStyle === 'mushaf') {
+    if (isIndoPak) {
+        injectIndoPakFontFace();
+        setIsFontReady(true);
+        checkIndoPakDownloaded().then(downloaded => {
+            if (downloaded) {
+                injectIndoPakFontFace();
+            }
+        });
+    } else if (fontStyle === 'mushaf') {
         checkMushafFontsDownloaded().then(downloaded => {
             if (downloaded) {
                 injectMushafFontFaces();
@@ -45,19 +57,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     } else {
         setIsFontReady(false);
     }
-  }, [fontStyle]);
+  }, [fontStyle, isIndoPak]);
 
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
-    fetchPageVersesV4(pageNumber).then(data => {
+    fetchPageVersesV4(pageNumber, isIndoPak ? 'indopak' : 'madinah').then(data => {
       if (isMounted) {
         setVerses(data);
         setLoading(false);
       }
     });
     return () => { isMounted = false; };
-  }, [pageNumber]);
+  }, [pageNumber, isIndoPak]);
 
   // Scroll to highlighted ayah when page and verses load
   useEffect(() => {
@@ -266,13 +278,27 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                }
             });
 
-            const useMushafFont = fontStyle === 'mushaf' && isFontReady;
+            const useMadinahGlyphFont = !isIndoPak && fontStyle === 'mushaf' && isFontReady;
+            const useIndoPakFont = isIndoPak && isFontReady;
+
+            let lineFontClass = 'uthmani-font';
+            if (useMadinahGlyphFont) {
+                lineFontClass = '';
+            } else if (useIndoPakFont) {
+                lineFontClass = 'font-indopak';
+            }
 
             return (
               <div 
                 key={lineNum} 
-                className={`w-full flex items-center ${shouldCenter ? 'justify-center gap-2' : 'justify-between'} ${useMushafFont ? '' : 'uthmani-font'} leading-relaxed sm:leading-loose text-text-primary overflow-visible`}
-                style={useMushafFont ? { padding: '0', fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', justifyContent: shouldCenter ? 'center' : 'space-between' } : { padding: '0.1rem 0', fontSize: 'clamp(0.9rem, 4.2vw, 1.8rem)' }}
+                className={`w-full flex items-center ${shouldCenter ? 'justify-center gap-2' : 'justify-between'} ${lineFontClass} leading-relaxed sm:leading-loose text-text-primary overflow-visible`}
+                style={
+                  useMadinahGlyphFont 
+                    ? { padding: '0', fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', justifyContent: shouldCenter ? 'center' : 'space-between' } 
+                    : useIndoPakFont 
+                      ? { padding: '0.2rem 0', fontSize: 'clamp(1.1rem, 4.8vw, 2.1rem)', lineHeight: '2.2', justifyContent: shouldCenter ? 'center' : 'space-between' }
+                      : { padding: '0.1rem 0', fontSize: 'clamp(0.9rem, 4.2vw, 1.8rem)' }
+                }
               >
                 {groupedItems.map(({ word, verse, pauseMarks }, idx) => {
                   const isEnd = word.char_type_name === 'end';
@@ -300,28 +326,41 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                       highlightClass = 'bg-primary/20 dark:bg-primary/40 rounded px-0.5';
                   }
                   
-                  const displayText = useMushafFont && word.code_v1 ? word.code_v1 : word.text_uthmani;
-                  const fontClass = useMushafFont && word.code_v1 ? `font-p${word.v1_page || pageNumber}` : '';
+                  let displayText = word.text_uthmani;
+                  let wordFontClass = '';
+
+                  if (isIndoPak) {
+                      displayText = word.text_indopak_nastaleeq || word.text_indopak || word.text_uthmani;
+                      wordFontClass = 'font-indopak';
+                  } else if (useMadinahGlyphFont && word.code_v1) {
+                      displayText = word.code_v1;
+                      wordFontClass = `font-p${word.v1_page || pageNumber}`;
+                  }
 
                   return (
                     <span 
                       key={word.id || idx}
                       id={ayahElementId}
-                      className={`hover:text-amber-600 transition-all cursor-pointer shrink-0 inline-flex items-baseline ${highlightClass} ${fontClass}`}
+                      className={`hover:text-amber-600 transition-all cursor-pointer shrink-0 inline-flex items-baseline ${highlightClass} ${wordFontClass}`}
                       onClick={(e) => {
                           if (isSelectionMode || e.ctrlKey || e.metaKey) {
-                              const fullText = verse.words.filter((w:any) => w.char_type_name === 'word').map((w:any) => w.text_uthmani).join(' ');
+                              const fullText = verse.words.filter((w:any) => w.char_type_name === 'word').map((w:any) => (isIndoPak && w.text_indopak ? w.text_indopak : w.text_uthmani)).join(' ');
                               if (onAyahClick) onAyahClick(e, sNum, verse.verse_number, fullText);
                               return;
                           }
                           if (onWordClick && word.char_type_name === 'word') {
-                              onWordClick(word.text_uthmani, sNum, verse.verse_number, word.position);
+                              onWordClick(isIndoPak && word.text_indopak ? word.text_indopak : word.text_uthmani, sNum, verse.verse_number, word.position);
                           }
                       }}
                     >
                       {isEnd ? (
-                          useMushafFont ? (
-                              <span className={fontClass}>{word.code_v1 || word.text_uthmani}</span>
+                          useMadinahGlyphFont ? (
+                              <span className={wordFontClass}>{word.code_v1 || word.text_uthmani}</span>
+                          ) : isIndoPak ? (
+                              <span className="indopak-ayah-end">
+                                  <span className="indopak-ayah-circle"></span>
+                                  <span className="indopak-ayah-number">{verse.verse_number.toLocaleString('ar-EG')}</span>
+                              </span>
                           ) : (
                               <span className="mx-1 text-amber-600 text-[1.1em]">{`\u06DD${word.text_uthmani || verse.verse_number.toLocaleString('ar-EG')}`}</span>
                           )
@@ -329,10 +368,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           displayText
                       )}
                       {pauseMarks && pauseMarks.map((pm: any, pmidx: number) => {
-                          const pmText = useMushafFont && pm.code_v1 ? pm.code_v1 : pm.text_uthmani;
-                          const pmClass = useMushafFont && pm.code_v1 ? `font-p${pm.v1_page || pageNumber}` : '';
+                          const pmText = useMadinahGlyphFont && pm.code_v1 ? pm.code_v1 : isIndoPak ? (pm.text_indopak || pm.text_uthmani) : pm.text_uthmani;
+                          const pmClass = useMadinahGlyphFont && pm.code_v1 ? `font-p${pm.v1_page || pageNumber}` : isIndoPak ? 'font-indopak' : '';
                           return (
-                              <span key={pmidx} className={`text-amber-700/80 mx-0.5 ${pmClass}`} style={useMushafFont ? {} : { fontSize: '0.8em', transform: 'translateY(-0.2em)' }}>{pmText}</span>
+                              <span key={pmidx} className={`text-amber-700/80 mx-0.5 ${pmClass}`} style={useMadinahGlyphFont ? {} : { fontSize: '0.85em', transform: 'translateY(-0.15em)' }}>{pmText}</span>
                           );
                       })}
                     </span>
@@ -355,8 +394,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
          </button>
          <span className="font-bold font-mono text-lg text-amber-800 dark:text-amber-500">{pageNumber}</span>
          <button 
-           onClick={() => pageNumber < 604 && onPageChange(pageNumber + 1)}
-           disabled={pageNumber >= 604}
+           onClick={() => pageNumber < totalPages && onPageChange(pageNumber + 1)}
+           disabled={pageNumber >= totalPages}
            className="px-3 py-1 bg-amber-100 dark:bg-slate-800 rounded disabled:opacity-50"
          >
            التالي

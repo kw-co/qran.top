@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSettingsContext } from '../../contexts/SettingsContext';
-import type { FontSize, FontStyleType, BrowsingMode } from '../../types';
+import type { FontSize, FontStyleType, BrowsingMode, MushafType } from '../../types';
 import { BookOpenIcon, CheckIcon } from '../icons';
 
 const FONT_SIZES: { id: FontSize; label: string; px: string }[] = [
@@ -16,13 +16,14 @@ const FONT_STYLES: { id: FontStyleType; name: string; description: string; class
     { id: 'imlai_1', name: 'الخط الإملائي النظامي (التفاعلي السريع)', description: 'خط عالي الأداء مع وضوح عالي للتشكيل والحروف', className: 'font-quran-simple' },
     { id: 'uthmani', name: 'خط الحفص بالرسم العثماني الأصيل', description: 'مطابق لرسم مصحف المدينة المنورة مع كافة علامات الضبط والوقف', className: 'font-quran-title' },
     { id: 'imlai_2', name: 'الخط النسخي الأنيق', description: 'نسق كتابي كلاسيكي هادئ ومريح للعين', className: 'font-sans' },
-    { id: 'mushaf', name: 'المصحف', description: 'يعرض الصفحة مطابقة تماماً للمصحف المطبوع بصورة الأصل (604 صفحة)', className: 'font-quran-title', requiresDownload: true },
+    { id: 'mushaf', name: 'المصحف', description: 'يعرض الصفحة مطابقة تماماً للمصحف المطبوع بصورة الأصل', className: 'font-quran-title', requiresDownload: true },
 ];
 
 const ReadingSettings: React.FC = () => {
     const { 
         fontSize, setFontSize, 
         fontStyle, setFontStyle, 
+        mushafType, setMushafType,
         browsingMode, setBrowsingMode, 
         selectedEdition, setSelectedEdition,
         enableTajweed, setEnableTajweed,
@@ -33,7 +34,12 @@ const ReadingSettings: React.FC = () => {
         isDownloadingFonts,
         isMushafDownloaded,
         startFontDownload,
-        cancelFontDownload
+        cancelFontDownload,
+        indoPakDownloadProgress,
+        isDownloadingIndoPak,
+        isIndoPakDownloaded,
+        startIndoPakDownload,
+        cancelIndoPakDownload
     } = useSettingsContext();
 
     const handleDownloadFonts = async (e: React.MouseEvent) => {
@@ -44,6 +50,16 @@ const ReadingSettings: React.FC = () => {
     const handleCancelDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
         cancelFontDownload();
+    };
+
+    const handleDownloadIndoPak = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        await startIndoPakDownload();
+    };
+
+    const handleCancelIndoPak = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        cancelIndoPakDownload();
     };
 
     return (
@@ -338,6 +354,115 @@ const ReadingSettings: React.FC = () => {
                                                         className="bg-primary h-2 transition-all duration-300 rounded-full" 
                                                         style={{ width: `${Math.max(0, fontDownloadProgress)}%` }}
                                                     ></div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Mushaf Edition Sub-selector when Mushaf font is selected */}
+                                        {style.id === 'mushaf' && (
+                                            <div className="mt-4 pt-3 border-t border-border-subtle space-y-3" onClick={(e) => e.stopPropagation()}>
+                                                <div className="text-xs font-bold text-text-primary">اختر طبعة المصحف المطبوع:</div>
+                                                
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    {/* Madinah Mushaf */}
+                                                    <div 
+                                                        onClick={() => {
+                                                            if (!isMushafDownloaded) {
+                                                                startFontDownload();
+                                                                return;
+                                                            }
+                                                            setMushafType('madinah');
+                                                            setFontStyle('mushaf');
+                                                            setBrowsingMode('page');
+                                                        }}
+                                                        className={`p-3 rounded-lg border text-right cursor-pointer transition-all ${
+                                                            mushafType === 'madinah' && fontStyle === 'mushaf'
+                                                                ? 'bg-primary/10 border-primary ring-1 ring-primary/30'
+                                                                : 'bg-surface border-border-default hover:border-primary/30'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="font-bold text-xs text-text-primary">مصحف المدينة المنورة</div>
+                                                            {mushafType === 'madinah' && fontStyle === 'mushaf' && (
+                                                                <span className="text-[10px] bg-primary text-white px-2 py-0.5 rounded-full font-bold">مُفعل</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-[11px] text-text-muted mt-1">الرسم العثماني المعتمد (604 صفحة)</div>
+                                                        {!isMushafDownloaded && (
+                                                            <div className="mt-2">
+                                                                <button 
+                                                                    type="button" 
+                                                                    onClick={handleDownloadFonts}
+                                                                    className="text-[10px] bg-primary text-white px-2.5 py-1 rounded font-bold hover:bg-primary/90"
+                                                                >
+                                                                    ⬇️ تنزيل خطوط المدينة
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* IndoPak Mushaf */}
+                                                    <div 
+                                                        onClick={() => {
+                                                            if (isDownloadingIndoPak) return;
+                                                            if (!isIndoPakDownloaded) {
+                                                                startIndoPakDownload();
+                                                                return;
+                                                            }
+                                                            setMushafType('indopak');
+                                                            setFontStyle('mushaf');
+                                                            setBrowsingMode('page');
+                                                        }}
+                                                        className={`p-3 rounded-lg border text-right cursor-pointer transition-all ${
+                                                            mushafType === 'indopak' && fontStyle === 'mushaf'
+                                                                ? 'bg-primary/10 border-primary ring-1 ring-primary/30'
+                                                                : 'bg-surface border-border-default hover:border-primary/30'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="font-bold text-xs text-text-primary">مصحف باكستان وجنوب آسيا</div>
+                                                            {mushafType === 'indopak' && fontStyle === 'mushaf' && (
+                                                                <span className="text-[10px] bg-primary text-white px-2 py-0.5 rounded-full font-bold">مُفعل</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-[11px] text-text-muted mt-1">رسم النستعليق الباكستاني 15 سطر (610 صفحة)</div>
+                                                        
+                                                        {isDownloadingIndoPak ? (
+                                                            <div className="mt-2 space-y-1">
+                                                                <div className="flex justify-between text-[10px] text-text-muted">
+                                                                    <span>جاري التنزيل...</span>
+                                                                    <span className="font-bold text-primary" dir="ltr">{indoPakDownloadProgress}%</span>
+                                                                </div>
+                                                                <div className="w-full bg-border-subtle rounded-full h-1.5 overflow-hidden">
+                                                                    <div 
+                                                                        className="bg-primary h-1.5 transition-all duration-300 rounded-full" 
+                                                                        style={{ width: `${Math.max(0, indoPakDownloadProgress)}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                                <button 
+                                                                    type="button" 
+                                                                    onClick={handleCancelIndoPak}
+                                                                    className="text-[10px] text-red-500 hover:underline mt-0.5"
+                                                                >
+                                                                    إلغاء التنزيل
+                                                                </button>
+                                                            </div>
+                                                        ) : !isIndoPakDownloaded ? (
+                                                            <div className="mt-2">
+                                                                <button 
+                                                                    type="button" 
+                                                                    onClick={handleDownloadIndoPak}
+                                                                    className="text-[10px] bg-primary text-white px-2.5 py-1 rounded font-bold hover:bg-primary/90"
+                                                                >
+                                                                    ⬇️ تنزيل حزمة باكستان (610 ص)
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="mt-1 text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                                                                <CheckIcon className="w-3 h-3" /> الحزمة مثبتة
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}

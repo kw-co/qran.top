@@ -1,11 +1,13 @@
 import React, { createContext, useContext } from 'react';
-import type { FontSize, FontStyleType, BrowsingMode, QuranEdition, WordClickBehavior } from '../types';
+import type { FontSize, FontStyleType, BrowsingMode, QuranEdition, WordClickBehavior, MushafType } from '../types';
 
 interface SettingsContextType {
     fontSize: FontSize;
     setFontSize: (size: FontSize) => void;
     fontStyle: FontStyleType;
     setFontStyle: (style: FontStyleType) => void;
+    mushafType: MushafType;
+    setMushafType: (type: MushafType) => void;
     browsingMode: BrowsingMode;
     setBrowsingMode: (mode: BrowsingMode) => void;
     activeEditions: QuranEdition[];
@@ -31,6 +33,16 @@ interface SettingsContextType {
     removeMushafFonts: () => Promise<void>;
     cancelFontDownload: () => void;
     startFontDownload: () => Promise<void>;
+    // IndoPak properties
+    indoPakDownloadProgress: number;
+    setIndoPakDownloadProgress: (progress: number) => void;
+    isDownloadingIndoPak: boolean;
+    setIsDownloadingIndoPak: (isDownloading: boolean) => void;
+    isIndoPakDownloaded: boolean;
+    checkIndoPak: () => Promise<boolean>;
+    removeIndoPakFonts: () => Promise<void>;
+    cancelIndoPakDownload: () => void;
+    startIndoPakDownload: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
