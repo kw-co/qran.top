@@ -676,6 +676,9 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
                  const sName = QURAN_INDEX.find(s => s.number === surahNum)?.name || '';
                  handleAyahSelection(e, surahNum, ayahNum, text, sName);
               }}
+              highlightAyahNumber={highlightAyahNumber}
+              targetSurahNumber={surah.number}
+              currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber}
             />
           ) : (
              <div>

@@ -11,6 +11,9 @@ interface MushafPageViewProps {
   isSelectionMode?: boolean;
   selectedAyahKeys?: string[];
   onAyahClick?: (e: React.MouseEvent, surahNum: number, ayahNum: number, text: string) => void;
+  highlightAyahNumber?: number | null;
+  targetSurahNumber?: number | null;
+  currentlyPlayingAyahGlobalNumber?: number | null;
 }
 
 export const MushafPageView: React.FC<MushafPageViewProps> = ({
@@ -19,7 +22,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   onWordClick,
   isSelectionMode,
   selectedAyahKeys,
-  onAyahClick
+  onAyahClick,
+  highlightAyahNumber,
+  targetSurahNumber,
+  currentlyPlayingAyahGlobalNumber
 }) => {
   const [verses, setVerses] = useState<QuranV4Verse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +58,43 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     });
     return () => { isMounted = false; };
   }, [pageNumber]);
+
+  // Scroll to highlighted ayah when page and verses load
+  useEffect(() => {
+    if (highlightAyahNumber && !loading) {
+      const targetSurah = targetSurahNumber || (verses.length > 0 ? parseInt(verses[0].verse_key.split(':')[0], 10) : 1);
+      const elementId = `ayah-${targetSurah}-${highlightAyahNumber}`;
+      
+      let attempts = 0;
+      const intervalId = setInterval(() => {
+        const element = document.getElementById(elementId);
+        attempts++;
+        if (element) {
+          clearInterval(intervalId);
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (attempts > 30) {
+          clearInterval(intervalId);
+        }
+      }, 100);
+
+      return () => clearInterval(intervalId);
+    }
+  }, [loading, highlightAyahNumber, targetSurahNumber, pageNumber]);
+
+  // Scroll to playing ayah during audio playback
+  useEffect(() => {
+    if (currentlyPlayingAyahGlobalNumber && !loading && verses.length > 0) {
+      const playingVerse = verses.find(v => v.id === currentlyPlayingAyahGlobalNumber);
+      if (playingVerse) {
+        const sNum = parseInt(playingVerse.verse_key.split(':')[0], 10);
+        const elementId = `ayah-${sNum}-${playingVerse.verse_number}`;
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [currentlyPlayingAyahGlobalNumber, loading, verses]);
 
   if (loading) {
     return (
@@ -150,129 +193,155 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
       {/* Main 15 Lines */}
       <main className="flex flex-col justify-between w-full h-full" style={{ minHeight: '60vh', padding: '0 0.5rem' }}>
-        {lineNumbers.map((lineNum, index) => {
-          const lineItems = linesMap[lineNum];
-          
-          if (!lineItems || lineItems.length === 0) {
-             const missingInfo = getMissingLineInfo(lineNum);
-             if (missingInfo) {
-                 if (missingInfo.type === 'chapter_header') {
-                     const sName = QURAN_INDEX.find(s => s.number === missingInfo.surahNumber)?.name || '';
-                     return (
-                         <div key={`missing-${lineNum}`} className="w-full text-center py-1 sm:py-2 my-1 sm:my-2 border-y-2 border-amber-600/30 bg-amber-50/50 dark:bg-slate-800/50">
-                             <h2 className="font-quran-title text-xl sm:text-2xl text-amber-800 dark:text-amber-400 font-bold">{sName}</h2>
-                         </div>
-                     );
-                 }
-                 if (missingInfo.type === 'bismillah') {
-                     return (
-                         <div key={`missing-${lineNum}`} className="w-full text-center py-1 sm:py-2 font-bismillah text-xl sm:text-2xl text-amber-800 dark:text-amber-400">
-                             بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
-                         </div>
-                     );
-                 }
-             }
-             return <div key={lineNum} className="w-full h-8 sm:h-12 flex-1"></div>;
-          }
+        {(() => {
+          const assignedAyahIds = new Set<string>();
 
-          // Check if this line is a Surah Header (some APIs might return it)
-          const isSurahHeader = lineItems.some(i => i.word.char_type_name === 'chapter_header' || i.word.char_type_name === 'bismillah');
-          
-          if (isSurahHeader) {
-             const type = lineItems[0].word.char_type_name;
-             if (type === 'chapter_header') {
-                const sNum = parseInt(lineItems[0].verse.verse_key.split(':')[0], 10);
-                const sName = QURAN_INDEX.find(s => s.number === sNum)?.name || '';
-                return (
-                    <div key={lineNum} className="w-full text-center py-1 sm:py-2 my-1 sm:my-2 border-y-2 border-amber-600/30 bg-amber-50/50 dark:bg-slate-800/50">
-                        <h2 className="font-quran-title text-xl sm:text-2xl text-amber-800 dark:text-amber-400 font-bold">{sName}</h2>
-                    </div>
-                );
-             }
-             if (type === 'bismillah') {
-                return (
-                    <div key={lineNum} className="w-full text-center py-1 sm:py-2 font-bismillah text-xl sm:text-2xl text-amber-800 dark:text-amber-400">
-                        بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
-                    </div>
-                );
-             }
-          }
-
-          // If this is the last line of a surah, we might want to center it instead of justify-between
-          const isLastLineOfSurah = index === lineNumbers.length - 1 && lineItems[lineItems.length - 1].word.char_type_name === 'end';
-          // Also, if the line has very few words, justify-center is better to prevent ugly stretching
-          const shouldCenter = lineItems.length < 5;
-
-          // Group pause marks with the previous word so justify-between doesn't separate them
-          const groupedItems: any[] = [];
-          lineItems.forEach((item) => {
-             if (item.word.char_type_name === 'pause_mark') {
-                if (groupedItems.length > 0) {
-                   if (!groupedItems[groupedItems.length - 1].pauseMarks) {
-                      groupedItems[groupedItems.length - 1].pauseMarks = [];
+          return lineNumbers.map((lineNum, index) => {
+            const lineItems = linesMap[lineNum];
+            
+            if (!lineItems || lineItems.length === 0) {
+               const missingInfo = getMissingLineInfo(lineNum);
+               if (missingInfo) {
+                   if (missingInfo.type === 'chapter_header') {
+                       const sName = QURAN_INDEX.find(s => s.number === missingInfo.surahNumber)?.name || '';
+                       return (
+                           <div key={`missing-${lineNum}`} className="w-full text-center py-1 sm:py-2 my-1 sm:my-2 border-y-2 border-amber-600/30 bg-amber-50/50 dark:bg-slate-800/50">
+                               <h2 className="font-quran-title text-xl sm:text-2xl text-amber-800 dark:text-amber-400 font-bold">{sName}</h2>
+                           </div>
+                       );
                    }
-                   groupedItems[groupedItems.length - 1].pauseMarks.push(item.word);
-                } else {
-                   groupedItems.push(item);
-                }
-             } else {
-                groupedItems.push(item);
-             }
+                   if (missingInfo.type === 'bismillah') {
+                       return (
+                           <div key={`missing-${lineNum}`} className="w-full text-center py-1 sm:py-2 font-bismillah text-xl sm:text-2xl text-amber-800 dark:text-amber-400">
+                               بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
+                           </div>
+                       );
+                   }
+               }
+               return <div key={lineNum} className="w-full h-8 sm:h-12 flex-1"></div>;
+            }
+
+            // Check if this line is a Surah Header (some APIs might return it)
+            const isSurahHeader = lineItems.some(i => i.word.char_type_name === 'chapter_header' || i.word.char_type_name === 'bismillah');
+            
+            if (isSurahHeader) {
+               const type = lineItems[0].word.char_type_name;
+               if (type === 'chapter_header') {
+                  const sNum = parseInt(lineItems[0].verse.verse_key.split(':')[0], 10);
+                  const sName = QURAN_INDEX.find(s => s.number === sNum)?.name || '';
+                  return (
+                      <div key={lineNum} className="w-full text-center py-1 sm:py-2 my-1 sm:my-2 border-y-2 border-amber-600/30 bg-amber-50/50 dark:bg-slate-800/50">
+                          <h2 className="font-quran-title text-xl sm:text-2xl text-amber-800 dark:text-amber-400 font-bold">{sName}</h2>
+                      </div>
+                  );
+               }
+               if (type === 'bismillah') {
+                  return (
+                      <div key={lineNum} className="w-full text-center py-1 sm:py-2 font-bismillah text-xl sm:text-2xl text-amber-800 dark:text-amber-400">
+                          بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
+                      </div>
+                  );
+               }
+            }
+
+            // If this is the last line of a surah, we might want to center it instead of justify-between
+            const isLastLineOfSurah = index === lineNumbers.length - 1 && lineItems[lineItems.length - 1].word.char_type_name === 'end';
+            // Also, if the line has very few words, justify-center is better to prevent ugly stretching
+            const shouldCenter = lineItems.length < 5;
+
+            // Group pause marks with the previous word so justify-between doesn't separate them
+            const groupedItems: any[] = [];
+            lineItems.forEach((item) => {
+               if (item.word.char_type_name === 'pause_mark') {
+                  if (groupedItems.length > 0) {
+                     if (!groupedItems[groupedItems.length - 1].pauseMarks) {
+                        groupedItems[groupedItems.length - 1].pauseMarks = [];
+                     }
+                     groupedItems[groupedItems.length - 1].pauseMarks.push(item.word);
+                  } else {
+                     groupedItems.push(item);
+                  }
+               } else {
+                  groupedItems.push(item);
+               }
+            });
+
+            const useMushafFont = fontStyle === 'mushaf' && isFontReady;
+
+            return (
+              <div 
+                key={lineNum} 
+                className={`w-full flex items-center ${shouldCenter ? 'justify-center gap-2' : 'justify-between'} ${useMushafFont ? '' : 'uthmani-font'} leading-relaxed sm:leading-loose text-text-primary overflow-visible`}
+                style={useMushafFont ? { padding: '0', fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', justifyContent: shouldCenter ? 'center' : 'space-between' } : { padding: '0.1rem 0', fontSize: 'clamp(0.9rem, 4.2vw, 1.8rem)' }}
+              >
+                {groupedItems.map(({ word, verse, pauseMarks }, idx) => {
+                  const isEnd = word.char_type_name === 'end';
+                  const sNum = parseInt(verse.verse_key.split(':')[0], 10);
+                  const ayahNum = verse.verse_number;
+                  const ayahKey = `${sNum}:${ayahNum}`;
+
+                  let ayahElementId: string | undefined = undefined;
+                  if (!assignedAyahIds.has(ayahKey)) {
+                      assignedAyahIds.add(ayahKey);
+                      ayahElementId = `ayah-${sNum}-${ayahNum}`;
+                  }
+
+                  const isTargetSurah = !targetSurahNumber || targetSurahNumber === sNum;
+                  const isHighlighted = isTargetSurah && highlightAyahNumber !== null && highlightAyahNumber !== undefined && ayahNum === highlightAyahNumber;
+                  const isPlaying = currentlyPlayingAyahGlobalNumber !== null && verse.id === currentlyPlayingAyahGlobalNumber;
+                  const isSelected = selectedAyahKeys?.includes(verse.verse_key);
+
+                  let highlightClass = '';
+                  if (isPlaying) {
+                      highlightClass = 'bg-yellow-300/70 dark:bg-yellow-400/40 text-yellow-950 dark:text-yellow-100 ring-2 ring-yellow-500 rounded px-0.5';
+                  } else if (isHighlighted) {
+                      highlightClass = 'bg-amber-300/50 dark:bg-amber-400/35 text-amber-950 dark:text-amber-100 ring-2 ring-amber-500/70 rounded px-0.5 animate-highlight-pulse';
+                  } else if (isSelected) {
+                      highlightClass = 'bg-primary/20 dark:bg-primary/40 rounded px-0.5';
+                  }
+                  
+                  const displayText = useMushafFont && word.code_v1 ? word.code_v1 : word.text_uthmani;
+                  const fontClass = useMushafFont && word.code_v1 ? `font-p${word.v1_page || pageNumber}` : '';
+
+                  return (
+                    <span 
+                      key={word.id || idx}
+                      id={ayahElementId}
+                      className={`hover:text-amber-600 transition-all cursor-pointer shrink-0 inline-flex items-baseline ${highlightClass} ${fontClass}`}
+                      onClick={(e) => {
+                          if (isSelectionMode || e.ctrlKey || e.metaKey) {
+                              const fullText = verse.words.filter((w:any) => w.char_type_name === 'word').map((w:any) => w.text_uthmani).join(' ');
+                              if (onAyahClick) onAyahClick(e, sNum, verse.verse_number, fullText);
+                              return;
+                          }
+                          if (onWordClick && word.char_type_name === 'word') {
+                              onWordClick(word.text_uthmani, sNum, verse.verse_number, word.position);
+                          }
+                      }}
+                    >
+                      {isEnd ? (
+                          useMushafFont ? (
+                              <span className={fontClass}>{word.code_v1 || word.text_uthmani}</span>
+                          ) : (
+                              <span className="mx-1 text-amber-600 text-[1.1em]">{`\u06DD${word.text_uthmani || verse.verse_number.toLocaleString('ar-EG')}`}</span>
+                          )
+                      ) : (
+                          displayText
+                      )}
+                      {pauseMarks && pauseMarks.map((pm: any, pmidx: number) => {
+                          const pmText = useMushafFont && pm.code_v1 ? pm.code_v1 : pm.text_uthmani;
+                          const pmClass = useMushafFont && pm.code_v1 ? `font-p${pm.v1_page || pageNumber}` : '';
+                          return (
+                              <span key={pmidx} className={`text-amber-700/80 mx-0.5 ${pmClass}`} style={useMushafFont ? {} : { fontSize: '0.8em', transform: 'translateY(-0.2em)' }}>{pmText}</span>
+                          );
+                      })}
+                    </span>
+                  );
+                })}
+              </div>
+            );
           });
-
-          const useMushafFont = fontStyle === 'mushaf' && isFontReady;
-
-          return (
-            <div 
-              key={lineNum} 
-              className={`w-full flex items-center ${shouldCenter ? 'justify-center gap-2' : 'justify-between'} ${useMushafFont ? '' : 'uthmani-font'} leading-relaxed sm:leading-loose text-text-primary overflow-visible`}
-              style={useMushafFont ? { padding: '0', fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', justifyContent: shouldCenter ? 'center' : 'space-between' } : { padding: '0.1rem 0', fontSize: 'clamp(0.9rem, 4.2vw, 1.8rem)' }}
-            >
-              {groupedItems.map(({ word, verse, pauseMarks }, idx) => {
-                const isEnd = word.char_type_name === 'end';
-                const isSelected = selectedAyahKeys?.includes(verse.verse_key);
-                
-                const displayText = useMushafFont && word.code_v1 ? word.code_v1 : word.text_uthmani;
-                const fontClass = useMushafFont && word.code_v1 ? `font-p${word.v1_page || pageNumber}` : '';
-
-                return (
-                  <span 
-                    key={word.id || idx}
-                    className={`hover:text-amber-600 transition-colors cursor-pointer shrink-0 inline-flex items-baseline ${isSelected ? 'bg-primary/20 dark:bg-primary/40 rounded' : ''} ${fontClass}`}
-                    onClick={(e) => {
-                        const sNum = parseInt(verse.verse_key.split(':')[0], 10);
-                        if (isSelectionMode || e.ctrlKey || e.metaKey) {
-                            const fullText = verse.words.filter((w:any) => w.char_type_name === 'word').map((w:any) => w.text_uthmani).join(' ');
-                            if (onAyahClick) onAyahClick(e, sNum, verse.verse_number, fullText);
-                            return;
-                        }
-                        if (onWordClick && word.char_type_name === 'word') {
-                            onWordClick(word.text_uthmani, sNum, verse.verse_number, word.position);
-                        }
-                    }}
-                  >
-                    {isEnd ? (
-                        useMushafFont ? (
-                            <span className={fontClass}>{word.code_v1 || word.text_uthmani}</span>
-                        ) : (
-                            <span className="mx-1 text-amber-600 text-[1.1em]">{`\u06DD${word.text_uthmani || verse.verse_number.toLocaleString('ar-EG')}`}</span>
-                        )
-                    ) : (
-                        displayText
-                    )}
-                    {pauseMarks && pauseMarks.map((pm: any, pmidx: number) => {
-                        const pmText = useMushafFont && pm.code_v1 ? pm.code_v1 : pm.text_uthmani;
-                        const pmClass = useMushafFont && pm.code_v1 ? `font-p${pm.v1_page || pageNumber}` : '';
-                        return (
-                            <span key={pmidx} className={`text-amber-700/80 mx-0.5 ${pmClass}`} style={useMushafFont ? {} : { fontSize: '0.8em', transform: 'translateY(-0.2em)' }}>{pmText}</span>
-                        );
-                    })}
-                  </span>
-                );
-              })}
-            </div>
-          );
-        })}
+        })()}
       </main>
 
       {/* Footer */}
