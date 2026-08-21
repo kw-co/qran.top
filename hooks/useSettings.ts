@@ -79,7 +79,18 @@ export const useSettings = () => {
     const [isDownloadingFonts, setIsDownloadingFonts] = useState<boolean>(
         () => safeGetItem(DOWNLOADING_FONTS_KEY, 'false') === 'true'
     );
+    const [isMushafDownloaded, setIsMushafDownloaded] = useState<boolean>(false);
     const abortControllerRef = useRef<AbortController | null>(null);
+
+    const checkFonts = useCallback(async () => {
+        const downloaded = await checkMushafFontsDownloaded();
+        setIsMushafDownloaded(downloaded);
+        return downloaded;
+    }, []);
+
+    useEffect(() => {
+        checkFonts();
+    }, [checkFonts]);
 
     const cancelFontDownload = useCallback(() => {
         if (abortControllerRef.current) {
@@ -107,6 +118,7 @@ export const useSettings = () => {
             setIsDownloadingFonts(false);
             setFontDownloadProgress(-1);
             safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
+            setIsMushafDownloaded(true);
             
             // Auto-activate if setting was pending or just activate anyway if they started it
             setFontStyle('mushaf');
@@ -119,10 +131,20 @@ export const useSettings = () => {
                 setIsDownloadingFonts(false);
                 setFontDownloadProgress(-1);
                 safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
+                checkFonts();
                 alert('حدث خطأ أثناء تحميل الخطوط. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.');
             }
         }
-    }, []);
+    }, [checkFonts]);
+
+    const removeMushafFonts = useCallback(async () => {
+        const { deleteMushafFonts } = await import('../utils/mushafFonts');
+        await deleteMushafFonts();
+        setIsMushafDownloaded(false);
+        if (fontStyle === 'mushaf') {
+            setFontStyle('imlai_1');
+        }
+    }, [fontStyle]);
 
     // Resume download on load if it was interrupted
     useEffect(() => {
@@ -169,6 +191,9 @@ export const useSettings = () => {
         displayEdition,
         fontDownloadProgress, setFontDownloadProgress,
         isDownloadingFonts, setIsDownloadingFonts,
+        isMushafDownloaded,
+        checkFonts,
+        removeMushafFonts,
         cancelFontDownload, startFontDownload
     };
 };

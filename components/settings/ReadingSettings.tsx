@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useSettingsContext } from '../../contexts/SettingsContext';
 import type { FontSize, FontStyleType, BrowsingMode } from '../../types';
 import { BookOpenIcon, CheckIcon } from '../icons';
-import { checkMushafFontsDownloaded, downloadAllMushafFonts } from '../../utils/mushafFonts';
 
 const FONT_SIZES: { id: FontSize; label: string; px: string }[] = [
     { id: 'xs', label: 'صغير جداً', px: '16px' },
@@ -17,7 +16,7 @@ const FONT_STYLES: { id: FontStyleType; name: string; description: string; class
     { id: 'imlai_1', name: 'الخط الإملائي النظامي (التفاعلي السريع)', description: 'خط عالي الأداء مع وضوح عالي للتشكيل والحروف', className: 'font-quran-simple' },
     { id: 'uthmani', name: 'خط الحفص بالرسم العثماني الأصيل', description: 'مطابق لرسم مصحف المدينة المنورة مع كافة علامات الضبط والوقف', className: 'font-quran-title' },
     { id: 'imlai_2', name: 'الخط النسخي الأنيق', description: 'نسق كتابي كلاسيكي هادئ ومريح للعين', className: 'font-sans' },
-    { id: 'mushaf', name: 'المصحف', description: 'يعرض الصفحة مطابقة تماماً للمصحف المطبوع بصورة الأصل', className: 'font-quran-title', requiresDownload: true },
+    { id: 'mushaf', name: 'المصحف', description: 'يعرض الصفحة مطابقة تماماً للمصحف المطبوع بصورة الأصل (604 صفحة)', className: 'font-quran-title', requiresDownload: true },
 ];
 
 const ReadingSettings: React.FC = () => {
@@ -32,19 +31,14 @@ const ReadingSettings: React.FC = () => {
         enableMorphology, setEnableMorphology,
         fontDownloadProgress,
         isDownloadingFonts,
+        isMushafDownloaded,
         startFontDownload,
         cancelFontDownload
     } = useSettingsContext();
 
-    const [isMushafDownloaded, setIsMushafDownloaded] = useState(false);
-
-    useEffect(() => {
-        checkMushafFontsDownloaded().then(setIsMushafDownloaded);
-    }, [isDownloadingFonts]); // Re-check when download finishes
-
     const handleDownloadFonts = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        startFontDownload();
+        await startFontDownload();
     };
 
     const handleCancelDownload = (e: React.MouseEvent) => {
@@ -273,15 +267,18 @@ const ReadingSettings: React.FC = () => {
                 </div>
                 <div className="space-y-3">
                     {FONT_STYLES.map((style) => {
-                        const isDisabled = style.requiresDownload && !isMushafDownloaded;
-                        const isDownloading = style.requiresDownload && isDownloadingFonts;
+                        const isSelected = fontStyle === style.id;
+                        const requiresDownload = style.requiresDownload;
+                        const isDownloaded = !requiresDownload || isMushafDownloaded;
+                        const isDownloading = requiresDownload && isDownloadingFonts;
                         
                         return (
-                            <label
+                            <div
                                 key={style.id}
-                                onClick={(e) => {
-                                    if (isDisabled || isDownloading) {
-                                        e.preventDefault();
+                                onClick={() => {
+                                    if (isDownloading) return;
+                                    if (requiresDownload && !isMushafDownloaded) {
+                                        startFontDownload();
                                         return;
                                     }
                                     setFontStyle(style.id);
@@ -290,37 +287,41 @@ const ReadingSettings: React.FC = () => {
                                         setSelectedEdition('quran-uthmani-quran-academy');
                                     }
                                 }}
-                                className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                                    (isDisabled || isDownloading) ? 'bg-surface-subtle border-border-subtle cursor-default' : 'cursor-pointer hover:border-border-default/80'
+                                className={`flex items-center justify-between p-4 rounded-xl border transition-all select-none ${
+                                    isDownloading 
+                                        ? 'bg-surface-subtle border-border-subtle cursor-default' 
+                                        : 'cursor-pointer hover:border-primary/40'
                                 } ${
-                                    fontStyle === style.id && !isDisabled
+                                    isSelected && isDownloaded
                                         ? 'bg-surface border-primary ring-2 ring-primary/20 shadow-xs'
-                                        : (!isDisabled && !isDownloading) ? 'bg-surface border-border-default' : ''
+                                        : (!isDownloading) ? 'bg-surface border-border-default' : ''
                                 }`}
                             >
                                 <div className="flex items-start gap-3 w-full">
                                     <div className={`w-5 h-5 rounded-full border flex flex-shrink-0 items-center justify-center mt-0.5 transition-colors ${
-                                        fontStyle === style.id && !isDisabled ? 'border-primary bg-primary text-white' : 'border-border-default bg-surface'
+                                        isSelected && isDownloaded ? 'border-primary bg-primary text-white' : 'border-border-default bg-surface'
                                     }`}>
-                                        {fontStyle === style.id && !isDisabled && <CheckIcon className="w-3.5 h-3.5" />}
+                                        {isSelected && isDownloaded && <CheckIcon className="w-3.5 h-3.5" />}
                                     </div>
                                     <div className="flex-1">
                                         <div className="font-bold text-base text-text-primary flex flex-wrap items-center gap-2">
                                             <span>{style.name}</span>
-                                            {isDisabled && !isDownloading && (
+                                            {requiresDownload && !isMushafDownloaded && !isDownloading && (
                                                 <button 
+                                                    type="button"
                                                     onClick={handleDownloadFonts}
-                                                    className="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                                    className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-primary text-white hover:bg-primary/90 active:scale-95 shadow-xs transition-all flex items-center gap-1 cursor-pointer"
                                                 >
-                                                    تنزيل الخطوط للبدء
+                                                    <span>⬇️ تنزيل الخطوط للبدء</span>
                                                 </button>
                                             )}
                                             {isDownloading && (
                                                 <button 
+                                                    type="button"
                                                     onClick={handleCancelDownload}
-                                                    className="text-xs font-bold px-3 py-1 rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors"
+                                                    className="text-xs font-bold px-3 py-1 rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 active:scale-95 transition-colors cursor-pointer"
                                                 >
-                                                    إلغاء
+                                                    إلغاء التنزيل
                                                 </button>
                                             )}
                                         </div>
@@ -328,18 +329,21 @@ const ReadingSettings: React.FC = () => {
                                         
                                         {isDownloading && (
                                             <div className="w-full mt-2">
-                                                <div className="flex justify-between text-[10px] text-text-muted mb-1">
-                                                    <span>جاري تنزيل ملفات المصحف في الخلفية...</span>
-                                                    <span>{fontDownloadProgress}%</span>
+                                                <div className="flex justify-between text-xs text-text-muted mb-1">
+                                                    <span className="text-primary font-medium">جاري تنزيل خطوط صفحات المصحف (604 صفحة)...</span>
+                                                    <span className="font-bold text-primary" dir="ltr">{fontDownloadProgress}%</span>
                                                 </div>
-                                                <div className="w-full bg-border-subtle rounded-full h-1.5 overflow-hidden">
-                                                    <div className="bg-primary h-1.5 transition-all duration-300" style={{ width: `${Math.max(0, fontDownloadProgress)}%` }}></div>
+                                                <div className="w-full bg-border-subtle rounded-full h-2 overflow-hidden">
+                                                    <div 
+                                                        className="bg-primary h-2 transition-all duration-300 rounded-full" 
+                                                        style={{ width: `${Math.max(0, fontDownloadProgress)}%` }}
+                                                    ></div>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            </label>
+                            </div>
                         );
                     })}
                 </div>

@@ -26,6 +26,9 @@ interface SettingsContextType {
     setFontDownloadProgress: (progress: number) => void;
     isDownloadingFonts: boolean;
     setIsDownloadingFonts: (isDownloading: boolean) => void;
+    isMushafDownloaded: boolean;
+    checkFonts: () => Promise<boolean>;
+    removeMushafFonts: () => Promise<void>;
     cancelFontDownload: () => void;
     startFontDownload: () => Promise<void>;
 }

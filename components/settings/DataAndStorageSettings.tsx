@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { TrashIcon, RefreshIcon, CheckIcon } from '../icons';
-import { downloadAllMushafFonts, checkMushafFontsDownloaded, deleteMushafFonts, MUSHAF_FONTS_VERSION } from '../../utils/mushafFonts';
+import { useSettingsContext } from '../../contexts/SettingsContext';
 
 const DataAndStorageSettings: React.FC = () => {
+    const {
+        isMushafDownloaded,
+        isDownloadingFonts,
+        fontDownloadProgress,
+        startFontDownload,
+        cancelFontDownload,
+        removeMushafFonts
+    } = useSettingsContext();
+
     const [storageInfo, setStorageInfo] = useState<{ keysCount: number; estimatedKb: string }>({ keysCount: 0, estimatedKb: '0' });
     const [isCleared, setIsCleared] = useState(false);
-    const [fontsStatus, setFontsStatus] = useState<'checking' | 'downloaded' | 'not_downloaded' | 'downloading'>('checking');
-    const [downloadProgress, setDownloadProgress] = useState(0);
 
     const calculateStorage = () => {
         try {
@@ -28,29 +35,15 @@ const DataAndStorageSettings: React.FC = () => {
 
     useEffect(() => {
         calculateStorage();
-        checkMushafFontsDownloaded().then(isDownloaded => {
-            setFontsStatus(isDownloaded ? 'downloaded' : 'not_downloaded');
-        });
     }, []);
 
     const handleDownloadFonts = async () => {
-        setFontsStatus('downloading');
-        setDownloadProgress(0);
-        try {
-            await downloadAllMushafFonts(progress => {
-                setDownloadProgress(progress);
-            });
-            setFontsStatus('downloaded');
-        } catch (e) {
-            alert('حدث خطأ أثناء تحميل الخطوط. يرجى المحاولة مرة أخرى.');
-            setFontsStatus('not_downloaded');
-        }
+        await startFontDownload();
     };
 
     const handleDeleteFonts = async () => {
         if (window.confirm('هل أنت متأكد من حذف خطوط المصحف؟')) {
-            await deleteMushafFonts();
-            setFontsStatus('not_downloaded');
+            await removeMushafFonts();
         }
     };
 
@@ -124,35 +117,55 @@ const DataAndStorageSettings: React.FC = () => {
                             </p>
                         </div>
                         
-                        <div className="flex-shrink-0 min-w-[120px]">
-                            {fontsStatus === 'checking' ? (
-                                <div className="text-xs text-text-muted">جاري التحقق...</div>
-                            ) : fontsStatus === 'downloading' ? (
+                        <div className="flex-shrink-0 min-w-[140px]">
+                            {isDownloadingFonts ? (
                                 <div className="space-y-2 w-full">
-                                    <div className="w-full bg-border-subtle rounded-full h-2 overflow-hidden">
-                                        <div className="bg-primary h-2 transition-all duration-300" style={{ width: `${downloadProgress}%` }}></div>
+                                    <div className="flex justify-between text-xs text-text-muted">
+                                        <span>جاري التنزيل...</span>
+                                        <span className="font-bold text-primary" dir="ltr">{fontDownloadProgress}%</span>
                                     </div>
-                                    <div className="text-xs text-center text-text-muted">{downloadProgress}%</div>
+                                    <div className="w-full bg-border-subtle rounded-full h-2 overflow-hidden">
+                                        <div 
+                                            className="bg-primary h-2 transition-all duration-300 rounded-full" 
+                                            style={{ width: `${Math.max(0, fontDownloadProgress)}%` }}
+                                        ></div>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={cancelFontDownload} 
+                                        className="text-xs text-red-500 hover:text-red-700 underline block text-center w-full mt-1 cursor-pointer"
+                                    >
+                                        إلغاء التنزيل
+                                    </button>
                                 </div>
-                            ) : fontsStatus === 'downloaded' ? (
+                            ) : isMushafDownloaded ? (
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded">تم التنزيل</span>
-                                    <button onClick={handleDeleteFonts} className="text-xs text-red-500 hover:text-red-700 underline px-1">حذف</button>
+                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1">
+                                        <CheckIcon className="w-3.5 h-3.5" /> تم التنزيل
+                                    </span>
+                                    <button 
+                                        type="button"
+                                        onClick={handleDeleteFonts} 
+                                        className="text-xs text-red-500 hover:text-red-700 underline px-2 py-1 cursor-pointer"
+                                    >
+                                        حذف
+                                    </button>
                                 </div>
                             ) : (
                                 <button 
+                                    type="button"
                                     onClick={handleDownloadFonts}
-                                    className="w-full bg-primary text-primary-text font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                                    className="w-full bg-primary text-white font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/90 active:scale-95 transition-all shadow-xs cursor-pointer"
                                 >
                                     تنزيل الخطوط
                                 </button>
                             )}
                         </div>
                     </div>
-                    {fontsStatus === 'downloaded' && (
-                        <div className="px-4 py-2 bg-emerald-500/5 text-xs text-emerald-700 dark:text-emerald-300 border-t border-emerald-500/10 flex items-center gap-2">
+                    {isMushafDownloaded && (
+                        <div className="px-4 py-2.5 bg-emerald-500/5 text-xs text-emerald-700 dark:text-emerald-300 border-t border-emerald-500/10 flex items-center gap-2">
                             <CheckIcon className="w-4 h-4 flex-shrink-0" />
-                            <span>تم تنزيل الخطوط. يمكنك الآن اختيار "المصحف" من خيارات القراءة.</span>
+                            <span>تم تنزيل الخطوط بنجاح. يمكنك الآن تفعيل نمط "المصحف" من إعدادات القراءة والخطوط.</span>
                         </div>
                     )}
                 </div>
