@@ -125,7 +125,7 @@ const PrivacyPolicyView: React.FC = () => {
     const handleHomeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         window.location.hash = '#/';
-    }
+    };
 
     return (
         <>
@@ -134,7 +134,7 @@ const PrivacyPolicyView: React.FC = () => {
                 <div className="qran-top-privacy-container">
                     <header>
                         <h1 id="header-title">{lang === 'ar' ? 'سياسة الخصوصية لتطبيق QRAN.TOP' : 'Privacy Policy - QRAN.TOP'}</h1>
-                        <p id="header-date" className="text-sm mt-2 opacity-80">{lang === 'ar' ? 'آخر تحديث: 11 أغسطس 2026' : 'Last updated: August 11, 2026'}</p>
+                        <p id="header-date" className="text-sm mt-2 opacity-80">{lang === 'ar' ? 'آخر تحديث: 22 أغسطس 2026' : 'Last updated: August 22, 2026'}</p>
                     </header>
                     
                     <div className="lang-toggle">
@@ -144,82 +144,87 @@ const PrivacyPolicyView: React.FC = () => {
 
                     <div id="arabic-content" style={{ display: lang === 'ar' ? 'block' : 'none' }}>
                         <section>
-                            <h2>مقدمة</h2>
-                            <p>نحن في تطبيق <strong>QRAN.TOP</strong> نلتزم بأعلى معايير الخصوصية لحماية زوارنا ومستخدمينا. تهدف هذه السياسة إلى توضيح كيفية التعامل مع البيانات مع التأكيد القاطع على أننا لا نجمع أي بيانات شخصية أو هوية تعريفية للمستخدمين.</p>
+                            <h2>مقدمة والتزامنا بالخصوصية</h2>
+                            <p>نحن في تطبيق <strong>QRAN.TOP (الباحث في القرآن الكريم)</strong> نلتزم بأعلى معايير الأمان والخصوصية وحفظ سرية بيانات مستخدمينا. تم تصميم التطبيق كمنصة مفتوحة لخدمة كتاب الله دون الحاجة لإنشاء حسابات أو تقديم أي معلومات شخصية أو حساسة.</p>
                         </section>
 
                         <section>
                             <h2>البيانات المخزنة محلياً على جهازك</h2>
-                            <p>لضمان سرعة الأداء وحفظ التفضيلات الشخصية، يعتمد التطبيق على التخزين المحلي في متصفحك (localStorage & IndexDB). هذه البيانات تظل بالكامل على جهازك دون إرسالها لأي سيرفر:</p>
+                            <p>يعتمد التطبيق بشكل رئيسي على التخزين المحلي الآمن داخل متصفحك (Local Storage & IndexedDB) لتقديم تجربة فائقة السرعة مع الحفاظ التام على خصوصيتك:</p>
                             <ul>
-                                <li><strong>تفضيلات القراءة والعرض:</strong> تشمل اختيار المظهر (فاتح/داكن)، حجم ونوع الخط المصحفي، القارئ الصوتي المفضل، والتفاسير والترجمات المفعّلة.</li>
-                                <li><strong>دفتر التدبر والملاحظات:</strong> الآيات المحفوظة، المجموعات المخصصة، والملاحظات والتدبرات الشخصية تحفظ محلياً على جهازك فقط.</li>
-                                <li><strong>مفتاح Gemini API:</strong> في حال إدخالك لمفتاح API الخاص بك لتفعيل خدمات الذكاء الاصطناعي، يتم حفظه محلياً ومشفراً في متصفحك ولا نصل إليه مطلقاً.</li>
-                                <li><strong>التخزين المؤقت للقرآن (Cache):</strong> يتم حفظ بيانات الآيات والتطبيقات الأساسية محلياً لتسريع التحميل ودعم التشغيل السريع.</li>
+                                <li><strong>تفضيلات القراءة والمظهر:</strong> تشمل اختيار نوع الخط وحجمه، المظهر (فاتح / داكن / وضع القراءة)، القارئ الصوتي المفضل، والتفاسير والترجمات المحددة.</li>
+                                <li><strong>دفتر التدبر والملاحظات:</strong> الآيات المحفوظة، المجموعات المخصصة، والملاحظات والتدبرات الشخصية تحفظ محلياً على جهازك فقط ولا تُرسل إلى أي خادم خارجي.</li>
+                                <li><strong>مفتاح الذكاء الاصطناعي (Gemini API Key):</strong> إذا قمت بإدخال مفتاح API الخاص بك لتفعيل الميزات المتقدمة، يُحفظ مشفراً في متصفحك ولا نطلع عليه مطلقاً.</li>
+                                <li><strong>خطوط مصحف المدينة والتخزين المؤقت:</strong> يتم تنزيل خطوط المصحف والملفات الأساسية في الذاكرة المحلية المؤقتة لجهازك لتمكين القراءة بدون اتصال بالإنترنت.</li>
                             </ul>
                         </section>
 
                         <section>
-                            <h2>البيانات التفاعلية العامة (مجهولة الهوية)</h2>
-                            <p>لتمكين الميزات الجماعية التفاعلية، يتم التعامل مع بيانات مجهولة الهوية تماماً عبر خوادم Firebase:</p>
+                            <h2>نظام الختمات الجماعية والتفاعلات العامة (مجهولة الهوية)</h2>
+                            <p>لتمكين خدمة الختمات القرآنية الجماعية والمشاركة مع الأصدقاء والأهل، يتم التعامل مع بيانات عامة مجهولة الهوية بالكامل عبر خوادم آمنة:</p>
                             <ul>
-                                <li><strong>النقاشات والتعليقات:</strong> عند كتابة تعليق أو تدبر عام، يُحفظ النص مجهول الهوية دون أي ربط بحساب أو هوية رقمية.</li>
-                                <li><strong>الختمات الجماعية:</strong> يتم تحديث الختمات المشتركة بأعداد الصفحات المنجزة مجهولة الهوية لتشجيع القراءة الجماعية.</li>
-                                <li><strong>مزامنة دفتر التدبر (المؤقتة):</strong> عند تصدير دفتر التدبر، يُحفظ رمز مشفر ومجهول مؤقتاً لتسهيل نقله لجهاز آخر ثم يُحذف نهائياً.</li>
+                                <li><strong>الختمات الجماعية:</strong> يتم تخزين اسم الختمة، الإهداء، موعد الختم، وقائمة الأجزاء المحجوزة والمقروءة دون ربطها بأي بريد إلكتروني أو رقم هاتف أو هوية مستخدم.</li>
+                                <li><strong>حجز الأجزاء:</strong> الاسم المسجل عند حجز الجزء هو اسم اختياري يكتبه المشارك بنفسه لتنسيق القراءة في مجموعات المشاركة، ولا يرتبط بأي حساب.</li>
+                                <li><strong>النقاشات والتدبر العام:</strong> المشاركات والتعليقات العامة تُحفظ كنصوص عامة مجهولة الهوية.</li>
                             </ul>
                         </section>
                         
                         <section>
-                            <h2>تقنية التطبيق المتقدم (PWA & Service Worker)</h2>
-                            <p>يستخدم التطبيق تقنيات الويب الحديثة (Service Worker) لتخزين واجهة التطبيق والأيقونات في الذاكرة المؤقتة لجهازك ليعمل التطبيق بكفاءة عالية وبسرعة فائقة حتى عند ضعف الاتصال بالإنترنت.</p>
+                            <h2>تقنيات التطبيق التقدمي (PWA & Service Worker)</h2>
+                            <p>يستخدم التطبيق تقنية Service Worker لتخزين ملفات العرض والأيقونات محلياً لتسريع التصفح وضمان فتح التطبيق ومتابعة القراءة حتى في حال انقطاع شبكة الإنترنت.</p>
                         </section>
 
                         <section>
-                            <h2>الإشراف والتواصل</h2>
-                            <p>يحتفظ القائمون على التطبيق بحق مراجعة أي تعليقات عامة تفتقر إلى اللياقة أو تخالف الضوابط العامة وحذفها لحفظ بيئة تدبر نقية.</p>
+                            <h2>حذف البيانات والتحكم الكامل</h2>
+                            <p>يملك المستخدم التحكم الكامل في بياناته المحلية، ويمكنك في أي وقت مسح الذاكرة المؤقتة أو تفريغ دفتر التدبر أو حذف الخطوط المحملة مباشرة عبر شاشة <strong>الإعدادات &larr; البيانات والمساحة</strong>.</p>
                         </section>
 
                         <section>
-                            <h2>التواصل معنا</h2>
-                            <p>لأي استفسارات حول سياسة الخصوصية أو التطبيق، يرجى التواصل عبر حساب التلغرام: <a href="https://t.me/aboharon_com" onClick={(e) => openExternalLink(e, "https://t.me/aboharon_com")} target="_blank" rel="noopener noreferrer">t.me/aboharon_com</a>.</p>
+                            <h2>التواصل والاستفسار</h2>
+                            <p>لأي استفسارات بخصوص سياسة الخصوصية أو التطبيق، نرحب بتواصلكم عبر التلغرام: <a href="https://t.me/aboharon_com" onClick={(e) => openExternalLink(e, "https://t.me/aboharon_com")} target="_blank" rel="noopener noreferrer">t.me/aboharon_com</a> أو الموقع الرسمي <a href="https://aboharon.com" onClick={(e) => openExternalLink(e, "https://aboharon.com")} target="_blank" rel="noopener noreferrer">aboharon.com</a>.</p>
                         </section>
                     </div>
                     
                     <div id="english-content" className="lang-en" style={{ display: lang === 'en' ? 'block' : 'none' }}>
                         <section>
-                            <h2>Introduction</h2>
-                            <p>At <strong>QRAN.TOP</strong>, we are committed to protecting your privacy. This policy explains our privacy practices, highlighting that we do not collect any personal or identifiable information from our users.</p>
+                            <h2>Introduction & Privacy Commitment</h2>
+                            <p>At <strong>QRAN.TOP</strong>, we are committed to upholding the highest standards of privacy and data security. The platform is designed to serve readers of the Holy Quran without requiring user accounts or collecting personal identifiable information.</p>
                         </section>
 
                         <section>
                             <h2>Locally Stored Data</h2>
-                            <p>To deliver a personalized and instant experience, certain settings are stored directly in your browser's local storage. This data never leaves your device:</p>
+                            <p>To provide high performance and offline readiness, essential preferences are stored entirely within your browser's local storage (LocalStorage & IndexedDB):</p>
                             <ul>
-                                <li><strong>Reading Preferences:</strong> Theme selection (light/dark), font face and size, preferred audio reciters, and active tafsirs/translations.</li>
-                                <li><strong>Tadabbur Notebook:</strong> Saved ayahs, custom collections, and personal study notes are kept entirely inside your browser.</li>
-                                <li><strong>Gemini API Key:</strong> If provided for AI features, your API key is encrypted and saved locally only. We never send it to external servers.</li>
-                                <li><strong>Quran Caching:</strong> Core app assets and text are cached locally for fast load times and offline readiness.</li>
+                                <li><strong>Reading Preferences:</strong> Theme choice (light/dark), font style and sizing, preferred audio reciters, and active tafsirs or translations.</li>
+                                <li><strong>Tadabbur Notebook:</strong> Saved verses, custom collections, and personal reflections are stored exclusively on your device.</li>
+                                <li><strong>Gemini API Key:</strong> If provided for AI analysis, your API key is encrypted and stored locally only. We never access or transmit it to third parties.</li>
+                                <li><strong>Offline Mushaf Fonts & Caches:</strong> Madinah Mushaf font files and offline assets are stored on your device to support offline browsing.</li>
                             </ul>
                         </section>
 
                         <section>
-                            <h2>Anonymized Community Features</h2>
-                            <p>To enable shared features, fully anonymous interactions are stored securely on Firebase:</p>
+                            <h2>Anonymous Group Khatmat & Shared Features</h2>
+                            <p>To enable collaborative Quran reading and group khatmat, anonymous non-personal data is synchronized securely:</p>
                             <ul>
-                                <li><strong>Comments & Discussions:</strong> Public study notes are stored anonymously without any link to user identities.</li>
-                                <li><strong>Group Khatmiyah:</strong> Anonymous page counts are updated to facilitate group reading progress.</li>
-                                <li><strong>Temporary Sync:</strong> Notebook exports use a temporary, randomized token to help you move data between devices.</li>
+                                <li><strong>Group Khatmat:</strong> Khatmah titles, dedications, completion targets, and part reservation statuses (1-30) are maintained without user accounts or personal profiles.</li>
+                                <li><strong>Part Reservations:</strong> The name entered when reserving a part is entirely voluntary for group coordination and is not tied to any identity.</li>
+                                <li><strong>Public Discussions:</strong> Shared reflections and notes are stored anonymously for community benefit.</li>
                             </ul>
                         </section>
                         
                         <section>
-                            <h2>Service Worker & PWA</h2>
-                            <p>The application utilizes Service Worker technology to store essential layout assets on your device, ensuring fast page loads and offline responsiveness.</p>
+                            <h2>Progressive Web App (PWA & Service Worker)</h2>
+                            <p>The application employs Service Worker technology to cache static assets and ensure fast, reliable access even under low or no network connectivity.</p>
+                        </section>
+
+                        <section>
+                            <h2>Data Control & Deletion</h2>
+                            <p>You have complete control over all local data and can clear cache, remove downloaded fonts, or reset settings at any time via <strong>Settings &rarr; Data & Storage</strong>.</p>
                         </section>
 
                         <section>
                             <h2>Contact Us</h2>
-                            <p>For questions regarding our privacy policy or practices, reach out via Telegram: <a href="https://t.me/aboharon_com" onClick={(e) => openExternalLink(e, "https://t.me/aboharon_com")} target="_blank" rel="noopener noreferrer">t.me/aboharon_com</a>.</p>
+                            <p>For questions regarding our privacy practices or feedback, contact us via Telegram at <a href="https://t.me/aboharon_com" onClick={(e) => openExternalLink(e, "https://t.me/aboharon_com")} target="_blank" rel="noopener noreferrer">t.me/aboharon_com</a> or visit <a href="https://aboharon.com" onClick={(e) => openExternalLink(e, "https://aboharon.com")} target="_blank" rel="noopener noreferrer">aboharon.com</a>.</p>
                         </section>
                     </div>
 

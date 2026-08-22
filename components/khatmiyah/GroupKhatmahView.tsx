@@ -9,10 +9,12 @@ import {
   TelegramIcon,
   ArrowRightIcon,
   LockClosedIcon,
+  PlusIcon,
 } from '../icons';
 import ReserveJuzModal from './ReserveJuzModal';
 import PartActionModal from './PartActionModal';
 import DuaaKhatmModal from './DuaaKhatmModal';
+import CreateKhatmahModal from './CreateKhatmahModal';
 import { useSettingsContext } from '../../contexts/SettingsContext';
 
 interface GroupKhatmahViewProps {
@@ -72,6 +74,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
 
   // Modals state
   const [isDuaaModalOpen, setIsDuaaModalOpen] = useState(false);
+  const [isCreateKhatmahOpen, setIsCreateKhatmahOpen] = useState(false);
   const [reservingPartNumber, setReservingPartNumber] = useState<number | null>(null);
   const [selectedPartForAction, setSelectedPartForAction] = useState<number | null>(null);
 
@@ -558,6 +561,21 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     loadKhatmahData(id);
   };
 
+  // Create new Khatmah from this view
+  const handleCreateKhatmah = async (params: {
+    title: string;
+    dedication?: string;
+    targetDate?: string;
+    createdBy?: string;
+    khatmahType?: 'once' | 'monthly_recurring';
+  }) => {
+    const created = await khatmahService.createKhatmah(params);
+    setCurrentKhatmahId(created.id);
+    window.location.hash = `#/khatmah/${created.id}`;
+    loadKhatmahData(created.id);
+    return created.id;
+  };
+
   // Start new cycle for completed Khatmah
   const handleStartNewCycle = async () => {
     if (!khatmah) return;
@@ -935,32 +953,36 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
       {!currentKhatmahId && (
         <div className="space-y-5 animate-fade-in">
           {/* Header Bar */}
-          <div className="bg-surface border border-border-default rounded-3xl p-4 sm:p-5 shadow-sm flex items-center justify-between gap-4">
+          <div className="bg-surface border border-border-default rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="p-2.5 bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary rounded-2xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-                title="رجوع"
-              >
-                <ArrowRightIcon className="w-4 h-4" />
-                <span>رجوع</span>
-              </button>
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
+                📖
+              </div>
               <div>
                 <h1 className="text-base sm:text-lg font-black text-text-primary flex items-center gap-2">
-                  <span>📋</span>
-                  <span>الختمات القرآنية الجماعية ({uniqueKhatmahsList.length})</span>
+                  <span>الختمات القرآنية الجماعية</span>
                 </h1>
-                <p className="text-xs text-text-muted">اختر ختمة للمشاركة وحجز الأجزاء</p>
+                <p className="text-xs text-text-muted">اختر ختمة للمشاركة وحجز الأجزاء أو أنشئ ختمة جديدة</p>
               </div>
             </div>
 
-            {/* Sharing Icons only (no text) */}
-            <div className="flex items-center gap-1.5">
+            {/* Actions: Create New Khatmah & Social Share Icons */}
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              {/* Create New Khatmah Button */}
+              <button
+                type="button"
+                onClick={() => setIsCreateKhatmahOpen(true)}
+                className="px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <PlusIcon className="w-4 h-4" />
+                <span>إنشاء ختمة جديدة</span>
+              </button>
+
+              {/* Sharing Icons only (no text) */}
               <button
                 type="button"
                 onClick={() => handleCopyLink()}
-                className="w-9 h-9 flex items-center justify-center bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary rounded-xl transition-all cursor-pointer"
+                className="w-9 h-9 flex items-center justify-center bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
                 title="نسخ الرابط"
                 aria-label="نسخ الرابط"
               >
@@ -969,7 +991,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
               <button
                 type="button"
                 onClick={() => handleWhatsAppShare()}
-                className="w-9 h-9 flex items-center justify-center bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] rounded-xl border border-[#25D366]/30 transition-all cursor-pointer"
+                className="w-9 h-9 flex items-center justify-center bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] rounded-xl border border-[#25D366]/30 transition-all cursor-pointer shadow-xs active:scale-95"
                 title="واتساب"
                 aria-label="واتساب"
               >
@@ -978,7 +1000,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
               <button
                 type="button"
                 onClick={() => handleTelegramShare()}
-                className="w-9 h-9 flex items-center justify-center bg-[#0088cc]/15 hover:bg-[#0088cc]/25 text-[#0088cc] rounded-xl border border-[#0088cc]/30 transition-all cursor-pointer"
+                className="w-9 h-9 flex items-center justify-center bg-[#0088cc]/15 hover:bg-[#0088cc]/25 text-[#0088cc] rounded-xl border border-[#0088cc]/30 transition-all cursor-pointer shadow-xs active:scale-95"
                 title="تيليجرام"
                 aria-label="تيليجرام"
               >
@@ -997,16 +1019,15 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
               <span className="text-5xl">🌿</span>
               <h3 className="text-lg font-bold text-text-primary">لا توجد ختمات حالياً</h3>
               <p className="text-sm text-text-muted max-w-md mx-auto leading-relaxed">
-                يمكنك إنشاء ختمة جديدة من الواجهة الرئيسية للموقع ومشاركتها مع الأهل والأصدقاء.
+                يمكنك إنشاء أول ختمة مباركة ومشاركتها مع الأهل والأصدقاء لنيل الأجر.
               </p>
               <button
                 type="button"
-                onClick={() => {
-                  window.location.hash = '#/';
-                }}
-                className="px-6 py-2.5 bg-primary text-white font-bold rounded-2xl shadow-xs hover:bg-primary/90 transition-all inline-flex items-center gap-2 text-sm cursor-pointer"
+                onClick={() => setIsCreateKhatmahOpen(true)}
+                className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-2xl shadow-xs hover:bg-emerald-700 transition-all inline-flex items-center gap-2 text-sm cursor-pointer"
               >
-                <span>الذهاب للواجهة الرئيسية</span>
+                <PlusIcon className="w-4 h-4" />
+                <span>إنشاء ختمة جديدة الآن</span>
               </button>
             </div>
           ) : (
@@ -1181,6 +1202,14 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
         isOpen={isDuaaModalOpen}
         onClose={() => setIsDuaaModalOpen(false)}
       />
+
+      {/* Create Khatmah Modal */}
+      {isCreateKhatmahOpen && (
+        <CreateKhatmahModal
+          onClose={() => setIsCreateKhatmahOpen(false)}
+          onCreate={handleCreateKhatmah}
+        />
+      )}
     </div>
   );
 };

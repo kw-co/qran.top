@@ -1,237 +1,131 @@
-# دليل المطور لتطبيق QRAN.TOP
+# دليل المطور والتوثيق التقني لتطبيق QRAN.TOP
 
 ## جدول المحتويات
 1.  [مقدمة](#1-مقدمة)
-2.  [متطلبات التشغيل](#2-متطلبات-التشغيل)
-3.  [خطوات التنصيب على الخادم](#3-خطوات-التنصيب-على-الخادم)
+2.  [متطلبات التشغيل والبيئة](#2-متطلبات-التشغيل-والبيئة)
+3.  [خطوات البناء والنشـر](#3-خطوات-البناء-والنشـر)
 4.  [إعداد قاعدة بيانات Firebase](#4-إعداد-قاعدة-بيانات-firebase)
-    *   [إنشاء مشروع Firebase](#41-إنشاء-مشروع-firebase)
-    *   [ربط التطبيق بـ Firebase](#42-ربط-التطبيق-بـ-firebase)
-    *   [إعداد قواعد الأمان (Security Rules)](#43-إعداد-قواعد-الأمان-security-rules)
-    *   [إنشاء المجموعات والفهارس (Collections & Indexes)](#44-إنشاء-المجموعات-والفهارس-collections--indexes)
-5.  [آلية عمل البرنامج](#5-آلية-عمل-البرنامج)
-    *   [فلسفة الإصدار المزدوج للقرآن](#51-فلسفة-الإصدار-المزدوج-للقرآن)
-    *   [تدفق البيانات](#52-تدفق-البيانات)
-    *   [آلية البحث](#53-آلية-البحث)
-    *   [نظام التعليقات المجهول](#54-نظام-التعليقات-المجهول)
-    *   [ميزة الختمة الجماعية](#55-ميزة-الختمة-الجماعية)
+    *   [إعداد قواعد الأمان (Security Rules)](#41-إعداد-قواعد-الأمان-security-rules)
+    *   [المجموعات والفهارس (Collections & Indexes)](#42-المجموعات-والفهارس-collections--indexes)
+5.  [آلية عمل البرنامج والميزات](#5-آلية-عمل-البرنامج-والميزات)
+    *   [فلسفة الإصدار المزدوج للمصحف](#51-فلسفة-الإصدار-المزدوج-للمصحف)
+    *   [نظام الختمات الجماعية التفاعلية](#52-نظام-الختمات-الجماعية-التفاعلية)
+    *   [محرك البحث الصوتي والنصي](#53-محرك-البحث-الصوتي-والنصي)
+    *   [نظام التخزين بدون إنترنت وخطوط مصحف المدينة](#54-نظام-التخزين-بدون-إنترنت-وخطوط-مصحف-المدينة)
+    *   [دفتر التدبر والملاحظات](#55-دفتر-التدبر-والملاحظات)
+    *   [التكامل مع الذكاء الاصطناعي (Gemini API)](#56-التكامل-مع-الذكاء-الاصطناعي-gemini-api)
 6.  [هيكلية المشروع](#6-هيكلية-المشروع)
-7.  [للتطوير المستقبلي](#7-للتطوير-المستقبلي)
 
 ---
 
 ## 1. مقدمة
-تطبيق **QRAN.TOP** هو مستكشف قرآني حديث وسريع وغني بالميزات، يعمل كتطبيق ويب تقدمي (PWA). تم تصميمه للدراسة العميقة (التدبر) والتحليل اللغوي، حيث يجمع بين تجربة قراءة جميلة وقدرات بحث قوية.
+تطبيق **QRAN.TOP** هو منصة قرآنية متطورة وسريعة مبنية كـ Progressive Web App (PWA). يجمع بين جمالية ودقة خطوط مصحف المدينة المنورة بالرسم العثماني المعتمد، وقوة محرك بحث إملائي وصوتي سريع، ونظام ختمات قرآنية جماعية تفاعلي مباشر دون الحاجة لجمع بيانات شخصية أو تسجيل حسابات.
 
-**التقنيات الأساسية:**
-- **إطار العمل:** React
-- **اللغة:** TypeScript
-- **التنسيق:** Tailwind CSS
-- **الواجهة الخلفية وقاعدة البيانات:** Firebase (Firestore)
-- **بيئة التشغيل:** يتم بناء التطبيق وتحزيمه باستخدام **Vite** لإنتاج ملفات ثابتة فائقة السرعة والأداء وخالية من المشاكل، ويتم نشرها على الاستضافات الثابتة مثل GitHub Pages.
-
----
-
-## 2. متطلبات التشغيل
-- بيئة عمل Node.js لتثبيت الحزم وبناء التطبيق محلياً.
-- خادم ويب أو استضافة ملفات ثابتة (مثل GitHub Pages، Cloudflare Pages، أو استضافة مشتركة).
-- حساب Google لإنشاء مشروع على Firebase للخدمات التفاعلية.
+**المكدس التقني:**
+- **إطار العمل:** React 19 / TypeScript
+- **التصميم:** Tailwind CSS مع نظام الثيمات المخصص
+- **البيانات اللحظية والتفاعلية:** Firebase Firestore
+- **أداة البناء:** Vite
+- **دعم الأوفلاين والتخزين:** Service Worker & Cache API + IndexedDB
 
 ---
 
-## 3. خطوات بناء التطبيق والنشـر على GitHub Pages
+## 2. متطلبات التشغيل والبيئة
+- بيئة Node.js (v18+)
+- مدراء الحزم: npm
+- خادم ويب أو استضافة ثابتة (GitHub Pages, Cloudflare Pages, Firebase Hosting)
 
-التطبيق الآن مجهز بالكامل للعمل كبيئة React مبنية ومحسنة باستخدام Vite.
+---
 
-### 3.1. البناء المحلي (Local Build)
-لإنتاج الملفات النهائية القابلة للنشر:
-1. ثبت الاعتمادات: `npm install`
-2. ابنِ المشروع: `npm run build`
-3. سيتم إنشاء مجلد `dist` يحتوي على كافة الملفات الثابتة والـ Assets المهيأة للنشر.
-
-### 3.2. إعداد النطاق المخصص (Custom Domain) و CNAME في GitHub Pages
-لضمان عمل النطاق المخصص **qran.top** بالشكل الصحيح على كل من النطاق الرئيسي (Apex) والنطاق الفرعي (www) دون مواجهة أخطاء 404:
-
-1. **ملف CNAME**: 
-   - تم إنشاء ملف اسمه `CNAME` بداخل مجلد `public/` يحتوي سطر واحد فقط وهو اسم الدومين الرئيسي: `qran.top`.
-   - عند إجراء عملية البناء (`npm run build`)، يقوم Vite بنسخ ملف الـ `CNAME` تلقائياً إلى مجلد المخرجات `dist/CNAME` لضمان عدم حذفه أو استبداله عند كل تحديث برمجى على GitHub.
-
-2. **إعدادات DNS (في Cloudflare أو Porkbun)**:
-   - **سجلات A (الدومين الرئيسي @)**: أضف سجلات A تشير إلى الآيبيهات الأربعة الخاصة بـ GitHub Pages:
-     ```
-     185.199.108.153
-     185.199.109.153
-     185.199.110.153
-     185.199.111.153
-     ```
-   - **سجل CNAME (النطاق الفرعي www)**: أضف سجل CNAME للـ `www` يشير إلى مستودعك الرئيسي على GitHub Pages: `dr-rasheed.github.io`.
-   - **توجيه الـ DNS**: تأكد من ضبط الإعدادات على "DNS Only" في Cloudflare أثناء التفعيل الأولي لشهادة الـ SSL الخاصة بـ GitHub Pages لتجنب أي تعارض في التحقق.
-
-3. **إعدادات مستودع GitHub**:
-   - تأكد من إدخال الدومين `qran.top` في حقل "Custom domain" داخل إعدادات Pages في المستودع.
-   - بمجرد اكتمال الفحص بنجاح، قم بتفعيل خيار **Enforce HTTPS**. سيقوم GitHub Pages تلقائياً بإعادة توجيه كافة الطلبات الواردة إلى النطاق الفرعي أو الرئيسي بشكل صحيح.
+## 3. خطوات البناء والنشـر
+1. تثبيت الاعتمادات: `npm install`
+2. بناء المشروع: `npm run build`
+3. ينتج مجلد `dist` محتوياً على كافة ملفات التطبيق الثابتة والـ CNAME المهيأ لربط النطاق المخصص `qran.top`.
 
 ---
 
 ## 4. إعداد قاعدة بيانات Firebase
-Firebase ضروري لتشغيل الميزات التفاعلية مثل التعليقات، الختمات الجماعية، ومزامنة دفتر التدبر.
 
-### 4.1. إنشاء مشروع Firebase
-1.  اذهب إلى [موقع Firebase](https://firebase.google.com).
-2.  قم بتسجيل الدخول بحساب Google الخاص بك.
-3.  انقر على "Go to console" ثم "Create a project".
-4.  اتبع الخطوات لإنشاء مشروع جديد.
-5.  من لوحة تحكم المشروع، اذهب إلى قسم **Firestore Database**.
-6.  انقر على "Create database".
-7.  اختر البدء في **Production mode**.
-8.  اختر موقع الخادم الأقرب لجمهورك.
-
-### 4.2. ربط التطبيق بـ Firebase
-1.  من لوحة تحكم مشروعك، انقر على أيقونة الترس (الإعدادات) بجوار "Project Overview" واختر **Project settings**.
-2.  في تبويب **General**، انزل إلى قسم "Your apps".
-3.  انقر على أيقونة الويب (`</>`) لإضافة تطبيق ويب جديد.
-4.  أعطِ التطبيق اسماً (مثل "QRAN.TOP Web") وانقر على "Register app".
-5.  سيظهر لك Firebase SDK. ابحث عن كائن `firebaseConfig`.
-6.  **انسخ** هذا الكائن بالكامل.
-7.  افتح ملف `firebase.ts` في مشروعك.
-8.  **استبدل** كائن `firebaseConfig` الموجود في الملف بالكائن الذي نسخته من Firebase.
-
-### 4.3. إعداد قواعد الأمان (Security Rules)
-هذه الخطوة حيوية للسماح للمستخدمين بالتفاعل مع التطبيق بشكل آمن.
-1.  في لوحة تحكم Firebase، اذهب إلى **Firestore Database**.
-2.  انقر على تبويب **Rules**.
-3.  استبدل المحتوى الموجود بالقواعد التالية:
-
-```js
+### 4.1. إعداد قواعد الأمان (Security Rules)
+```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Fonts & Editions
+    match /qran_fonts/{fontId} { allow read: if true; }
+    match /qran_editions/{editionId} { allow read: if true; }
     
-    // Public read-only collections for app configuration
-    match /qran_fonts/{fontId} {
-      allow read: if true;
-      allow write: if false; // Should be managed from console
-    }
-    
-    match /qran_editions/{editionId} {
-      allow read: if true;
-      allow write: if false; // Should be managed from console
-    }
-    
-    // Topics for discussions, readable by all
-    match /discussionTopics/{topicId} {
-      allow read: if true;
-      // Allow creation or update (incrementing count)
-      allow write: if request.resource.data.keys().hasAll(['topic', 'count', 'lastDiscussed'])
-                    && request.resource.data.count > 0;
-    }
-
-    // Comments collection
+    // Discussion comments (anonymous)
     match /qran_comments/{commentId} {
-        // Anyone can read comments but not reports or admin actions
-        allow read: if resource.data.topicId != '__ADMIN_ACTIONS__' && resource.data.type != 'report';
-
-        // Anyone can create a new comment or a report, with validation
-        allow create: if request.resource.data.keys().hasAll(['topicId', 'text', 'parentId', 'createdAt'])
-                      && request.resource.data.text is string
-                      && request.resource.data.text.size() > 0 && request.resource.data.text.size() < 1000;
-                      
-        // Only allow updating replyCount on parent comments
-        allow update: if request.resource.data.replyCount == resource.data.replyCount + 1;
-        
-        // No direct deletes from client
-        allow delete: if false;
+      allow read: if resource.data.topicId != '__ADMIN_ACTIONS__' && resource.data.type != 'report';
+      allow create: if request.resource.data.keys().hasAll(['topicId', 'text', 'parentId', 'createdAt'])
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0 && request.resource.data.text.size() < 1000;
+      allow update: if request.resource.data.replyCount == resource.data.replyCount + 1;
+      allow delete: if false;
     }
     
-    // Temporary notebook sync, anyone can create, read, delete their own
+    // Temporary notebook sync
     match /temp_notebook_sync/{code} {
-        allow read, write, delete: if true;
+      allow read, write, delete: if true;
     }
     
-    // Khatmahs collection
+    // Khatmahs collection (Anonymous group reading)
     match /khatmahs/{khatmahId} {
-        allow read: if true;
-        allow create: if request.resource.data.keys().hasAll(['name', 'visibility', 'createdAt', 'juz_status']);
-        allow update: if true; // Allow reserving and completing juz
-        allow delete: if false; // Deletion should be handled by a server function for cleanup
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['name', 'visibility', 'createdAt', 'juz_status']);
+      allow update: if true;
+      allow delete: if false;
     }
   }
 }
 ```
-4.  انقر على **Publish**.
-
-### 4.4. إنشاء المجموعات والفهارس (Collections & Indexes)
-**المجموعات (Collections):**
-بعض المجموعات سيتم إنشاؤها تلقائياً عند أول استخدام للميزات المرتبطة بها (`qran_comments`, `discussionTopics`, `khatmahs`). لكن مجموعات الإعدادات يجب إنشاؤها يدوياً.
-1.  اذهب إلى **Firestore Database** -> **Data**.
-2.  انقر على **Start collection**.
-3.  أنشئ المجموعات التالية:
-    - `qran_fonts`: أضف مستندات تحتوي على الحقول: `name` (string), `font_family` (string), `url` (string, optional).
-    - `qran_editions`: أضف مستندات تحتوي على الحقول المطابقة للنوع `QuranEdition` في `types.ts`.
-
-**الفهارس (Indexes):**
-Firestore يتطلب فهارس للاستعلامات المعقدة. عندما تجرب ميزة في التطبيق تتطلب فهرساً غير موجود، سيظهر خطأ في وحدة تحكم المتصفح (Browser Console) مع رابط مباشر لإنشاء الفهرس المطلوب.
-1.  افتح التطبيق في متصفحك.
-2.  افتح أدوات المطور (Developer Tools) واذهب إلى Console.
-3.  تنقل في التطبيق وجرب الميزات التالية:
-    - عرض صفحة "ترند النقاشات".
-    - فتح صفحة التعليقات لأي موضوع بحث.
-    - فتح لوحة تحكم المشرف (Admin View).
-4.  عند ظهور خطأ `FAILED_PRECONDITION` في الـ Console، انقر على الرابط الذي يوفره Firebase.
-5.  سيتم نقلك إلى صفحة إنشاء الفهرس في لوحة تحكم Firebase مع تعبئة الحقول تلقائياً. انقر على **Create**.
-6.  انتظر بضع دقائق حتى يتم بناء الفهرس.
 
 ---
 
-## 5. آلية عمل البرنامج
+## 5. آلية عمل البرنامج والميزات
 
-### 5.1. فلسفة الإصدار المزدوج للقرآن
-هذا هو المفهوم الأساسي في التطبيق. لتحقيق كل من تجربة قراءة أصيلة ومحرك بحث قوي، يعتمد التطبيق على إصدارين أساسيين من القرآن:
-- **`quran-uthmani`**: نص القرآن بالرسم العثماني الأصيل. يُستخدم حصرياً لعرض النص للقراءة.
-- **`quran-simple-clean`**: نص القرآن برسم إملائي مبسط بدون تشكيل. هذا هو النص الذي يعمل عليه محرك البحث لضمان دقة النتائج بغض النظر عن الاختلافات الإملائية.
+### 5.1. فلسفة الإصدار المزدوج للمصحف
+- **`quran-uthmani`**: نص القرآن بالرسم العثماني المعتمد لطبعة مجمع الملك فهد بالمدينة المنورة.
+- **`quran-simple-clean`**: نص بالرسم الإملائي المجرد من التشكيل لعمليات البحث الفوري والمطابقة الصرفية والتراكيب اللغوية.
 
-### 5.2. تدفق البيانات
-- **التحميل الأولي:** عند فتح التطبيق، يقوم بجلب الإعدادات الأساسية (الخطوط والإصدارات) من Firestore، ثم يحمّل ملفات JSON الثابتة لإصداري القرآن الأساسيين (`quran-uthmani`, `quran-simple-clean`) لضمان سرعة الإقلاع.
-- **التحميل عند الطلب:** عندما يختار المستخدم تفسيراً أو ترجمة، يقوم التطبيق بجلبه من مصدره الخارجي وتخزينه في حالة التطبيق (state) للاستخدام الفوري.
+### 5.2. نظام الختمات الجماعية التفاعلية
+- دعم حجز وقراءة الأجزاء (1 إلى 30) في الوقت الحقيقي عبر Firestore.
+- حساب نسب الحجز ونسب الإنجاز فورياً.
+- روابط مشاركة سريعة عبر واتساب وتيليجرام ونسخ الرابط المباشر.
+- قفل تلقائي عند انتهاء المدة المحددة للختمة واعتبار الأجزاء المحجوزة مكتملة.
 
-### 5.3. آلية البحث
-1.  **التنظيم (Normalization):** يتم "تنظيف" كلمة البحث ونص القرآن (من إصدار `quran-simple-clean`) عبر إزالة التشكيل وتوحيد أشكال الحروف باستخدام دالة `normalizeArabicText`.
-2.  **اختيار الإصدار الذكي:** إذا كانت كلمة البحث تحتوي على تشكيل، يتم البحث أولاً في النص العثماني الدقيق. إذا فشل، أو إذا كانت الكلمة بدون تشكيل، يتم البحث في النص المبسط.
-3.  **اقتراح التراكيب:** يقوم التطبيق بتحليل نتائج البحث ليقترح الكلمات المجاورة الأكثر تكراراً، مما يسمح للمستخدم ببناء عبارات بحث مركبة بشكل تفاعلي.
+### 5.3. محرك البحث الصوتي والنصي
+- معالجة ذكية للهمزات والألف والتاء المربوطة.
+- إمكانية البحث بالصوت عبر Web Speech API.
+- تحليل التراكيب المقترحة وجذور المفردات وإحصائيات الورود.
 
-### 5.4. نظام التعليقات المجهول
-- لا يتطلب التطبيق تسجيل دخول.
-- ترتبط التعليقات بـ `topicId` وهو نسخة منظّمة من كلمة البحث.
-- الإشراف على المحتوى يتم من خلال نظام "إلحاق فقط" (append-only) حيث يقوم المشرف بإنشاء مستندات خاصة في قاعدة البيانات تقوم بإخفاء التعليقات المسيئة من العرض على جانب العميل (client-side).
+### 5.4. نظام التخزين بدون إنترنت وخطوط مصحف المدينة
+- إمكانية تنزيل خطوط مصحف المدينة المنورة وتخزينها في Cache Storage.
+- إخفاء خيار التحميل من القائمة تلقائياً بعد اكتمال التثبيت لراحة المستخدم.
+- تشغيل التطبيق بالكامل بدون إنترنت بعد الزيارة الأولى عبر Service Worker.
 
-### 5.5. ميزة الختمة الجماعية
-- تعتمد على تحديثات Firestore اللحظية (real-time snapshots) لعرض حالة الأجزاء (متاح، محجوز، مكتمل) لجميع المشاركين في نفس الوقت.
-- تستخدم معاملات Firestore (transactions) لضمان عدم حجز نفس الجزء من قبل شخصين في آن واحد.
-- يتم تطبيق نظام بسيط لمكافحة الإزعاج (anti-spam) عبر التخزين المحلي للحد من عدد الختمات التي يمكن للمستخدم الواحد إنشاؤها يومياً.
+### 5.5. دفتر التدبر والملاحظات
+- حفظ الآيات الشخصية والملاحظات في IndexedDB & LocalStorage.
+- دعم تصدير واستيراد الدفتر محلياً أو عبر رمز مؤقت دون أي حسابات.
+
+### 5.6. التكامل مع الذكاء الاصطناعي (Gemini API)
+- دعم مفتاح Google AI Studio المدخل من المستخدم والمخزن مشفراً في متصفحه لتحليل المتشابهات والمعاني البلاغية.
 
 ---
 
 ## 6. هيكلية المشروع
 ```
 /
-├── components/         # جميع مكونات React
-│   ├── comments/       # مكونات نظام التعليقات
-│   └── icons.tsx       # أيقونات SVG
-├── hooks/              # خطافات React المخصصة (useTheme, useNotebook)
-├── public/             # ملفات ثابتة (أيقونات PWA)
-├── utils/              # دوال مساعدة (text.ts)
-├── App.tsx             # المكون الرئيسي للتطبيق (إدارة الحالة والتوجيه)
-├── firebase.ts         # تهيئة وإعداد Firebase
-├── index.html          # نقطة الدخول للتطبيق
-├── index.tsx           # نقطة ربط React بالـ DOM
-├── service-worker.js   # منطق تطبيق الويب التقدمي (PWA)
-├── types.ts            # تعريفات TypeScript
-└── ...                 # ملفات إعدادات أخرى
+├── components/         # مكونات الواجهة (المصحف، الختمة، البحث، دفتر التدبر)
+│   ├── khatmiyah/      # مكونات الختمة الجماعية (GroupKhatmahView, CreateKhatmahModal)
+│   ├── settings/       # شاشات الإعدادات والبيانات والخطوط
+│   ├── reader/         # مشغل التلاوة وعرض السور
+│   └── icons.tsx       # أيقونات SVG المحسنة
+├── contexts/           # سياقات الحالة العامة (SettingsContext, ThemeContext)
+├── hooks/              # الخطافات المخصصة
+├── public/             # الأصول الثابتة، CNAME، و Service Worker
+├── utils/              # الدوال المساعدة للبحث والنصوص والتنقل
+├── App.tsx             # الموجه وإدارة الشاشات
+└── firebase.ts         # تهيئة الاتصال السحابي
 ```
-
----
-
-## 7. للتطوير المستقبلي
-- **نظام مصادقة (Authentication):** يمكن إضافة نظام تسجيل دخول للمستخدمين لتوفير ميزات متقدمة مثل مزامنة دفتر التدبر عبر الأجهزة تلقائياً ولوحة تحكم للمشرفين بصلاحيات حقيقية.
-- **ميزات بحث متقدمة:** يمكن إضافة البحث بالجذر اللغوي أو البحث الصوتي.
-- **وظائف الخادم (Cloud Functions):** يمكن استخدام Firebase Cloud Functions لأتمتة عمليات حذف الختمات القديمة بدلاً من تشغيلها من جانب العميل.

@@ -46,16 +46,57 @@ const AboutView: React.FC = () => {
                 </div>
                 <h1 className="text-3xl sm:text-4xl font-bold text-text-primary">عن تطبيق QRAN.TOP</h1>
                 <p className="text-lg sm:text-xl text-text-secondary mt-2 max-w-2xl mx-auto">
-                    منصة قرآنية متكاملة تجمع بين أصالة الرسم العثماني وقوة البحث والتدبر الرقمي
+                    منصة قرآنية متكاملة تجمع بين أصالة الرسم العثماني وقوة البحث والتدبر الرقمي والختمات الجماعية
                 </p>
+                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-surface-subtle border border-border-default rounded-full text-xs font-bold text-text-muted">
+                    <span>الإصدار 1.0.10</span>
+                    <span>•</span>
+                    <span>تحديث 2026</span>
+                </div>
             </header>
             
             <main className="space-y-12">
                 <section id="general-idea" className="bg-surface p-6 sm:p-8 rounded-3xl border border-border-default shadow-xs">
-                    <h2 className="text-2xl font-bold mb-4 text-text-primary border-r-4 border-primary pr-3">رؤية التطبيق وفكرته</h2>
+                    <h2 className="text-2xl font-bold mb-4 text-text-primary border-r-4 border-primary pr-3">رؤية التطبيق وفلسفته</h2>
                     <p className="text-base sm:text-lg text-text-secondary leading-relaxed">
-                        تطبيق <strong>QRAN.TOP</strong> هو مستكشف قرآني حديث صُمم لخدمة قارئ القرآن الكريم والباحث فيه. يجمع التطبيق بين دقة القراءة العثمانية المعتمدة للآيات مع التشكيل الكامل، وبين المحرك الإملائي المتقدم للبحث الفوري والسريع. يهدف التطبيق لتقديم تجربة تدبر مريحة وشاملة تدعم الاستماع مع كبار القراء، وتصفح التفاسير والترجمات، وتدوين الملاحظات والتدبرات الشخصية بأمان.
+                        تطبيق <strong>QRAN.TOP (الباحث في القرآن الكريم)</strong> هو منصة قرآنية حديثة ومتطورة صُممت خصيصاً لتيسير تلاوة القرآن الكريم، والبحث الدقيق في ألفاظه ومعانيه، ومشاركة ختماته المباركة بين الأهل والأصدقاء ومجموعات القراءة حول العالم.
                     </p>
+                    <p className="text-base text-text-secondary mt-3 leading-relaxed">
+                        يجمع التطبيق بين الدقة العالية لخط مصحف المدينة المنورة بالرسم العثماني المعتمد، وبين محرك البحث الصوتي والنصي فائق السرعة، مع أدوات متقدمة لحفظ الآيات وتدوين الملاحظات والتدبر الشخصي دون الحاجة لإنشاء حسابات أو جمع بيانات شخصية.
+                    </p>
+                </section>
+
+                <section id="khatmat-guide" className="bg-surface p-6 sm:p-8 rounded-3xl border border-border-default shadow-xs">
+                    <h2 className="text-2xl font-bold mb-4 text-text-primary border-r-4 border-primary pr-3">نظام الختمات القرآنية الجماعية</h2>
+                    <p className="text-base text-text-secondary leading-relaxed mb-4">
+                        يتيح التطبيق ميزة الختمات الجماعية التفاعلية المباشرة لتشجيع تلاوة وختم كتاب الله تعالى:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 bg-surface-subtle rounded-2xl border border-border-default">
+                            <h3 className="font-bold text-base text-text-primary mb-1">🌿 إنشاء ختمة ومشاركتها</h3>
+                            <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
+                                يمكنك إنشاء ختمة مخصصة وإهداؤها وتحديد موعد إنجازها، ومشاركة رابطها السريع عبر واتساب وتيليجرام فوراً وبنقرة واحدة.
+                            </p>
+                        </div>
+                        <div className="p-4 bg-surface-subtle rounded-2xl border border-border-default">
+                            <h3 className="font-bold text-base text-text-primary mb-1">📖 حجز وقراءة الأجزاء (1 - 30)</h3>
+                            <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
+                                جدول تفاعلي مباشر للأجزاء الـ 30، يمكن لكل قارئ حجز الجزء باسمه وتأكيد قراءته مباشرة من داخل المصحف.
+                            </p>
+                        </div>
+                        <div className="p-4 bg-surface-subtle rounded-2xl border border-border-default">
+                            <h3 className="font-bold text-base text-text-primary mb-1">📊 متابعة نسبة الحجز ونسبة الإنجاز</h3>
+                            <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
+                                مؤشرات إحصائية دقيقة ترصد الأجزاء المحجوزة والمقروءة لحظة بلحظة مع تحديث حي وتلقائي.
+                            </p>
+                        </div>
+                        <div className="p-4 bg-surface-subtle rounded-2xl border border-border-default">
+                            <h3 className="font-bold text-base text-text-primary mb-1">🔒 القفل الذكي ودعاء الختم</h3>
+                            <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
+                                عند انتهاء مدة الختمة تُعتبر الأجزاء المحجوزة مكتملة وتُقفل الختمة، ومع اكتمالها يُتاح للمشاركين قراءة دعاء ختم القرآن الكريم وتجديد الدورة.
+                            </p>
+                        </div>
+                    </div>
                 </section>
 
                 <section id="quran-signs">
@@ -69,7 +110,7 @@ const AboutView: React.FC = () => {
                         <span>أولاً: علامات الوقف</span>
                     </h3>
                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        <SignItem symbol="مـ" title="الوقف اللازم" description="يلزم الوقف هنا لبيان المعنى ومنع التباسه." />
+                        <SignItem symbol="مـ" title="الوقف اللازم" description="يلزم الوقف هنا لبيان المعنى ومنع التباسه بما بعده." />
                         <SignItem symbol="لا" title="الوقف الممنوع" description="يحرم أو يكره الوقف هنا لاتصال المعنى بما بعده." />
                         <SignItem symbol="ج" title="الوقف الجائز" description="يجوز الوقف ويجوز الوصل بمستوى متساوٍ." />
                         <SignItem symbol="صلى" title="الوصل أولى" description="يجوز الوقف، ولكن وصل الكلام أفضل للمعنى." />
@@ -84,22 +125,22 @@ const AboutView: React.FC = () => {
                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <SignItem symbol="~" title="علامة المد" description="توضع فوق الحرف للدلالة على مد زائد عن المد الطبيعي." />
                         <SignItem symbol="ۢ" title="الميم الصغيرة (الإقلاب)" description="تدل على إقلاب النون الساكنة أو التنوين ميماً عند الباء." />
-                        <SignItem symbol="حـ" title="رأس الخاء (الإظهار)" description="تدل على السكون المظهر ووجوب بيان الحرف." />
-                        <SignItem symbol="○" title="الصفر المستدير" description="يدل على زيادة الحرف وعدم نطقه وصلاً ولا وقفا." />
+                        <SignItem symbol="حـ" title="رأس الخاء (الإظهار)" description="تدل على السكون المظهر ووجوب بيان الحرف دون إدغام." />
+                        <SignItem symbol="○" title="الصفر المستدير" description="يدل على زيادة الحرف وعدم نطقه وصلاً ولا وقفاً." />
                     </ul>
                 </section>
 
                 <section id="key-features">
                     <h2 className="text-2xl font-bold mb-6 text-text-primary border-r-4 border-primary pr-3">أبرز مميزات التطبيق</h2>
                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FeatureItem icon={<MenuIcon className="w-6 h-6"/>} title="تصفح مرن وفهرسة متكاملة" description="تصفح المصحف بالسورة، الصفحة، الجزء، أو الحزب، مع القراءة بالرسم العثماني الأصيل والإملائي المبسط." />
-                        <FeatureItem icon={<SpeakerWaveIcon className="w-6 h-6"/>} title="استماع صوتي متكامل" description="مشغل صوتي للاستماع لتلاوات خاشعة من نخبة من كبار القراء، مع التحكم بالتشغيل والانتقال بين الآيات." />
-                        <FeatureItem icon={<SearchIcon className="w-6 h-6"/>} title="محيط البحث والتحليل" description="محرك بحث ذكي وسريع بالكلمات أو بالصوت، مع تحليل جذور المفردات وإحصائيات التكرار عبر المصحف." />
+                        <FeatureItem icon={<MenuIcon className="w-6 h-6"/>} title="تصفح مرن وفهرسة متكاملة" description="تصفح المصحف بالسورة، الصفحة، الجزء، أو الحزب، مع القراءة بالرسم العثماني الأصيل لمصحف المدينة والإملائي المبسط." />
+                        <FeatureItem icon={<SpeakerWaveIcon className="w-6 h-6"/>} title="استماع صوتي متكامل" description="مشغل صوتي للاستماع لتلاوات خاشعة من نخبة من كبار القراء، مع التحكم بالتشغيل والتكرار والانتقال بين الآيات." />
+                        <FeatureItem icon={<SearchIcon className="w-6 h-6"/>} title="محيط البحث والتحليل اللغوي" description="محرك بحث ذكي وسريع بالكلمات أو بالصوت، مع استكشاف جذور المفردات وإحصائيات التكرار ورحلة الرقم عبر المصحف." />
                         <FeatureItem icon={<BookmarkIcon className="w-6 h-6"/>} title="دفتر التدبر والمجموعات" description="احفظ الآيات المفضلة، ودوّن تدبراتك وملاحظاتك الشخصية، مع إمكانية التصدير والاستيراد بأمان." />
-                        <FeatureItem icon={<SparklesIcon className="w-6 h-6"/>} title="معنى المثاني والذكاء الاصطناعي" description="استكشف الروابط اللغوية والتفسيرية العميقة بين الآيات المتشابهة بدعم تقنيات الذكاء الاصطناعي." />
-                        <FeatureItem icon={<CogIcon className="w-6 h-6"/>} title="تخصيص كامل للواجهة" description="اختر من بين عدة خطوط قرآنية، وتحكم في الحجم، والمظهر (فاتح/داكن)، مع تخصيص التفاسير والترجمات." />
-                        <FeatureItem icon={<UsersIcon className="w-6 h-6"/>} title="ختمات ونقاشات قرآنية" description="شارك في ختمات قرآنية جماعية، واطلع على النقاشات المثرية حول مفردات القرآن الكريم." />
-                        <FeatureItem icon={<ShieldCheckIcon className="w-6 h-6"/>} title="تطبيق ويب متتقدم (PWA)" description="يعمل على كل الأجهزة والهواتف، ويمكن تثبيته على الشاشة الرئيسية وتصفحه بسرعة فائقة." />
+                        <FeatureItem icon={<SparklesIcon className="w-6 h-6"/>} title="الذكاء الاصطناعي والتحليل المعجمي" description="استكشف الروابط اللغوية والتفسيرية العميقة بين الآيات المتشابهة بدعم مفتاح الذكاء الاصطناعي (Gemini API)." />
+                        <FeatureItem icon={<UsersIcon className="w-6 h-6"/>} title="الختمات الجماعية التفاعلية" description="أنشئ وشارك ختمات قرآنية مع الأهل والمجموعات عبر واتساب وتيليجرام مع حجز الأجزاء ومتابعة الإنجاز." />
+                        <FeatureItem icon={<CogIcon className="w-6 h-6"/>} title="تخصيص كامل للواجهة والقراءة" description="اختر من بين خطوط قرآنية متعددة، وتحكم في الحجم والمظهر (فاتح/داكن) والتفاسير المعتمدة." />
+                        <FeatureItem icon={<ShieldCheckIcon className="w-6 h-6"/>} title="الخصوصية والعمل بدون إنترنت (PWA)" description="تطبيق ويب تقدمي خفيف وسريع، يعمل دون جمع أي بيانات شخصية، ويدعم القراءة بدون اتصال بالإنترنت." />
                     </ul>
                 </section>
 
@@ -107,16 +148,16 @@ const AboutView: React.FC = () => {
                     <h2 className="text-2xl font-bold mb-4 text-text-primary border-r-4 border-primary pr-3">مفتاح الذكاء الاصطناعي (Gemini API)</h2>
                     <div className="bg-surface p-6 sm:p-8 rounded-3xl border border-border-default shadow-xs space-y-4">
                         <p className="text-text-secondary leading-relaxed">
-                            لتفعيل الميزات المتقدمة القائمة على الذكاء الاصطناعي مثل تحليل المعاني العميقة والربط بين الآيات، يمكنك استخدام مفتاح API مجاني خاص بك من Google AI Studio.
+                            لتفعيل الميزات المتقدمة القائمة على الذكاء الاصطناعي مثل تحليل المعاني العميقة والربط بين الآيات المتشابهة، يمكنك استخدام مفتاح API مجاني خاص بك من Google AI Studio.
                         </p>
                         <h3 className="text-lg font-bold text-text-primary pt-2">خطوات الحصول على المفتاح:</h3>
                         <ol className="list-decimal pr-6 text-text-secondary space-y-2 leading-relaxed">
                             <li>افتح موقع <a href="https://aistudio.google.com/app/apikey" onClick={(e) => openExternalLink(e, "https://aistudio.google.com/app/apikey")} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">Google AI Studio</a>.</li>
                             <li>سجل دخولك بحساب Google وانقر على <strong>Create API key</strong>.</li>
-                            <li>انسخ المفتاح الظاهر وانسخه داخل التطبيق في قسم <strong>الإعدادات &larr; الذكاء الاصطناعي</strong>.</li>
+                            <li>انسخ المفتاح الظاهر والصقه داخل التطبيق في قسم <strong>الإعدادات &larr; الذكاء الاصطناعي</strong>.</li>
                         </ol>
                         <div className="mt-4 p-4 bg-amber-500/10 border-r-4 border-amber-500 text-sm text-text-primary rounded-r-xl">
-                           <strong>تنويه للأمان:</strong> يتم حفظ المفتاح في التخزين المحلي لمتصفحك فقط ولا يتم إرساله أو مشاركته مع أي طرف ثالث.
+                           <strong>تنويه للأمان والخصوصية:</strong> يتم حفظ المفتاح في التخزين المحلي لمتصفحك فقط ولا يتم إرساله أو مشاركته مع أي خادم خارجي.
                         </div>
                     </div>
                 </section>
@@ -130,6 +171,7 @@ const AboutView: React.FC = () => {
                         <ul className="list-disc pr-6 space-y-2 text-sm text-text-muted leading-relaxed">
                             <li><strong>النص القرآني والتفاسير:</strong> مستمدة من واجهات المجمعات المعتمدة عبر <a href="https://alquran.cloud/api" onClick={(e) => openExternalLink(e, "https://alquran.cloud/api")} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">alquran.cloud</a>.</li>
                             <li><strong>التلاوات الصوتية:</strong> مقدمة عبر شبكات التوزيع والمكتبات الصوتية المفتوحة مثل <a href="https://everyayah.com/" onClick={(e) => openExternalLink(e, "https://everyayah.com/")} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">everyayah.com</a> و <a href="https://cdn.islamic.network/" onClick={(e) => openExternalLink(e, "https://cdn.islamic.network/")} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">islamic.network</a>.</li>
+                            <li><strong>خطوط مصحف المدينة:</strong> مطابقة لطبعة مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة.</li>
                         </ul>
                     </div>
                 </section>
@@ -141,7 +183,7 @@ const AboutView: React.FC = () => {
                             <p className="font-bold text-text-primary text-base">
                                 تم التطوير بواسطة <a href="https://aboharon.com" onClick={(e) => openExternalLink(e, "https://aboharon.com")} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">aboharon.com</a>
                             </p>
-                            <p className="text-xs text-text-muted mt-1">حقوق الطبع والتحديث محفوظة &copy; 2026</p>
+                            <p className="text-xs text-text-muted mt-1">حقوق النشر والتطوير محفوظة &copy; 2026</p>
                         </div>
                         <a href="https://t.me/aboharon_com" onClick={(e) => openExternalLink(e, "https://t.me/aboharon_com")} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-4 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors">
                             للتواصل والإبلاغ عن أي ملاحظات عبر تلغرام
@@ -154,7 +196,7 @@ const AboutView: React.FC = () => {
                  <a href="#/" onClick={handleLinkClick} className="inline-flex items-center gap-2 text-base font-bold text-primary hover:text-primary-hover transition-colors">
                     <ArrowLeftIcon className="w-5 h-5" />
                     <span>العودة إلى الفهرس الرئيسي</span>
-                </a>
+                 </a>
             </footer>
         </div>
     );
