@@ -1,12 +1,12 @@
 // service-worker.js
 
-const STATIC_CACHE_NAME = 'qran-top-static-v28'; // Version bump to force update
-const DATA_CACHE_NAME = 'qran-top-data-v20';
+const STATIC_CACHE_NAME = 'qran-top-static-v29'; // Version bump
+const DATA_CACHE_NAME = 'qran-top-data-v21';
 
 // Core data files that are essential for the app to work offline.
 const CORE_DATA_URLS = [
   'https://api.alquran.cloud/v1/quran/quran-simple-clean',
-  'https://api.alquran.cloud/v1/quran/quran-uthmani',
+  'https://api.alquran.cloud/v1/quran/quran-uthmani-quran-academy',
 ];
 
 // The "app shell" - minimal files needed for the UI to render.
@@ -123,7 +123,7 @@ self.addEventListener('fetch', event => {
 
   // Strategy 2: Stale-While-Revalidate for API calls and other data.
   // Serves from cache immediately, then updates cache in the background.
-  if (url.hostname === 'storage.googleapis.com' || url.hostname === 'api.alquran.cloud' || url.hostname === 'cdn.jsdelivr.net' || url.hostname === 'everyayah.com' || url.hostname === 'cdn.islamic.network' || url.hostname.includes('fonts.gstatic.com') || url.hostname.includes('fonts.googleapis.com')) {
+  if (url.hostname === 'storage.googleapis.com' || url.hostname === 'api.alquran.cloud' || url.hostname === 'api.quran.com' || url.hostname === 'cdn.jsdelivr.net' || url.hostname === 'everyayah.com' || url.hostname === 'cdn.islamic.network' || url.hostname.includes('fonts.gstatic.com') || url.hostname.includes('fonts.googleapis.com')) {
     event.respondWith(
       caches.open(DATA_CACHE_NAME).then(cache => {
         return cache.match(request).then(cachedResponse => {
