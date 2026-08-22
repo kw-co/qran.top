@@ -121,16 +121,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* External Font Declarations with reliable King Fahd Complex and Quran.com font sources */
+/* Font Declarations with local system fallbacks */
 @font-face {
   font-family: 'UthmanicHafs';
   src: local('KFGQPC Uthman Taha Naskh'),
        local('KFGQPC Uthmanic Script HAFS'),
        local('KFGQPC Uthmanic Script Hafs'),
        local('KFGQPC HAFS'),
-       local('UthmanicHafs'),
-       url('https://fonts.quran.com/uthmanic_hafs.woff2') format('woff2'),
-       url('https://cdn.jsdelivr.net/gh/mushaf/uthmanic-hafs@master/font/uthmanic_hafs.woff2') format('woff2');
+       local('Amiri Quran');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -142,8 +140,7 @@ body {
        local('KFGQPC Uthmanic Script HAFS'),
        local('KFGQPC Uthmanic Script Hafs'),
        local('KFGQPC HAFS'),
-       url('https://fonts.quran.com/uthmanic_hafs.woff2') format('woff2'),
-       url('https://cdn.jsdelivr.net/gh/mushaf/uthmanic-hafs@master/font/uthmanic_hafs.woff2') format('woff2');
+       local('Amiri Quran');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -155,16 +152,16 @@ body {
   font-weight: 700;
 }
 .font-bismillah {
-  font-family: 'UthmanicHafs', 'Amiri Quran', serif;
+  font-family: 'Amiri Quran', 'UthmanicHafs', serif;
 }
 .font-quran-title {
-  font-family: 'UthmanicHafs', 'Amiri Quran', serif;
+  font-family: 'Amiri Quran', 'UthmanicHafs', serif;
   font-weight: 600;
 }
 
 /* Uthmani font size classes */
 .uthmani-font { 
-  font-family: 'UthmanicHafs', 'KFGQPC', 'Amiri Quran', 'Scheherazade New', serif; 
+  font-family: 'Amiri Quran', 'UthmanicHafs', 'KFGQPC', 'Scheherazade New', serif; 
   font-feature-settings: "kern", "liga", "clig", "calt";
   font-variant-ligatures: common-ligatures;
   /* Critical for correct mark positioning on mobile browsers */
