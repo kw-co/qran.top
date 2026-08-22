@@ -9,17 +9,12 @@ const DataAndStorageSettings: React.FC = () => {
         fontDownloadProgress,
         startFontDownload,
         cancelFontDownload,
-        removeMushafFonts,
-        isIndoPakDownloaded,
-        isDownloadingIndoPak,
-        indoPakDownloadProgress,
-        startIndoPakDownload,
-        cancelIndoPakDownload,
-        removeIndoPakFonts
+        removeMushafFonts
     } = useSettingsContext();
 
     const [storageInfo, setStorageInfo] = useState<{ keysCount: number; estimatedKb: string }>({ keysCount: 0, estimatedKb: '0' });
     const [isCleared, setIsCleared] = useState(false);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
     const calculateStorage = () => {
         try {
@@ -43,57 +38,83 @@ const DataAndStorageSettings: React.FC = () => {
         calculateStorage();
     }, []);
 
+    const showNotification = (msg: string) => {
+        setStatusMessage(msg);
+        setIsCleared(true);
+        setTimeout(() => {
+            setIsCleared(false);
+            setStatusMessage(null);
+        }, 4000);
+    };
+
     const handleDownloadFonts = async () => {
         await startFontDownload();
     };
 
     const handleDeleteFonts = async () => {
-        if (window.confirm('هل أنت متأكد من حذف خطوط المصحف؟')) {
+        try {
             await removeMushafFonts();
+            calculateStorage();
+            showNotification('تم حذف خطوط مصحف المدينة بنجاح وتفريغ مساحتها');
+        } catch (e) {
+            console.error(e);
         }
     };
 
-    const handleDownloadIndoPak = async () => {
-        await startIndoPakDownload();
-    };
+    const handleClearCache = async () => {
+        try {
+            // Keep notebook saved items, bookmarks, user api key, theme, history
+            const notebookData = localStorage.getItem('qran_app_notebook');
+            const bookmarksData = localStorage.getItem('qran_app_bookmarks');
+            const userApiKey = localStorage.getItem('qran_user_api_key');
+            const themeData = localStorage.getItem('theme');
+            const readingHistory = localStorage.getItem('qran_app_reading_history');
 
-    const handleDeleteIndoPak = async () => {
-        if (window.confirm('هل أنت متأكد من حذف حزمة خطوط مصحف باكستان؟')) {
-            await removeIndoPakFonts();
-        }
-    };
+            // Clear all caches in Cache Storage
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                for (const key of keys) {
+                    await caches.delete(key);
+                }
+            }
 
-    const handleClearCache = () => {
-        if (window.confirm("هل أنت متأكد من مسح الذاكرة المؤقتة للبحث والتصفح؟ (لن يتم حذف الملاحظات أو المفضلة)")) {
-            try {
-                // Keep notebook saved items
-                const notebookData = localStorage.getItem('qran_app_notebook');
-                const userApiKey = localStorage.getItem('qran_user_api_key');
-                const themeData = localStorage.getItem('theme');
+            // Clear localStorage
+            localStorage.clear();
 
-                localStorage.clear();
+            // Restore essential user data
+            if (notebookData) localStorage.setItem('qran_app_notebook', notebookData);
+            if (bookmarksData) localStorage.setItem('qran_app_bookmarks', bookmarksData);
+            if (userApiKey) localStorage.setItem('qran_user_api_key', userApiKey);
+            if (themeData) localStorage.setItem('theme', themeData);
+            if (readingHistory) localStorage.setItem('qran_app_reading_history', readingHistory);
 
-                if (notebookData) localStorage.setItem('qran_app_notebook', notebookData);
-                if (userApiKey) localStorage.setItem('qran_user_api_key', userApiKey);
-                if (themeData) localStorage.setItem('theme', themeData);
-
-                calculateStorage();
-                setIsCleared(true);
-                setTimeout(() => setIsCleared(false), 3000);
-            } catch (e) {}
+            calculateStorage();
+            showNotification('تم مسح الذاكرة المؤقتة وتفريغ الكاش بالكامل بنجاح');
+        } catch (e) {
+            console.error(e);
         }
     };
 
     const handleResetAllSettings = () => {
-        if (window.confirm("هل أنت متأكد من إعادة جميع إعدادات الخط والأصوات والمظهر للوضع الافتراضي؟")) {
-            try {
-                localStorage.removeItem('qran_app_edition');
-                localStorage.removeItem('qran_app_font_size');
-                localStorage.removeItem('qran_app_font_style');
-                localStorage.removeItem('qran_app_audio_edition');
-                localStorage.removeItem('qran_app_browsing_mode');
-                window.location.reload();
-            } catch (e) {}
+        try {
+            // Remove specific setting keys
+            const keysToRemove = [
+                'qran_app_edition',
+                'qran_app_font_size',
+                'qran_app_font_style',
+                'qran_app_audio_edition',
+                'qran_app_browsing_mode',
+                'qran_app_mushaf_type',
+                'qran_app_indopak_view_mode',
+                'qran_app_word_click_behavior',
+                'qran_app_enable_tajweed',
+                'qran_app_downloading_fonts',
+                'qran_app_downloading_indopak'
+            ];
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            window.location.reload();
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -127,9 +148,9 @@ const DataAndStorageSettings: React.FC = () => {
                 <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
                     <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h4 className="font-bold text-text-primary text-sm mb-1">خطوط المصحف الأصلي</h4>
+                            <h4 className="font-bold text-text-primary text-sm mb-1">خطوط مصحف المدينة المنورة</h4>
                             <p className="text-xs text-text-muted max-w-md">
-                                قم بتنزيل ملفات الخطوط لعرض الصفحات بشكل مطابق تماماً للمصحف المطبوع (604 صفحة، حوالي 18 ميغابايت).
+                                ملفات الخطوط لعرض الصفحات بشكل مطابق تماماً للمصحف المطبوع (604 صفحة، حوالي 18 ميغابايت).
                             </p>
                         </div>
                         
@@ -181,78 +202,16 @@ const DataAndStorageSettings: React.FC = () => {
                     {isMushafDownloaded && (
                         <div className="px-4 py-2.5 bg-emerald-500/5 text-xs text-emerald-700 dark:text-emerald-300 border-t border-emerald-500/10 flex items-center gap-2">
                             <CheckIcon className="w-4 h-4 flex-shrink-0" />
-                            <span>تم تنزيل الخطوط بنجاح. يمكنك الآن تفعيل نمط "المصحف" من إعدادات القراءة والخطوط.</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* IndoPak Mushaf Package Section */}
-                <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
-                    <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h4 className="font-bold text-text-primary text-sm mb-1">حزمة مصحف باكستان وجنوب آسيا (IndoPak)</h4>
-                            <p className="text-xs text-text-muted max-w-md">
-                                خط النستعليق الباكستاني الأصيل مع رسم 15 سطر (610 صفحة، حوالي 1.5 ميغابايت).
-                            </p>
-                        </div>
-                        
-                        <div className="flex-shrink-0 min-w-[140px]">
-                            {isDownloadingIndoPak ? (
-                                <div className="space-y-2 w-full">
-                                    <div className="flex justify-between text-xs text-text-muted">
-                                        <span>جاري التنزيل...</span>
-                                        <span className="font-bold text-primary" dir="ltr">{indoPakDownloadProgress}%</span>
-                                    </div>
-                                    <div className="w-full bg-border-subtle rounded-full h-2 overflow-hidden">
-                                        <div 
-                                            className="bg-primary h-2 transition-all duration-300 rounded-full" 
-                                            style={{ width: `${Math.max(0, indoPakDownloadProgress)}%` }}
-                                        ></div>
-                                    </div>
-                                    <button 
-                                        type="button"
-                                        onClick={cancelIndoPakDownload} 
-                                        className="text-xs text-red-500 hover:text-red-700 underline block text-center w-full mt-1 cursor-pointer"
-                                    >
-                                        إلغاء التنزيل
-                                    </button>
-                                </div>
-                            ) : isIndoPakDownloaded ? (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1">
-                                        <CheckIcon className="w-3.5 h-3.5" /> تم التنزيل
-                                    </span>
-                                    <button 
-                                        type="button"
-                                        onClick={handleDeleteIndoPak} 
-                                        className="text-xs text-red-500 hover:text-red-700 underline px-2 py-1 cursor-pointer"
-                                    >
-                                        حذف
-                                    </button>
-                                </div>
-                            ) : (
-                                <button 
-                                    type="button"
-                                    onClick={handleDownloadIndoPak}
-                                    className="w-full bg-primary text-white font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/90 active:scale-95 transition-all shadow-xs cursor-pointer"
-                                >
-                                    تنزيل حزمة باكستان
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                    {isIndoPakDownloaded && (
-                        <div className="px-4 py-2.5 bg-emerald-500/5 text-xs text-emerald-700 dark:text-emerald-300 border-t border-emerald-500/10 flex items-center gap-2">
-                            <CheckIcon className="w-4 h-4 flex-shrink-0" />
-                            <span>تم تنزيل حزمة مصحف باكستان بنجاح. يمكنك الآن تفعيلها وتصفحها بسلاسة.</span>
+                            <span>تم تنزيل الخطوط بنجاح. نمط مصحف المدينة مفعل وجاهز.</span>
                         </div>
                     )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 pt-2">
                     <button
+                        type="button"
                         onClick={handleClearCache}
-                        className="flex-1 p-4 rounded-xl bg-surface border border-border-default hover:border-amber-500 hover:bg-amber-500/5 text-right transition-all flex items-center justify-between"
+                        className="flex-1 p-4 rounded-xl bg-surface border border-border-default hover:border-amber-500 hover:bg-amber-500/5 text-right transition-all flex items-center justify-between cursor-pointer"
                     >
                         <div>
                             <div className="font-bold text-text-primary text-sm">مسح المؤقت وتفريغ الكاش</div>
@@ -262,8 +221,9 @@ const DataAndStorageSettings: React.FC = () => {
                     </button>
 
                     <button
+                        type="button"
                         onClick={handleResetAllSettings}
-                        className="flex-1 p-4 rounded-xl bg-surface border border-border-default hover:border-red-500 hover:bg-red-500/5 text-right transition-all flex items-center justify-between"
+                        className="flex-1 p-4 rounded-xl bg-surface border border-border-default hover:border-red-500 hover:bg-red-500/5 text-right transition-all flex items-center justify-between cursor-pointer"
                     >
                         <div>
                             <div className="font-bold text-text-primary text-sm">إعادة ضبط الإعدادات للافتراضي</div>
@@ -274,9 +234,9 @@ const DataAndStorageSettings: React.FC = () => {
                 </div>
 
                 {isCleared && (
-                    <div className="p-3 bg-green-500/10 text-green-700 dark:text-green-300 rounded-xl text-xs font-semibold flex items-center gap-2 justify-center">
+                    <div className="p-3 bg-green-500/10 text-green-700 dark:text-green-300 rounded-xl text-xs font-semibold flex items-center gap-2 justify-center animate-fade-in shadow-xs border border-green-500/20">
                         <CheckIcon className="w-4 h-4" />
-                        <span>تم تنظيف الذاكرة المؤقتة بنجاح.</span>
+                        <span>{statusMessage || 'تم تنظيف الذاكرة المؤقتة بنجاح.'}</span>
                     </div>
                 )}
             </div>

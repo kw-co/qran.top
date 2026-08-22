@@ -215,7 +215,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const highlightedWordOccurrences = useMemo(() => {
     if (deferredResults.length === 0 || queryWords.length === 0 || searchType !== 'text') return [];
 
-    const isImlaei = fontStyle === 'imlai_1' || fontStyle === 'imlai_2';
+    const isImlaei = fontStyle === 'imlai_1';
     const wordMap = new Map<string, { displayWord: string; normalized: string; count: number; order: number }>();
     const appearanceOrder: string[] = [];
     let counter = 0;
@@ -401,7 +401,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [onSaveAyah]);
 
   const handleCopyAyah = useCallback((ayah: Ayah) => {
-    const isImlaei = fontStyle === 'imlai_1' || fontStyle === 'imlai_2';
+    const isImlaei = fontStyle === 'imlai_1';
     let ayahText = ayah.text || '';
 
     if (isImlaei) {

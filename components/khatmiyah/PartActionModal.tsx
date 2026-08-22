@@ -6,6 +6,7 @@ interface PartActionModalProps {
   juzSurahName?: string;
   readerName?: string;
   status: 'reserved' | 'completed';
+  isLocked?: boolean;
   onClose: () => void;
   onReadNow: () => void;
   onComplete: () => Promise<void>;
@@ -18,6 +19,7 @@ export const PartActionModal: React.FC<PartActionModalProps> = ({
   juzSurahName,
   readerName,
   status,
+  isLocked = false,
   onClose,
   onReadNow,
   onComplete,
@@ -28,15 +30,16 @@ export const PartActionModal: React.FC<PartActionModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center p-3 sm:p-4 animate-fade-in overscroll-contain"
+      dir="rtl"
       onClick={onClose}
     >
       <div
-        className="bg-surface border border-border-default rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-fade-in"
+        className="bg-surface border border-border-default rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90dvh] animate-scale-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-5 border-b border-border-default flex items-center justify-between bg-surface-subtle">
+        <div className="shrink-0 p-4 sm:p-5 border-b border-border-default flex items-center justify-between bg-surface-subtle">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-primary/10 text-primary font-bold text-base flex items-center justify-center font-mono border border-primary/20">
               {juzNumber}
@@ -51,14 +54,15 @@ export const PartActionModal: React.FC<PartActionModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-text-muted hover:text-text-primary rounded-full hover:bg-surface transition-colors"
+            className="p-1.5 sm:p-2 text-text-muted hover:text-text-primary rounded-full hover:bg-surface transition-colors cursor-pointer"
+            aria-label="إغلاق"
           >
             <ClearIcon className="w-5 h-5" />
           </button>
         </div>
 
         {/* Reader Status */}
-        <div className="p-5 space-y-4">
+        <div className="flex-1 min-h-0 p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain">
           <div
             className={`p-3.5 rounded-2xl border ${
               isCompleted
@@ -66,7 +70,7 @@ export const PartActionModal: React.FC<PartActionModalProps> = ({
                 : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
             }`}
           >
-            <div className="flex items-center gap-2 text-sm font-bold">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
               <span>{isCompleted ? '✨' : '👤'}</span>
               <span>{isCompleted ? 'تمت القراءة بواسطة:' : 'محجوز حالياً باسم:'}</span>
             </div>
@@ -75,55 +79,69 @@ export const PartActionModal: React.FC<PartActionModalProps> = ({
             </p>
           </div>
 
+          {/* If locked due to duration expiration */}
+          {isLocked && (
+            <div className="p-3 bg-surface-subtle border border-border-default rounded-xl text-center text-xs text-text-muted">
+              🔒 هذه الختمة مقفلة لانتهاء مدتها المحددة، ولا يمكن تعديل أو إلغاء الأجزاء.
+            </div>
+          )}
+
           {/* Action options */}
           <div className="space-y-2 pt-1">
             {/* Read now */}
             <button
+              type="button"
               onClick={() => {
                 onReadNow();
                 onClose();
               }}
-              className="w-full py-3 px-4 bg-surface hover:bg-surface-hover border border-border-default text-text-primary text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="w-full py-3 px-4 bg-surface hover:bg-surface-hover border border-border-default text-text-primary text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
             >
               <BookOpenIcon className="w-4 h-4 text-primary" />
               <span>قراءة الجزء في المصحف الآن</span>
             </button>
 
-            {/* If reserved: Complete it or Cancel reservation */}
-            {!isCompleted ? (
+            {/* If not locked, allow reservation actions */}
+            {!isLocked && (
               <>
-                <button
-                  onClick={async () => {
-                    await onComplete();
-                    onClose();
-                  }}
-                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow"
-                >
-                  <CheckIcon className="w-4 h-4" />
-                  <span>تأكيد إتمام القراءة (أتممتُه)</span>
-                </button>
+                {!isCompleted ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await onComplete();
+                        onClose();
+                      }}
+                      className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                    >
+                      <CheckIcon className="w-4 h-4" />
+                      <span>تأكيد إتمام القراءة (أتممتُه)</span>
+                    </button>
 
-                <button
-                  onClick={async () => {
-                    await onUnreserve();
-                    onClose();
-                  }}
-                  className="w-full py-2.5 px-4 bg-surface-subtle hover:bg-red-500/15 text-text-secondary hover:text-red-500 text-xs font-semibold rounded-2xl transition-all flex items-center justify-center gap-1.5"
-                >
-                  <span>إلغاء الحجز وإتاحة الجزء للآخرين</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await onUnreserve();
+                        onClose();
+                      }}
+                      className="w-full py-2.5 px-4 bg-surface-subtle hover:bg-red-500/15 text-text-secondary hover:text-red-500 text-xs font-semibold rounded-xl border border-border-default transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>إلغاء الحجز وإتاحة الجزء للآخرين</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onUncomplete();
+                      onClose();
+                    }}
+                    className="w-full py-2.5 px-4 bg-surface-subtle hover:bg-amber-500/15 text-text-secondary hover:text-amber-600 text-xs font-semibold rounded-xl border border-border-default transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>تراجع عن إتمام القراءة</span>
+                  </button>
+                )}
               </>
-            ) : (
-              /* If completed: option to undo */
-              <button
-                onClick={async () => {
-                  await onUncomplete();
-                  onClose();
-                }}
-                className="w-full py-2.5 px-4 bg-surface-subtle hover:bg-amber-500/15 text-text-secondary hover:text-amber-600 text-xs font-semibold rounded-2xl transition-all flex items-center justify-center gap-1.5"
-              >
-                <span>تراجع عن إتمام القراءة</span>
-              </button>
             )}
           </div>
         </div>

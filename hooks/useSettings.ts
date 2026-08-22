@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { QuranEdition, QuranFont, FontSize, BrowsingMode, FontStyleType, WordClickBehavior, MushafType } from '../types';
+import type { QuranEdition, FontSize, BrowsingMode, FontStyleType, WordClickBehavior, MushafType } from '../types';
 import { downloadAllMushafFonts, checkMushafFontsDownloaded } from '../utils/mushafFonts';
-import { downloadIndoPakPackage, checkIndoPakDownloaded, deleteIndoPakPackage, injectIndoPakFontFace } from '../utils/indopakFonts';
 
 const QURAN_EDITION_KEY = 'qran_app_edition';
 const FONT_SIZE_KEY = 'qran_app_font_size';
@@ -14,7 +13,6 @@ const WORD_AUDIO_KEY = 'qran_app_enable_word_audio';
 const WORD_CLICK_BEHAVIOR_KEY = 'qran_app_word_click_behavior';
 const ENABLE_MORPHOLOGY_KEY = 'qran_app_enable_morphology';
 const DOWNLOADING_FONTS_KEY = 'qran_app_downloading_fonts';
-const DOWNLOADING_INDOPAK_KEY = 'qran_app_downloading_indopak';
 
 const DEFAULT_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
@@ -38,17 +36,17 @@ export const useSettings = () => {
 
     const [fontSize, setFontSize] = useState<FontSize>(() => safeGetItem(FONT_SIZE_KEY, 'md') as FontSize);
     
-    // Default to 'imlai_1' (System Font) for maximum performance on first load
-    const [fontStyle, setFontStyle] = useState<FontStyleType>(
-        () => safeGetItem(FONT_STYLE_KEY, 'imlai_1') as FontStyleType
-    );
+    // Default to 'imlai_1' (Standard font) or 'mushaf'. If user had 'imlai_2' or 'uthmani', migrate to 'imlai_1' or 'mushaf'
+    const [fontStyle, setFontStyle] = useState<FontStyleType>(() => {
+        const stored = safeGetItem(FONT_STYLE_KEY, 'imlai_1');
+        if (stored === 'mushaf') return 'mushaf';
+        return 'imlai_1';
+    });
 
-    // Mushaf Type (madinah or indopak)
-    const [mushafType, setMushafType] = useState<MushafType>(
-        () => safeGetItem(MUSHAF_TYPE_KEY, 'madinah') as MushafType
-    );
+    // Mushaf Type (only madinah)
+    const [mushafType, setMushafType] = useState<MushafType>('madinah');
 
-    // Default to 'quran-simple-clean' which is loaded instantly from GCS
+    // Default to 'quran-simple-clean' which is loaded instantly
     const [selectedEdition, setSelectedEdition] = useState<string>(
         () => safeGetItem(QURAN_EDITION_KEY, 'quran-simple-clean')
     );
@@ -90,33 +88,15 @@ export const useSettings = () => {
     const [isMushafDownloaded, setIsMushafDownloaded] = useState<boolean>(false);
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // IndoPak Download State
-    const [indoPakDownloadProgress, setIndoPakDownloadProgress] = useState(-1);
-    const [isDownloadingIndoPak, setIsDownloadingIndoPak] = useState<boolean>(
-        () => safeGetItem(DOWNLOADING_INDOPAK_KEY, 'false') === 'true'
-    );
-    const [isIndoPakDownloaded, setIsIndoPakDownloaded] = useState<boolean>(false);
-    const indopakAbortControllerRef = useRef<AbortController | null>(null);
-
     const checkFonts = useCallback(async () => {
         const downloaded = await checkMushafFontsDownloaded();
         setIsMushafDownloaded(downloaded);
         return downloaded;
     }, []);
 
-    const checkIndoPak = useCallback(async () => {
-        const downloaded = await checkIndoPakDownloaded();
-        setIsIndoPakDownloaded(downloaded);
-        if (downloaded) {
-            injectIndoPakFontFace();
-        }
-        return downloaded;
-    }, []);
-
     useEffect(() => {
         checkFonts();
-        checkIndoPak();
-    }, [checkFonts, checkIndoPak]);
+    }, [checkFonts]);
 
     const cancelFontDownload = useCallback(() => {
         if (abortControllerRef.current) {
@@ -146,19 +126,18 @@ export const useSettings = () => {
             safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
             setIsMushafDownloaded(true);
             
-            // Auto-activate if setting was pending or just activate anyway if they started it
+            // Auto-activate mushaf mode
             setFontStyle('mushaf');
             setBrowsingMode('page');
             setSelectedEdition('quran-uthmani-quran-academy');
             
         } catch (e: any) {
             if (e.message !== 'Download cancelled') {
-                console.error("Font download failed:", e);
+                console.warn("Font download interrupted or failed:", e);
                 setIsDownloadingFonts(false);
                 setFontDownloadProgress(-1);
                 safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
                 checkFonts();
-                alert('حدث خطأ أثناء تحميل الخطوط. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.');
             }
         }
     }, [checkFonts]);
@@ -167,75 +146,17 @@ export const useSettings = () => {
         const { deleteMushafFonts } = await import('../utils/mushafFonts');
         await deleteMushafFonts();
         setIsMushafDownloaded(false);
-        if (fontStyle === 'mushaf' && mushafType === 'madinah') {
+        setFontDownloadProgress(-1);
+        safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
+        if (fontStyle === 'mushaf') {
             setFontStyle('imlai_1');
         }
-    }, [fontStyle, mushafType]);
-
-    // IndoPak Download Actions
-    const cancelIndoPakDownload = useCallback(() => {
-        if (indopakAbortControllerRef.current) {
-            indopakAbortControllerRef.current.abort();
-            indopakAbortControllerRef.current = null;
-        }
-        setIsDownloadingIndoPak(false);
-        setIndoPakDownloadProgress(-1);
-        safeSetItem(DOWNLOADING_INDOPAK_KEY, 'false');
-    }, []);
-
-    const startIndoPakDownload = useCallback(async () => {
-        setIsDownloadingIndoPak(true);
-        safeSetItem(DOWNLOADING_INDOPAK_KEY, 'true');
-        setIndoPakDownloadProgress(0);
-        
-        indopakAbortControllerRef.current = new AbortController();
-        
-        try {
-            await downloadIndoPakPackage(
-                (progress) => setIndoPakDownloadProgress(progress),
-                indopakAbortControllerRef.current.signal
-            );
-            // Finished successfully
-            setIsDownloadingIndoPak(false);
-            setIndoPakDownloadProgress(-1);
-            safeSetItem(DOWNLOADING_INDOPAK_KEY, 'false');
-            setIsIndoPakDownloaded(true);
-            
-            // Activate IndoPak Mushaf
-            setMushafType('indopak');
-            setFontStyle('mushaf');
-            setBrowsingMode('page');
-            
-        } catch (e: any) {
-            if (e.message !== 'Download cancelled') {
-                console.error("IndoPak download failed:", e);
-                setIsDownloadingIndoPak(false);
-                setIndoPakDownloadProgress(-1);
-                safeSetItem(DOWNLOADING_INDOPAK_KEY, 'false');
-                checkIndoPak();
-                alert('حدث خطأ أثناء تنزيل حزمة مصحف باكستان. يرجى التحقق من الاتصال والمحاولة مرة أخرى.');
-            }
-        }
-    }, [checkIndoPak]);
-
-    const removeIndoPakFonts = useCallback(async () => {
-        await deleteIndoPakPackage();
-        setIsIndoPakDownloaded(false);
-        if (mushafType === 'indopak') {
-            setMushafType('madinah');
-        }
-        if (fontStyle === 'indopak') {
-            setFontStyle('imlai_1');
-        }
-    }, [mushafType, fontStyle]);
+    }, [fontStyle]);
 
     // Resume download on load if it was interrupted
     useEffect(() => {
         if (isDownloadingFonts) {
             startFontDownload();
-        }
-        if (isDownloadingIndoPak) {
-            startIndoPakDownload();
         }
     }, []); // Only run once on mount
 
@@ -264,6 +185,16 @@ export const useSettings = () => {
         return found;
     }, [activeEditions, selectedEdition]);
 
+    const [isDownloadMushafModalOpen, setIsDownloadMushafModalOpen] = useState(false);
+
+    const openDownloadMushafModal = useCallback(() => {
+        setIsDownloadMushafModalOpen(true);
+    }, []);
+
+    const closeDownloadMushafModal = useCallback(() => {
+        setIsDownloadMushafModalOpen(false);
+    }, []);
+
     return {
         fontSize, setFontSize,
         fontStyle, setFontStyle,
@@ -283,12 +214,7 @@ export const useSettings = () => {
         checkFonts,
         removeMushafFonts,
         cancelFontDownload, startFontDownload,
-        // IndoPak exports
-        indoPakDownloadProgress, setIndoPakDownloadProgress,
-        isDownloadingIndoPak, setIsDownloadingIndoPak,
-        isIndoPakDownloaded,
-        checkIndoPak,
-        removeIndoPakFonts,
-        cancelIndoPakDownload, startIndoPakDownload
+        isDownloadMushafModalOpen, setIsDownloadMushafModalOpen,
+        openDownloadMushafModal, closeDownloadMushafModal
     };
 };

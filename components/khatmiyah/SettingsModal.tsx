@@ -52,14 +52,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, fontSize, onFont
                         <div>
                             <h3 className="text-md font-semibold text-text-secondary mb-2 flex items-center gap-2"><BookOpenIcon className="w-5 h-5"/> نمط العرض</h3>
                              <div className="grid grid-cols-3 gap-2">
-                                <button onClick={() => onFontStyleChange('imlai_1')} className={`p-3 rounded-lg text-center font-semibold ${fontStyle === 'imlai_1' ? 'bg-surface-active ring-2 ring-primary' : 'bg-surface-subtle hover:bg-surface-hover'}`}>
-                                    <span>إملائي 1 (نظام)</span>
+                                <button onClick={() => onFontStyleChange('imlai_1')} className={`p-3 rounded-lg text-center font-semibold cursor-pointer ${fontStyle === 'imlai_1' ? 'bg-surface-active ring-2 ring-primary' : 'bg-surface-subtle hover:bg-surface-hover'}`}>
+                                    <span className="text-xs sm:text-sm">إملائي</span>
                                 </button>
-                                <button onClick={() => onFontStyleChange('imlai_2')} className={`p-3 rounded-lg text-center font-semibold ${fontStyle === 'imlai_2' ? 'bg-surface-active ring-2 ring-primary' : 'bg-surface-subtle hover:bg-surface-hover'}`}>
-                                    <span>إملائي 2 (شهرزاد)</span>
+                                <button onClick={() => onFontStyleChange('uthmani')} className={`p-3 rounded-lg text-center font-semibold cursor-pointer ${fontStyle === 'uthmani' ? 'bg-surface-active ring-2 ring-primary' : 'bg-surface-subtle hover:bg-surface-hover'}`}>
+                                    <span className="text-xs sm:text-sm">عثماني</span>
                                 </button>
-                                <button onClick={() => onFontStyleChange('uthmani')} className={`p-3 rounded-lg text-center font-semibold ${fontStyle === 'uthmani' ? 'bg-surface-active ring-2 ring-primary' : 'bg-surface-subtle hover:bg-surface-hover'}`}>
-                                    <span>عثماني</span>
+                                <button onClick={() => onFontStyleChange('mushaf')} className={`p-3 rounded-lg text-center font-semibold cursor-pointer ${fontStyle === 'mushaf' ? 'bg-surface-active ring-2 ring-primary' : 'bg-surface-subtle hover:bg-surface-hover'}`}>
+                                    <span className="text-xs sm:text-sm">مصحف المدينة</span>
                                 </button>
                             </div>
                         </div>

@@ -147,7 +147,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   const handleCopyMultiple = () => {
       if (selectedAyahs.length === 0) return;
       const textToCopy = selectedAyahs.map(a => {
-          const isImlaei = fontStyle === 'imlai_1' || fontStyle === 'imlai_2';
+          const isImlaei = fontStyle === 'imlai_1';
           let ayahText = a.text || '';
           if (isImlaei) {
               const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
@@ -178,15 +178,11 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   // Consume Settings from Context
   const { displayEdition, fontSize, fontStyle, browsingMode, setFontStyle, setSelectedEdition, setBrowsingMode } = useSettingsContext();
 
-  // Enforce Uthmani or Mushaf page mode when navigating to a specific page
+  // Enforce page mode when navigating to a specific page
   useEffect(() => {
     if (forcedPageNumber) {
       if (browsingMode !== 'page') {
         setBrowsingMode('page');
-      }
-      if (fontStyle !== 'uthmani' && fontStyle !== 'mushaf') {
-        setFontStyle('uthmani');
-        setSelectedEdition('quran-uthmani-quran-academy');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -395,7 +391,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   };
 
   const handleCopyAyah = (ayah: Ayah) => {
-    const isImlaei = fontStyle === 'imlai_1' || fontStyle === 'imlai_2';
+    const isImlaei = fontStyle === 'imlai_1';
     let ayahText = ayah.text || '';
 
     if (isImlaei) {

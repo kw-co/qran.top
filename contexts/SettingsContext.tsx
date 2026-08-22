@@ -33,16 +33,10 @@ interface SettingsContextType {
     removeMushafFonts: () => Promise<void>;
     cancelFontDownload: () => void;
     startFontDownload: () => Promise<void>;
-    // IndoPak properties
-    indoPakDownloadProgress: number;
-    setIndoPakDownloadProgress: (progress: number) => void;
-    isDownloadingIndoPak: boolean;
-    setIsDownloadingIndoPak: (isDownloading: boolean) => void;
-    isIndoPakDownloaded: boolean;
-    checkIndoPak: () => Promise<boolean>;
-    removeIndoPakFonts: () => Promise<void>;
-    cancelIndoPakDownload: () => void;
-    startIndoPakDownload: () => Promise<void>;
+    isDownloadMushafModalOpen: boolean;
+    setIsDownloadMushafModalOpen: (open: boolean) => void;
+    openDownloadMushafModal: () => void;
+    closeDownloadMushafModal: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

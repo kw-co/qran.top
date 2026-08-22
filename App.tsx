@@ -20,6 +20,7 @@ import UpdateNotification from './components/UpdateNotification';
 import { ArrowUpIcon, RefreshIcon, WifiOffIcon } from './components/icons';
 import Header from './components/Header';
 import ExternalLinkModal from './components/ExternalLinkModal';
+import DownloadMushafModal from './components/DownloadMushafModal';
 
 
 const App: React.FC = () => {
@@ -157,7 +158,9 @@ const App: React.FC = () => {
     // --- Intercept Back Button for Active Overlays (SidePanel, Modals) ---
     useEffect(() => {
         const handlePopState = () => {
-            if (isSidePanelOpen) {
+            if (settings.isDownloadMushafModalOpen) {
+                settings.closeDownloadMushafModal();
+            } else if (isSidePanelOpen) {
                 setIsSidePanelOpen(false);
             } else if (itemToSave) {
                 setItemToSave(null);
@@ -168,7 +171,7 @@ const App: React.FC = () => {
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [isSidePanelOpen, itemToSave, externalLinkUrl]);
+    }, [isSidePanelOpen, itemToSave, externalLinkUrl, settings.isDownloadMushafModalOpen, settings.closeDownloadMushafModal]);
 
     if (dataError && !isSearchDataReady) {
         return (
@@ -256,6 +259,10 @@ const App: React.FC = () => {
                     />}
                     {itemToSave && <SaveItemModal item={itemToSave} collections={collections} onClose={() => setItemToSave(null)} onSave={handleConfirmSave} />}
                     {externalLinkUrl && <ExternalLinkModal url={externalLinkUrl} onClose={() => setExternalLinkUrl(null)} />}
+                    <DownloadMushafModal 
+                        isOpen={settings.isDownloadMushafModalOpen} 
+                        onClose={settings.closeDownloadMushafModal} 
+                    />
                     {playbackInfo && <AudioPlayerBar 
                         playlist={playbackInfo.playlist} currentIndex={playbackInfo.currentIndex}
                         isPlaying={playbackInfo.isPlaying} isLoading={!!playbackInfo?.trigger}

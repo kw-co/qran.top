@@ -272,14 +272,13 @@ export async function playSmartWordAudio(
 }
 
 
-export async function fetchPageVersesV4(pageNumber: number, mushafType: 'madinah' | 'indopak' = 'madinah'): Promise<QuranV4Verse[]> {
+export async function fetchPageVersesV4(pageNumber: number): Promise<QuranV4Verse[]> {
     try {
-        const cacheKey = mushafType === 'indopak' ? `quran_v4_page_indopak_v2_${pageNumber}` : `quran_v4_page_v2_${pageNumber}`;
+        const cacheKey = `quran_v4_page_v2_${pageNumber}`;
         const localCached = localStorage.getItem(cacheKey);
         if (localCached) return JSON.parse(localCached);
         
-        const mushafParam = mushafType === 'indopak' ? '&mushaf=6' : '';
-        const url = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true${mushafParam}&word_fields=text_uthmani,text_indopak,text_indopak_nastaleeq,location,audio_url,char_type_name,line_number,page_number,code_v1,v1_page`;
+        const url = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,location,audio_url,char_type_name,line_number,page_number,code_v1,v1_page`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`API response error: ${res.status}`);
         
@@ -292,7 +291,7 @@ export async function fetchPageVersesV4(pageNumber: number, mushafType: 'madinah
         }
         return [];
     } catch (error) {
-        console.warn(`[QuranApiV4] Failed to fetch page ${pageNumber} (mushaf: ${mushafType}):`, error);
+        console.warn(`[QuranApiV4] Failed to fetch page ${pageNumber}:`, error);
         return [];
     }
 }

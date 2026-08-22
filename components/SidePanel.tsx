@@ -1,6 +1,7 @@
 import React from 'react';
-import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, UserCircleIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon } from './icons';
+import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, UserCircleIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, CheckIcon } from './icons';
 import { openExternalLink } from '../utils/navigation';
+import { useSettingsContext } from '../contexts/SettingsContext';
 
 interface SidePanelProps {
     isOpen: boolean;
@@ -24,6 +25,12 @@ const NavLink: React.FC<{ href: string; icon: React.ReactNode; label: string; on
 const SidePanel: React.FC<SidePanelProps> = ({
     isOpen, onClose, currentPath, onNavigate
 }) => {
+    const { 
+        openDownloadMushafModal, 
+        isMushafDownloaded, 
+        isDownloadingFonts, 
+        fontDownloadProgress 
+    } = useSettingsContext();
 
     return (
         <>
@@ -46,6 +53,29 @@ const SidePanel: React.FC<SidePanelProps> = ({
                     <div className="p-4 pt-8">
                         <nav className="space-y-1">
                             <NavLink href="#/" icon={<HomeIcon className="w-5 h-5" />} label="الفهرس" onNavigate={onNavigate} isActive={currentPath === '#/'} />
+                            
+                            {/* Download / Open Madinah Mushaf Button */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onClose();
+                                    openDownloadMushafModal();
+                                }}
+                                className="w-full flex items-center justify-between p-2.5 rounded-lg text-base transition-colors text-text-secondary hover:bg-surface-hover hover:text-primary cursor-pointer text-right group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <BookOpenIcon className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" />
+                                    <span className="whitespace-nowrap font-medium text-text-primary">تحميل مصحف المدينة</span>
+                                </div>
+                                {isDownloadingFonts ? (
+                                    <span className="text-[11px] font-bold text-primary animate-pulse font-mono" dir="ltr">{fontDownloadProgress}%</span>
+                                ) : isMushafDownloaded ? (
+                                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                                        <CheckIcon className="w-3 h-3" /> مثبت
+                                    </span>
+                                ) : null}
+                            </button>
+
                             <NavLink href="#/khatmah" icon={<BookOpenIcon className="w-5 h-5 text-emerald-500" />} label="الختمة الجماعية" onNavigate={onNavigate} isActive={currentPath.startsWith('#/khatmah') || currentPath.startsWith('#/khatmiyah')} />
                             <NavLink href="#/saved" icon={<BookmarkIcon className="w-5 h-5" />} label="دفتر التدبر" onNavigate={onNavigate} isActive={currentPath.startsWith('#/saved')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />

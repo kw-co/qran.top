@@ -24,17 +24,25 @@ const DuaaKhatmModal: React.FC<DuaaKhatmModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-surface border border-border-default rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div 
+      className="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center p-3 sm:p-4 animate-fade-in overscroll-contain"
+      dir="rtl"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-surface border border-border-default rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-scale-in" 
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="p-5 border-b border-border-default flex items-center justify-between bg-surface-subtle">
+        <div className="shrink-0 p-4 sm:p-5 border-b border-border-default flex items-center justify-between bg-surface-subtle">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🤲</span>
-            <h2 className="text-xl font-bold text-text-primary">دعاء ختم القرآن الكريم</h2>
+            <span className="text-xl sm:text-2xl">🤲</span>
+            <h2 className="text-base sm:text-lg font-bold text-text-primary">دعاء ختم القرآن الكريم</h2>
           </div>
           <button 
+            type="button"
             onClick={onClose} 
-            className="p-2 text-text-muted hover:text-text-primary rounded-full hover:bg-surface transition-colors"
+            className="p-1.5 sm:p-2 text-text-muted hover:text-text-primary rounded-full hover:bg-surface transition-colors cursor-pointer"
             aria-label="إغلاق"
           >
             <ClearIcon className="w-5 h-5" />
@@ -42,18 +50,19 @@ const DuaaKhatmModal: React.FC<DuaaKhatmModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto space-y-4 text-center leading-loose font-amiri text-lg sm:text-xl text-text-primary bg-surface selection:bg-primary/20">
+        <div className="flex-1 min-h-0 p-4 sm:p-6 overflow-y-auto space-y-4 text-center leading-loose font-amiri text-base sm:text-xl text-text-primary bg-surface selection:bg-primary/20 overscroll-contain">
           <p className="whitespace-pre-line text-justify leading-[2.2]">{DUAA_TEXT}</p>
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border-default bg-surface-subtle flex justify-center">
+        <div className="shrink-0 p-3 sm:p-4 border-t border-border-default bg-surface-subtle flex justify-center">
           <button
+            type="button"
             onClick={onClose}
-            className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl shadow hover:bg-primary/90 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl shadow-xs hover:bg-primary/90 transition-all flex items-center gap-2 cursor-pointer text-sm sm:text-base"
           >
             <CheckIcon className="w-5 h-5" />
-            تقبّل الله منّا ومنكم صالح الأعمال
+            <span>تقبّل الله منّا ومنكم صالح الأعمال</span>
           </button>
         </div>
       </div>

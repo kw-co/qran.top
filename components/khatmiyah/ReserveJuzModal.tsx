@@ -41,26 +41,39 @@ const ReserveJuzModal: React.FC<ReserveJuzModalProps> = ({ onClose, onReserve, j
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <form onSubmit={handleSubmit} className="bg-surface border border-border-default rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+    <div 
+      className="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center p-3 sm:p-4 animate-fade-in overscroll-contain"
+      dir="rtl"
+      onClick={onClose}
+    >
+      <form 
+        onSubmit={handleSubmit} 
+        className="bg-surface border border-border-default rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90dvh] animate-scale-in" 
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="p-5 border-b border-border-default flex items-center justify-between bg-surface-subtle">
+        <div className="shrink-0 p-4 sm:p-5 border-b border-border-default flex items-center justify-between bg-surface-subtle">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">📖</span>
+            <span className="text-xl sm:text-2xl">📖</span>
             <div>
-              <h2 className="text-lg font-bold text-text-primary">حجز الجزء {juzNumber}</h2>
+              <h2 className="text-base sm:text-lg font-bold text-text-primary">حجز الجزء {juzNumber}</h2>
               {juzSurahName && (
                 <p className="text-xs text-text-muted">{juzSurahName}</p>
               )}
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2 text-text-muted hover:text-text-primary rounded-full hover:bg-surface transition-colors">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="p-1.5 sm:p-2 text-text-muted hover:text-text-primary rounded-full hover:bg-surface transition-colors cursor-pointer"
+            aria-label="إغلاق"
+          >
             <ClearIcon className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4">
+        <div className="flex-1 min-h-0 p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain">
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 rounded-xl text-sm font-medium">
               {error}
@@ -68,7 +81,7 @@ const ReserveJuzModal: React.FC<ReserveJuzModalProps> = ({ onClose, onReserve, j
           )}
 
           <div>
-            <label htmlFor="reserver-name" className="block text-sm font-bold mb-1.5 text-text-primary">
+            <label htmlFor="reserver-name" className="block text-xs sm:text-sm font-bold mb-1.5 text-text-primary">
               اسم القارئ / الحاجز <span className="text-red-500">*</span>
             </label>
             <input
@@ -88,11 +101,11 @@ const ReserveJuzModal: React.FC<ReserveJuzModalProps> = ({ onClose, onReserve, j
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-surface-subtle border-t border-border-default flex flex-col sm:flex-row justify-end gap-2.5">
+        <div className="shrink-0 p-3 sm:p-4 bg-surface-subtle border-t border-border-default flex flex-col sm:flex-row justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 text-sm text-text-secondary hover:bg-surface rounded-xl order-3 sm:order-1"
+            className="px-4 py-2.5 text-sm text-text-secondary hover:bg-surface rounded-xl border border-border-default hover:border-border-hover order-3 sm:order-1 cursor-pointer text-center"
           >
             إلغاء
           </button>
@@ -101,19 +114,19 @@ const ReserveJuzModal: React.FC<ReserveJuzModalProps> = ({ onClose, onReserve, j
             type="button"
             onClick={() => handleAction(true)}
             disabled={isReserving || !name.trim()}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 order-2 disabled:opacity-50"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 order-2 disabled:opacity-50 cursor-pointer"
           >
             <BookOpenIcon className="w-4 h-4" />
-            حجز وبدء القراءة الآن
+            <span>حجز وبدء القراءة</span>
           </button>
 
           <button
             type="submit"
             disabled={isReserving || !name.trim()}
-            className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 order-1 sm:order-3 disabled:opacity-50"
+            className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 order-1 sm:order-3 disabled:opacity-50 cursor-pointer"
           >
-            {isReserving ? <SpinnerIcon className="w-4 h-4" /> : <CheckIcon className="w-4 h-4" />}
-            {isReserving ? 'جاري الحجز...' : 'تأكيد الحجز'}
+            {isReserving ? <SpinnerIcon className="w-4 h-4 animate-spin" /> : <CheckIcon className="w-4 h-4" />}
+            <span>{isReserving ? 'جاري الحجز...' : 'تأكيد الحجز'}</span>
           </button>
         </div>
       </form>

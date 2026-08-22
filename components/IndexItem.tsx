@@ -15,7 +15,7 @@ const IndexItem: React.FC<IndexItemProps> = ({ type, number, startSurah, startAy
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    setFontStyle('uthmani');
+    setFontStyle('mushaf');
     setSelectedEdition('quran-uthmani-quran-academy');
     setBrowsingMode('page');
     const targetHash = e.currentTarget.getAttribute('href');

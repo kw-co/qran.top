@@ -141,7 +141,8 @@ const Header: React.FC<HeaderProps> = ({
     
     // Consume Settings from Context
     const { 
-        fontStyle, setFontStyle, selectedEdition, setSelectedEdition, setBrowsingMode, selectedAudioEdition 
+        fontStyle, setFontStyle, selectedEdition, setSelectedEdition, setBrowsingMode, selectedAudioEdition,
+        isMushafDownloaded, openDownloadMushafModal
     } = useSettingsContext();
 
     const { pageTitle, isSurahOrPage, isRelevantPageForToggle, isSearchPage, isHomePage, searchQuery } = useMemo(() => {
@@ -192,32 +193,42 @@ const Header: React.FC<HeaderProps> = ({
 
     const handleStyleToggle = useCallback(() => {
         if (fontStyle === 'imlai_1') {
-            setFontStyle('imlai_2');
-            setSelectedEdition('quran-simple-clean');
-            setBrowsingMode('full');
-        } else if (fontStyle === 'imlai_2') {
+            // Next: uthmani
             setFontStyle('uthmani');
             setSelectedEdition('quran-uthmani-quran-academy');
-            setBrowsingMode('page');
+            setBrowsingMode('full');
         } else if (fontStyle === 'uthmani') {
+            // Next: mushaf
+            if (!isMushafDownloaded) {
+                const hasSeenPrompt = localStorage.getItem('qran_mushaf_download_prompt_seen');
+                if (!hasSeenPrompt) {
+                    localStorage.setItem('qran_mushaf_download_prompt_seen', 'true');
+                    openDownloadMushafModal();
+                    return;
+                }
+                // If user has already seen the modal once, cycle directly back to imlai_1
+                setFontStyle('imlai_1');
+                setSelectedEdition('quran-simple-clean');
+                setBrowsingMode('full');
+                return;
+            }
             setFontStyle('mushaf');
             setSelectedEdition('quran-uthmani-quran-academy');
             setBrowsingMode('page');
-        } else { // 'mushaf'
+        } else {
+            // From mushaf -> imlai_1
             setFontStyle('imlai_1');
             setSelectedEdition('quran-simple-clean');
             setBrowsingMode('full');
         }
-    }, [fontStyle, setFontStyle, setSelectedEdition, setBrowsingMode]);
+    }, [fontStyle, isMushafDownloaded, setFontStyle, setSelectedEdition, setBrowsingMode, openDownloadMushafModal]);
 
     const getToggleLabel = () => {
-        if (isUthmaniLoading && fontStyle !== 'uthmani' && fontStyle !== 'mushaf') return '...';
         switch (fontStyle) {
-            case 'imlai_1': return 'إملائي 1';
-            case 'imlai_2': return 'إملائي 2';
+            case 'imlai_1': return 'إملائي';
             case 'uthmani': return 'عثماني';
-            case 'mushaf': return 'مصحف';
-            default: return '...';
+            case 'mushaf': return 'المصحف';
+            default: return 'إملائي';
         }
     };
 
@@ -252,9 +263,9 @@ const Header: React.FC<HeaderProps> = ({
                         {isRelevantPageForToggle && (
                             <button 
                                 onClick={handleStyleToggle}
-                                disabled={fontStyle !== 'uthmani' && isUthmaniLoading}
-                                className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 text-xs font-semibold bg-surface-subtle text-text-primary hover:text-primary rounded-full hover:bg-surface-hover transition-all border border-border-default disabled:opacity-50 shadow-xs active:scale-95"
-                                title="التبديل بين أوضاع العرض (عثماني / إملائي)"
+                                disabled={fontStyle !== 'mushaf' && isUthmaniLoading}
+                                className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 text-xs font-semibold bg-surface-subtle text-text-primary hover:text-primary rounded-full hover:bg-surface-hover transition-all border border-border-default disabled:opacity-50 shadow-xs active:scale-95 cursor-pointer"
+                                title="التبديل بين أوضاع العرض (إملائي / مصحف المدينة)"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 text-primary">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />

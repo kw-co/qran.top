@@ -126,10 +126,10 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
 
         if (!displayAyah.surah) return;
 
-        const isImlaei1 = fontStyle === 'imlai_1' || displayEdition.identifier.includes('simple-clean');
+        const isImlaei = fontStyle === 'imlai_1' || displayEdition.identifier.includes('simple-clean');
         const shouldSearchDirectly = 
             wordClickBehavior === 'direct_search' || 
-            (wordClickBehavior === 'auto' && isImlaei1);
+            (wordClickBehavior === 'auto' && isImlaei);
 
         if (shouldSearchDirectly) {
             if (enableWordAudio) {
@@ -157,7 +157,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
             return '';
         }
         
-        const isImlaei = fontStyle === 'imlai_1' || fontStyle === 'imlai_2';
+        const isImlaei = fontStyle === 'imlai_1';
         let textToRender = displayAyah.text;
 
         if (isImlaei) {

@@ -4,12 +4,12 @@ import { khatmahService } from '../../services/khatmahService';
 import { JUZ_INDEX } from '../../quranPartitions';
 import {
   CheckIcon,
-  PlusIcon,
   CopyIcon,
   WhatsAppIcon,
   TelegramIcon,
+  ArrowRightIcon,
+  LockClosedIcon,
 } from '../icons';
-import CreateKhatmahModal from './CreateKhatmahModal';
 import ReserveJuzModal from './ReserveJuzModal';
 import PartActionModal from './PartActionModal';
 import DuaaKhatmModal from './DuaaKhatmModal';
@@ -71,7 +71,6 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Modals state
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDuaaModalOpen, setIsDuaaModalOpen] = useState(false);
   const [reservingPartNumber, setReservingPartNumber] = useState<number | null>(null);
   const [selectedPartForAction, setSelectedPartForAction] = useState<number | null>(null);
@@ -84,6 +83,22 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
       setToastMessage(prev => (prev === msg ? null : prev));
     }, 3500);
   };
+
+  // Check if Khatmah is expired / duration ended
+  const isKhatmahExpired = useCallback((k: GroupKhatmah | null): boolean => {
+    if (!k) return false;
+    if (k.isCompleted) return true;
+    if (!k.targetDate) return false;
+    try {
+      const targetTime = new Date(k.targetDate + 'T23:59:59').getTime();
+      return !isNaN(targetTime) && Date.now() > targetTime;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const isCurrentExpired = useMemo(() => isKhatmahExpired(khatmah), [khatmah, isKhatmahExpired]);
+  const isCurrentLocked = isCurrentExpired || khatmah?.isCompleted || false;
 
   // Load single Khatmah data
   const loadKhatmahData = useCallback(async (id: string, silent = false) => {
@@ -125,11 +140,12 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     const init = async () => {
       setIsLoading(true);
       try {
-        const list = await khatmahService.listRecentKhatmahs();
-        if (isMounted) {
-          setKhatmahsList(list);
-          if (currentKhatmahId) {
-            await loadKhatmahData(currentKhatmahId, false);
+        if (currentKhatmahId) {
+          await loadKhatmahData(currentKhatmahId, false);
+        } else {
+          const list = await khatmahService.listRecentKhatmahs();
+          if (isMounted) {
+            setKhatmahsList(list);
           }
         }
       } catch (err) {
@@ -144,19 +160,17 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     };
   }, [currentKhatmahId, loadKhatmahData]);
 
-  // Real-time live polling & multi-device sync with visibility detection
+  // Real-time live polling & multi-device sync
   useEffect(() => {
-    // 1. Cross-tab sync
     const unsubscribe = khatmahService.onSync(() => {
       if (currentKhatmahId) {
         loadKhatmahData(currentKhatmahId, true);
+      } else {
+        loadKhatmahsList(true);
       }
-      loadKhatmahsList(true);
     });
 
-    // 2. High-frequency polling (every 3 seconds when page is active)
     let interval: any = null;
-
     const startPolling = (ms = 3000) => {
       if (interval) clearInterval(interval);
       interval = setInterval(() => {
@@ -170,16 +184,15 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
 
     startPolling(3000);
 
-    // 3. Instant refresh on tab visibility / phone unlock / window focus / network back online
     const handleVisibilityOrFocus = () => {
       if (document.visibilityState === 'visible') {
         if (currentKhatmahId) {
           loadKhatmahData(currentKhatmahId, true);
+        } else {
+          loadKhatmahsList(true);
         }
-        loadKhatmahsList(true);
         startPolling(3000);
       } else {
-        // Slow down polling to 15s in background to save device battery
         startPolling(15000);
       }
     };
@@ -187,8 +200,9 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     const handleOnline = () => {
       if (currentKhatmahId) {
         loadKhatmahData(currentKhatmahId, true);
+      } else {
+        loadKhatmahsList(true);
       }
-      loadKhatmahsList(true);
     };
 
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
@@ -204,7 +218,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     };
   }, [currentKhatmahId, loadKhatmahData, loadKhatmahsList]);
 
-  // Ensure unique list of khatmahs by id
+  // Unique list of khatmahs
   const uniqueKhatmahsList = useMemo(() => {
     const map = new Map<string, GroupKhatmah>();
     khatmahsList.forEach((k, idx) => {
@@ -218,7 +232,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     return Array.from(map.values());
   }, [khatmahsList]);
 
-  // Listen to hash changes (#/khatmah or #/khatmah/KHT-1234)
+  // Listen to hash changes
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
@@ -239,64 +253,87 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [currentKhatmahId, loadKhatmahData, loadKhatmahsList]);
 
-  // Calculate statistics for active single khatmah
+  // Calculate statistics for active single khatmah:
+  // - Reservation Rate (% of parts taken: reserved + completed)
+  // - Completion Rate (% of parts completed)
+  // Note: If duration ended, reserved parts are considered completed!
   const stats = useMemo(() => {
     if (!khatmah || !khatmah.parts) {
-      return { completed: 0, reserved: 0, available: 30, percent: 0 };
+      return {
+        completed: 0,
+        reserved: 0,
+        available: 30,
+        reservationPercent: 0,
+        completionPercent: 0,
+        isFullyReserved: false,
+        isFullyCompleted: false,
+      };
     }
+
+    const expired = isKhatmahExpired(khatmah);
     let completed = 0;
     let reserved = 0;
     let available = 0;
 
     for (let i = 1; i <= 30; i++) {
       const p = khatmah.parts[i];
-      if (p?.status === 'completed') completed++;
-      else if (p?.status === 'reserved') reserved++;
-      else available++;
+      if (p?.status === 'completed') {
+        completed++;
+      } else if (p?.status === 'reserved') {
+        if (expired) {
+          // If duration ended, reserved parts count as completed!
+          completed++;
+        } else {
+          reserved++;
+        }
+      } else {
+        available++;
+      }
     }
 
-    const percent = Math.round((completed / 30) * 100);
-    return { completed, reserved, available, percent };
-  }, [khatmah]);
+    const totalClaimed = completed + reserved;
+    const reservationPercent = Math.min(100, Math.round((totalClaimed / 30) * 100));
+    const completionPercent = Math.min(100, Math.round((completed / 30) * 100));
 
-  // Helper for computing single khatmah completion percentage
+    return {
+      completed,
+      reserved,
+      available,
+      reservationPercent,
+      completionPercent,
+      isFullyReserved: totalClaimed === 30,
+      isFullyCompleted: completed === 30,
+    };
+  }, [khatmah, isKhatmahExpired]);
+
+  // Helper for computing progress for list items
   const getKhatmahProgress = (k: GroupKhatmah) => {
+    const expired = isKhatmahExpired(k);
     let completed = 0;
     let reserved = 0;
     if (k.parts) {
       Object.values(k.parts).forEach(p => {
-        if (p.status === 'completed') completed++;
-        else if (p.status === 'reserved') reserved++;
+        if (p.status === 'completed') {
+          completed++;
+        } else if (p.status === 'reserved') {
+          if (expired) completed++;
+          else reserved++;
+        }
       });
     }
-    const percent = Math.round((completed / 30) * 100);
-    const available = 30 - completed - reserved;
-    return { completed, reserved, available, percent };
+    const totalClaimed = completed + reserved;
+    const reservationPercent = Math.min(100, Math.round((totalClaimed / 30) * 100));
+    const completionPercent = Math.min(100, Math.round((completed / 30) * 100));
+    const available = Math.max(0, 30 - totalClaimed);
+    return { completed, reserved, available, reservationPercent, completionPercent };
   };
 
   // Handlers for Khatmah actions
-  const handleCreateKhatmah = async (params: {
-    title: string;
-    dedication?: string;
-    targetDate?: string;
-    createdBy?: string;
-    khatmahType?: 'once' | 'monthly_recurring';
-  }) => {
-    const created = await khatmahService.createKhatmah(params);
-    setCurrentKhatmahId(created.id);
-    setKhatmah(created);
-    window.location.hash = `#/khatmah/${created.id}`;
-    await loadKhatmahsList(true);
-    showToast(`تم إنشاء الختمة بنجاح! كود الختمة: ${created.id}`);
-    return created.id;
-  };
-
   const handleReserveConfirm = async (name: string, andReadNow = false) => {
-    if (!khatmah || reservingPartNumber === null) return;
+    if (!khatmah || reservingPartNumber === null || isCurrentLocked) return;
     const partNum = reservingPartNumber;
     const cleanName = name.trim() || 'مشارك';
 
-    // 1. Instant optimistic update: change box color immediately
     const optimisticParts = {
       ...(khatmah.parts || {}),
       [partNum]: {
@@ -328,9 +365,8 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
   };
 
   const handleUnreserve = async (partNumber: number) => {
-    if (!khatmah) return;
+    if (!khatmah || isCurrentLocked) return;
 
-    // Instant optimistic update
     const optimisticParts = {
       ...(khatmah.parts || {}),
       [partNumber]: {
@@ -356,12 +392,11 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
   };
 
   const handleCompletePart = async (partNumber: number) => {
-    if (!khatmah) return;
+    if (!khatmah || isCurrentLocked) return;
 
     const existingPart = khatmah.parts?.[partNumber];
     const completedBy = existingPart?.reservedBy || existingPart?.completedBy || 'فاعل خير';
 
-    // Instant optimistic update
     const optimisticParts = {
       ...(khatmah.parts || {}),
       [partNumber]: {
@@ -400,7 +435,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
   };
 
   const handleUncompletePart = async (partNumber: number) => {
-    if (!khatmah) return;
+    if (!khatmah || isCurrentLocked) return;
 
     const prevPart = khatmah.parts?.[partNumber];
     const optimisticParts = {
@@ -434,7 +469,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     const juzInfo = JUZ_INDEX.find(j => j.number === partNumber);
     if (!juzInfo) return;
 
-    setFontStyle('uthmani');
+    setFontStyle('mushaf');
     setSelectedEdition('quran-uthmani-quran-academy');
 
     if (onNavigateToJuz) {
@@ -444,7 +479,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     }
   };
 
-  // Share helpers with Program Name: "الباحث في القرآن الكريم"
+  // Share helpers: Program Name "الباحث في القرآن الكريم"
   const getShareUrl = (khatmahId?: string) => {
     const origin = window.location.origin + window.location.pathname;
     if (khatmahId) {
@@ -507,19 +542,20 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     window.open(tgUrl, '_blank');
   };
 
+  // Back Button Handler: returns back or to home
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.hash = '#/';
+    }
+  };
+
   // Open specific Khatmah
   const handleOpenKhatmah = (id: string) => {
     setCurrentKhatmahId(id);
     window.location.hash = `#/khatmah/${id}`;
     loadKhatmahData(id);
-  };
-
-  // Back to All Khatmahs list
-  const handleBackToAllKhatmahs = () => {
-    setCurrentKhatmahId(null);
-    setKhatmah(null);
-    window.location.hash = `#/khatmah`;
-    loadKhatmahsList();
   };
 
   // Start new cycle for completed Khatmah
@@ -537,6 +573,17 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
   // Part Box Click Handler
   const handlePartClick = (partNum: number) => {
     if (!khatmah) return;
+
+    if (isCurrentLocked) {
+      const partData = khatmah.parts?.[partNum];
+      if (partData && (partData.status === 'reserved' || partData.status === 'completed')) {
+        setSelectedPartForAction(partNum);
+      } else {
+        showToast('هذه الختمة مقفلة لانتهاء مدتها المحددة.');
+      }
+      return;
+    }
+
     const partData = khatmah.parts?.[partNum];
     if (!partData || partData.status === 'available') {
       setReservingPartNumber(partNum);
@@ -555,107 +602,393 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
         </div>
       )}
 
-      {/* TOP HEADER & SHARING TOOLBAR */}
-      <div className="bg-surface border border-border-default rounded-3xl p-4 sm:p-5 shadow-sm overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          
-          {/* Header Title / Back button */}
-          <div className="flex items-center gap-3">
-            {currentKhatmahId && (
-              <button
-                onClick={handleBackToAllKhatmahs}
-                className="p-2.5 bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary rounded-2xl transition-all flex items-center gap-1.5 text-xs font-bold"
-                title="الرجوع إلى قائمة كافة الختمات"
-              >
-                <span>←</span>
-                <span>كافة الختمات</span>
-              </button>
-            )}
+      {/* ========================================================================= */}
+      {/* VIEW: SPECIFIC KHATMAH (TABLE FIRST, DETAILS & SHARE ICONS UNDER TABLE) */}
+      {/* ========================================================================= */}
+      {currentKhatmahId && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Loading state for single khatmah */}
+          {isLoading && (
+            <div className="text-center py-16 space-y-3 bg-surface border border-border-default rounded-3xl p-8">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-sm font-semibold text-text-secondary">جاري تحميل بيانات الأجزاء...</p>
+            </div>
+          )}
 
-            <div className="flex items-center gap-2.5">
-              <span className="text-2xl sm:text-3xl">📖</span>
-              <div>
-                <h1 className="text-lg sm:text-xl font-black text-text-primary">
-                  {currentKhatmahId ? 'الختمة القرآنية المباركة' : 'الختمات القرآنية الجماعية'}
-                </h1>
-                <p className="text-xs text-text-muted">
-                  {currentKhatmahId
-                    ? 'اختر رقم الجزء للحجز أو تسجيل القراءة'
-                    : 'شارك في ختمة قائمة أو أنشئ ختمة خاصة بالأهل والأصدقاء'}
-                </p>
+          {/* Error state */}
+          {error && !isLoading && (
+            <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-3xl text-center space-y-3">
+              <p className="text-base font-bold text-red-600">{error}</p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => loadKhatmahData(currentKhatmahId || '')}
+                  className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  إعادة المحاولة
+                </button>
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-surface border border-border-default text-text-primary text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  رجوع
+                </button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Action and Sharing Buttons Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border-subtle">
-            {/* Create New Khatmah */}
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-2xl shadow-sm transition-all flex items-center gap-1.5"
-            >
-              <PlusIcon className="w-4 h-4" />
-              <span>إنشاء ختمة جديدة</span>
-            </button>
+          {/* 1. TABLE FIRST (الجدول أول شيء) */}
+          {!isLoading && khatmah && (
+            <div className="space-y-3">
+              {/* Table Header with Color Legend */}
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm sm:text-base font-black text-text-primary flex items-center gap-1.5">
+                  <span>📖</span>
+                  <span>اختر جزء لحجزه</span>
+                </h3>
 
-            {/* Copy Share Link */}
-            <button
-              onClick={() => handleCopyLink()}
-              className="px-3.5 py-2.5 bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary text-xs sm:text-sm font-bold rounded-2xl transition-all flex items-center gap-1.5"
-              title="نسخ الرابط للمشاركة"
-            >
-              <CopyIcon className="w-4 h-4 text-primary" />
-              <span>نسخ الرابط</span>
-            </button>
+                {/* Color Legend */}
+                <div className="flex items-center gap-2.5 text-[11px] sm:text-xs font-bold">
+                  <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                    <span>مقروء</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-amber-700 dark:text-amber-300">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+                    <span>محجوز</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-text-muted">
+                    <span className="w-2.5 h-2.5 rounded-full bg-surface border border-border-default inline-block"></span>
+                    <span>متاح</span>
+                  </span>
+                </div>
+              </div>
 
-            {/* WhatsApp Share */}
-            <button
-              onClick={() => handleWhatsAppShare()}
-              className="px-3.5 py-2.5 bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] text-xs sm:text-sm font-bold rounded-2xl border border-[#25D366]/30 transition-all flex items-center gap-1.5"
-              title="مشاركة عبر واتساب"
-            >
-              <WhatsAppIcon className="w-4 h-4" />
-              <span>واتساب</span>
-            </button>
+              {/* 30 Juz Numbers Grid */}
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 sm:gap-3">
+                {Array.from({ length: 30 }, (_, idx) => {
+                  const partNum = idx + 1;
+                  const partData: KhatmahPart = khatmah.parts?.[partNum] || {
+                    partNumber: partNum,
+                    status: 'available',
+                  };
 
-            {/* Telegram Share */}
-            <button
-              onClick={() => handleTelegramShare()}
-              className="px-3.5 py-2.5 bg-[#0088cc]/15 hover:bg-[#0088cc]/25 text-[#0088cc] text-xs sm:text-sm font-bold rounded-2xl border border-[#0088cc]/30 transition-all flex items-center gap-1.5"
-              title="مشاركة عبر تيليجرام"
-            >
-              <TelegramIcon className="w-4 h-4" />
-              <span>تيليجرام</span>
-            </button>
-          </div>
+                  // If duration ended, reserved parts are treated as completed
+                  const isCompleted =
+                    partData.status === 'completed' ||
+                    (isCurrentExpired && partData.status === 'reserved');
+                  const isReserved = !isCompleted && partData.status === 'reserved';
+
+                  const reader = isCompleted
+                    ? partData.completedBy || partData.reservedBy || 'مكتمل'
+                    : isReserved
+                    ? partData.reservedBy || 'محجوز'
+                    : 'متاح';
+
+                  return (
+                    <button
+                      key={`part-box-${partNum}`}
+                      type="button"
+                      onClick={() => handlePartClick(partNum)}
+                      title={`الجزء ${partNum}: ${
+                        isCompleted
+                          ? `تمت القراءة (${reader})`
+                          : isReserved
+                          ? `محجوز (${reader})`
+                          : isCurrentLocked
+                          ? 'مغلق لانتهاء المدة'
+                          : 'متاح للحجز'
+                      }`}
+                      className={`relative aspect-square rounded-2xl sm:rounded-3xl p-1 sm:p-2 border-2 transition-all flex flex-col items-center justify-center cursor-pointer select-none shadow-xs hover:scale-[1.03] active:scale-95 group ${
+                        isCompleted
+                          ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/60 hover:border-emerald-500 text-emerald-900 dark:text-emerald-100'
+                          : isReserved
+                          ? 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/50 hover:border-amber-500 text-amber-900 dark:text-amber-100'
+                          : isCurrentLocked
+                          ? 'bg-surface/50 border-border-subtle text-text-muted opacity-60 cursor-not-allowed'
+                          : 'bg-surface hover:bg-surface-subtle border-border-default hover:border-primary/60 text-text-primary'
+                      }`}
+                    >
+                      {/* Top indicator badge */}
+                      {isCompleted ? (
+                        <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] shadow-xs font-bold">
+                          ✓
+                        </span>
+                      ) : isReserved ? (
+                        <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-amber-400 ring-2 ring-amber-400/40"></span>
+                      ) : isCurrentLocked ? (
+                        <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 text-[10px] text-text-muted">
+                          🔒
+                        </span>
+                      ) : null}
+
+                      {/* Part Number Prominent Display */}
+                      <span
+                        className={`text-xl sm:text-2xl md:text-3xl font-black font-mono leading-none tracking-tight ${
+                          isCompleted
+                            ? 'text-emerald-700 dark:text-emerald-300'
+                            : isReserved
+                            ? 'text-amber-700 dark:text-amber-300'
+                            : 'text-text-primary group-hover:text-primary transition-colors'
+                        }`}
+                      >
+                        {partNum}
+                      </span>
+
+                      {/* Bottom status text / reader name */}
+                      <span
+                        className={`text-[10px] sm:text-[11px] font-bold truncate max-w-full px-1 mt-1 text-center leading-none ${
+                          isCompleted
+                            ? 'text-emerald-700 dark:text-emerald-300'
+                            : isReserved
+                            ? 'text-amber-800 dark:text-amber-200'
+                            : isCurrentLocked
+                            ? 'text-text-muted'
+                            : 'text-text-muted group-hover:text-primary'
+                        }`}
+                      >
+                        {isCompleted
+                          ? reader
+                          : isReserved
+                          ? reader
+                          : isCurrentLocked
+                          ? 'مغلق'
+                          : '+ احجز'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 2. UNDER TABLE: KHATMAH DETAILS, RESERVATION & COMPLETION PERCENTAGES, ICON SHARE & BACK */}
+          {!isLoading && khatmah && (
+            <div className="bg-surface border border-border-default rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+              {/* Header: Title, Dedication, Badges */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-mono font-bold border border-primary/20">
+                    {khatmah.id}
+                  </span>
+                  {khatmah.khatmahType === 'monthly_recurring' && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-500/25">
+                      🔄 دورية شهرية
+                    </span>
+                  )}
+                  {isCurrentLocked && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-700 dark:text-red-300 text-xs font-bold border border-red-500/25 flex items-center gap-1">
+                      <LockClosedIcon className="w-3.5 h-3.5" />
+                      <span>مقفلة لانتهاء المدة</span>
+                    </span>
+                  )}
+                  <h2 className="text-xl sm:text-2xl font-black text-text-primary">{khatmah.title}</h2>
+                </div>
+
+                {khatmah.dedication && (
+                  <p className="text-sm text-text-secondary flex items-center gap-1.5 pt-0.5">
+                    <span>🕊️</span>
+                    <span>{khatmah.dedication}</span>
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-text-muted pt-1">
+                  {khatmah.createdBy && <span>منشئ الختمة: {khatmah.createdBy}</span>}
+                  {khatmah.targetDate && <span>موعد الختم: {khatmah.targetDate}</span>}
+                </div>
+              </div>
+
+              {/* STATS & PERCENTAGES: Distinct Reservation Rate and Completion Rate */}
+              <div className="pt-4 border-t border-border-subtle space-y-3">
+                {/* Two Distinct Percentage Displays */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* 1. Reservation Percentage (نسبة الحجز) */}
+                  <div className="bg-surface-subtle border border-border-default rounded-2xl p-3 sm:p-4 space-y-1 text-center">
+                    <div className="text-xs font-bold text-text-secondary">نسبة الحجز</div>
+                    <div className="text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
+                      {stats.reservationPercent}%
+                    </div>
+                    <div className="text-[11px] text-text-muted font-medium">
+                      {stats.completed + stats.reserved} من 30 جزء
+                    </div>
+                  </div>
+
+                  {/* 2. Completion Percentage (نسبة الإنجاز) */}
+                  <div className="bg-surface-subtle border border-border-default rounded-2xl p-3 sm:p-4 space-y-1 text-center">
+                    <div className="text-xs font-bold text-text-secondary">نسبة الإنجاز</div>
+                    <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                      {stats.completionPercent}%
+                    </div>
+                    <div className="text-[11px] text-text-muted font-medium">
+                      {stats.completed} من 30 مقروء
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dual Progress Bar */}
+                <div className="w-full h-3 bg-surface-subtle rounded-full overflow-hidden border border-border-default flex">
+                  <div
+                    className="h-full bg-emerald-500 transition-all duration-500 ease-out"
+                    style={{ width: `${(stats.completed / 30) * 100}%` }}
+                    title={`المقروء: ${stats.completed}`}
+                  ></div>
+                  <div
+                    className="h-full bg-amber-400 transition-all duration-500 ease-out"
+                    style={{ width: `${(stats.reserved / 30) * 100}%` }}
+                    title={`المحجوز: ${stats.reserved}`}
+                  ></div>
+                </div>
+
+                {/* Expiration and Lock message */}
+                {isCurrentLocked && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs sm:text-sm text-amber-800 dark:text-amber-200 font-medium flex items-center gap-2">
+                    <span>🔒</span>
+                    <span>
+                      انتهت مدة هذه الختمة، وتم اعتبار جميع الأجزاء المحجوزة منجزة بنجاح وقفل الختمة عن التعديل.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* BOTTOM ACTIONS: HORIZONTALLY CENTERED SHARE WITH "مشاركة :" */}
+              <div className="pt-4 border-t border-border-subtle flex items-center justify-center gap-3">
+                <span className="text-xs sm:text-sm font-bold text-text-secondary">مشاركة :</span>
+
+                {/* WhatsApp, Copy Link, Telegram Icons */}
+                <div className="flex items-center gap-2.5">
+                  {/* WhatsApp Share Icon */}
+                  <button
+                    type="button"
+                    onClick={() => handleWhatsAppShare()}
+                    className="w-10 h-10 flex items-center justify-center bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] rounded-2xl border border-[#25D366]/30 transition-all shadow-xs active:scale-95 cursor-pointer"
+                    title="واتساب"
+                    aria-label="واتساب"
+                  >
+                    <WhatsAppIcon className="w-5 h-5" />
+                  </button>
+
+                  {/* Copy Link Icon */}
+                  <button
+                    type="button"
+                    onClick={() => handleCopyLink()}
+                    className="w-10 h-10 flex items-center justify-center bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary rounded-2xl transition-all shadow-xs active:scale-95 cursor-pointer"
+                    title="نسخ الرابط"
+                    aria-label="نسخ الرابط"
+                  >
+                    <CopyIcon className="w-5 h-5 text-primary" />
+                  </button>
+
+                  {/* Telegram Share Icon */}
+                  <button
+                    type="button"
+                    onClick={() => handleTelegramShare()}
+                    className="w-10 h-10 flex items-center justify-center bg-[#0088cc]/15 hover:bg-[#0088cc]/25 text-[#0088cc] rounded-2xl border border-[#0088cc]/30 transition-all shadow-xs active:scale-95 cursor-pointer"
+                    title="تيليجرام"
+                    aria-label="تيليجرام"
+                  >
+                    <TelegramIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Celebratory Completed Banner */}
+          {stats.completionPercent === 100 && (
+            <div className="p-6 bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/40 rounded-3xl text-center space-y-4 shadow-md animate-fade-in">
+              <div className="text-4xl sm:text-5xl">🎉 🤲 ✨</div>
+              <div className="space-y-1">
+                <h3 className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300">
+                  مبارك! تم بحمد الله إتمام هذه الختمة المباركة بالكامل
+                </h3>
+                <p className="text-sm text-text-secondary max-w-xl mx-auto leading-relaxed">
+                  تقبل الله من جميع القراء والمشاركين، وجعل هذا العمل في ميزان حسناتكم ونوراً لكم.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDuaaModalOpen(true)}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <span>🤲</span>
+                  <span>قراءة دعاء ختم القرآن الكريم</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleStartNewCycle}
+                  className="px-5 py-2.5 bg-surface hover:bg-surface-hover text-text-primary border border-border-default font-bold rounded-2xl shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <span>🔄</span>
+                  <span>تجديد الختمة لدورة جديدة</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* ========================================================================= */}
-      {/* VIEW 1: ALL AVAILABLE KHATMAHS (Main Hub) */}
+      {/* VIEW: ALL AVAILABLE KHATMAHS (If accessed via #/khatmah with no ID) */}
       {/* ========================================================================= */}
       {!currentKhatmahId && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base sm:text-lg font-black text-text-primary flex items-center gap-2">
-              <span>📋</span>
-              <span>الختمات القرآنية ({uniqueKhatmahsList.length})</span>
-            </h2>
+        <div className="space-y-5 animate-fade-in">
+          {/* Header Bar */}
+          <div className="bg-surface border border-border-default rounded-3xl p-4 sm:p-5 shadow-sm flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => loadKhatmahsList(false)}
-                className="px-2.5 py-1 text-xs bg-surface-subtle hover:bg-surface-hover border border-border-default rounded-xl font-bold text-text-secondary hover:text-text-primary transition-all flex items-center gap-1"
-                title="تحديث قائمة الختمات"
+                type="button"
+                onClick={handleBack}
+                className="p-2.5 bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary rounded-2xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                title="رجوع"
               >
-                <span>🔄</span>
-                <span>تحديث</span>
+                <ArrowRightIcon className="w-4 h-4" />
+                <span>رجوع</span>
               </button>
-              <span className="text-xs text-text-muted hidden sm:inline">اضغط على أي ختمة لاختيار وحجز الأجزاء</span>
+              <div>
+                <h1 className="text-base sm:text-lg font-black text-text-primary flex items-center gap-2">
+                  <span>📋</span>
+                  <span>الختمات القرآنية الجماعية ({uniqueKhatmahsList.length})</span>
+                </h1>
+                <p className="text-xs text-text-muted">اختر ختمة للمشاركة وحجز الأجزاء</p>
+              </div>
+            </div>
+
+            {/* Sharing Icons only (no text) */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleCopyLink()}
+                className="w-9 h-9 flex items-center justify-center bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary rounded-xl transition-all cursor-pointer"
+                title="نسخ الرابط"
+                aria-label="نسخ الرابط"
+              >
+                <CopyIcon className="w-4 h-4 text-primary" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleWhatsAppShare()}
+                className="w-9 h-9 flex items-center justify-center bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] rounded-xl border border-[#25D366]/30 transition-all cursor-pointer"
+                title="واتساب"
+                aria-label="واتساب"
+              >
+                <WhatsAppIcon className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTelegramShare()}
+                className="w-9 h-9 flex items-center justify-center bg-[#0088cc]/15 hover:bg-[#0088cc]/25 text-[#0088cc] rounded-xl border border-[#0088cc]/30 transition-all cursor-pointer"
+                title="تيليجرام"
+                aria-label="تيليجرام"
+              >
+                <TelegramIcon className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
           {isLoading ? (
-            <div className="text-center py-16 space-y-3">
+            <div className="text-center py-16 space-y-3 bg-surface border border-border-default rounded-3xl p-8">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
               <p className="text-sm font-semibold text-text-secondary">جاري تحميل الختمات المتاحة...</p>
             </div>
@@ -664,21 +997,24 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
               <span className="text-5xl">🌿</span>
               <h3 className="text-lg font-bold text-text-primary">لا توجد ختمات حالياً</h3>
               <p className="text-sm text-text-muted max-w-md mx-auto leading-relaxed">
-                كن أول من ينال الأجر ويبدأ ختمة قرآنية جديدة لمشاركتها مع الأهل والأصدقاء
+                يمكنك إنشاء ختمة جديدة من الواجهة الرئيسية للموقع ومشاركتها مع الأهل والأصدقاء.
               </p>
               <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-6 py-2.5 bg-primary text-white font-bold rounded-2xl shadow hover:bg-primary/90 transition-all inline-flex items-center gap-2 text-sm"
+                type="button"
+                onClick={() => {
+                  window.location.hash = '#/';
+                }}
+                className="px-6 py-2.5 bg-primary text-white font-bold rounded-2xl shadow-xs hover:bg-primary/90 transition-all inline-flex items-center gap-2 text-sm cursor-pointer"
               >
-                <PlusIcon className="w-4 h-4" />
-                <span>إنشاء أول ختمة الآن</span>
+                <span>الذهاب للواجهة الرئيسية</span>
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {uniqueKhatmahsList.map((k, idx) => {
                 const prog = getKhatmahProgress(k);
-                const isDone = k.isCompleted || prog.percent === 100;
+                const expired = isKhatmahExpired(k);
+                const isDone = k.isCompleted || prog.completionPercent === 100;
                 const isPeriodic = k.khatmahType === 'monthly_recurring';
 
                 return (
@@ -687,7 +1023,6 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
                     className="bg-surface border border-border-default hover:border-primary rounded-3xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 cursor-pointer relative group"
                     onClick={() => handleOpenKhatmah(k.id)}
                   >
-                    {/* Header: Title & Badges */}
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="text-base font-black text-text-primary group-hover:text-primary transition-colors line-clamp-1">
@@ -696,10 +1031,14 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
                         <div className="flex items-center gap-1">
                           {isPeriodic && (
                             <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 text-[10px] font-bold border border-purple-500/20 whitespace-nowrap">
-                              🔄 دورية شهرية
+                              🔄 دورية
                             </span>
                           )}
-                          {isDone ? (
+                          {expired ? (
+                            <span className="px-2 py-0.5 rounded-md bg-red-500/10 text-red-700 dark:text-red-300 text-[10px] font-bold border border-red-500/20 whitespace-nowrap">
+                              🔒 منتهية
+                            </span>
+                          ) : isDone ? (
                             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1">
                               <CheckIcon className="w-3 h-3" />
                               مكتملة
@@ -725,14 +1064,16 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Progress Bar & Badges */}
+                    {/* Progress Bar & Percentages */}
                     <div className="space-y-2 pt-2 border-t border-border-subtle">
                       <div className="flex items-center justify-between text-xs font-bold">
                         <span className="text-text-primary">
-                          الإنجاز: <span className="text-primary font-mono">{prog.percent}%</span>
+                          حجز: <span className="text-amber-600 dark:text-amber-400 font-mono">{prog.reservationPercent}%</span>
+                          {' | '}
+                          إنجاز: <span className="text-emerald-600 dark:text-emerald-400 font-mono">{prog.completionPercent}%</span>
                         </span>
                         <span className="text-text-muted text-[11px]">
-                          {prog.completed} من 30 جزء
+                          {prog.completed} من 30
                         </span>
                       </div>
 
@@ -746,329 +1087,57 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
                           style={{ width: `${(prog.reserved / 30) * 100}%` }}
                         ></div>
                       </div>
-
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-text-muted pt-0.5">
-                        <span className="text-emerald-600 dark:text-emerald-400">
-                          ✓ {prog.completed} مقروء
-                        </span>
-                        <span className="text-amber-600 dark:text-amber-400">
-                          ⏳ {prog.reserved} محجوز
-                        </span>
-                        <span>
-                          ⚪ {prog.available} متاح
-                        </span>
-                      </div>
                     </div>
 
-                    {/* Actions & Open Button */}
+                    {/* Actions & Sharing Icons only */}
                     <div
                       className="pt-3 border-t border-border-subtle flex items-center justify-between gap-2"
                       onClick={e => e.stopPropagation()}
                     >
-                      {/* Social share icons */}
+                      {/* Social share icons only */}
                       <div className="flex items-center gap-1.5">
                         <button
+                          type="button"
                           onClick={() => handleCopyLink(k.id)}
-                          className="p-2 text-text-muted hover:text-primary bg-surface-subtle hover:bg-surface border border-border-default rounded-xl transition-colors"
+                          className="p-2 text-text-muted hover:text-primary bg-surface-subtle hover:bg-surface border border-border-default rounded-xl transition-colors cursor-pointer"
                           title="نسخ رابط الختمة"
+                          aria-label="نسخ رابط الختمة"
                         >
                           <CopyIcon className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleWhatsAppShare(k)}
-                          className="p-2 text-[#25D366] bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/25 rounded-xl transition-colors"
+                          className="p-2 text-[#25D366] bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/25 rounded-xl transition-colors cursor-pointer"
                           title="مشاركة واتساب"
+                          aria-label="مشاركة واتساب"
                         >
                           <WhatsAppIcon className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleTelegramShare(k)}
-                          className="p-2 text-[#0088cc] bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/25 rounded-xl transition-colors"
+                          className="p-2 text-[#0088cc] bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/25 rounded-xl transition-colors cursor-pointer"
                           title="مشاركة تيليجرام"
+                          aria-label="مشاركة تيليجرام"
                         >
                           <TelegramIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
-                      {/* Primary Open Button */}
+                      {/* Open Button */}
                       <button
+                        type="button"
                         onClick={() => handleOpenKhatmah(k.id)}
-                        className="px-3.5 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold rounded-xl border border-primary/25 transition-all flex items-center gap-1"
+                        className="px-3.5 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold rounded-xl border border-primary/25 transition-all flex items-center gap-1 cursor-pointer"
                       >
-                        <span>عرض الأجزاء</span>
+                        <span>عرض الجدول</span>
                         <span>←</span>
                       </button>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* VIEW 2: SPECIFIC KHATMAH DETAILS & 30 JUZ NUMBERS GRID */}
-      {/* ========================================================================= */}
-      {currentKhatmahId && (
-        <div className="space-y-6">
-          {/* Active Khatmah Info Card */}
-          {khatmah && (
-            <div className="bg-surface border border-border-default rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-mono font-bold border border-primary/20">
-                      {khatmah.id}
-                    </span>
-                    {khatmah.khatmahType === 'monthly_recurring' && (
-                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-500/25">
-                        🔄 دورية شهرية (الدورة {khatmah.cycleNumber || 1})
-                      </span>
-                    )}
-                    <h2 className="text-xl sm:text-2xl font-black text-text-primary">{khatmah.title}</h2>
-                  </div>
-                  {khatmah.dedication && (
-                    <p className="text-sm text-text-secondary mt-1.5 flex items-center gap-1.5">
-                      <span>🕊️</span>
-                      <span>{khatmah.dedication}</span>
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-text-muted mt-2">
-                    {khatmah.createdBy && <span>منشئ الختمة: {khatmah.createdBy}</span>}
-                    {khatmah.targetDate && <span>موعد الختم: {khatmah.targetDate}</span>}
-                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span>مزامنة سحابية مباشرة</span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleBackToAllKhatmahs}
-                    className="px-3.5 py-2 bg-surface-subtle hover:bg-surface-hover border border-border-default text-text-primary text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5"
-                  >
-                    <span>←</span>
-                    <span>كافة الختمات</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="pt-3 border-t border-border-subtle space-y-2.5">
-                <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
-                  <span className="text-text-primary">
-                    نسبة الإنجاز: <span className="text-primary font-mono text-base">{stats.percent}%</span>
-                  </span>
-                  <span className="text-text-secondary">
-                    {stats.completed} من 30 جزء مكتمل
-                  </span>
-                </div>
-
-                <div className="w-full h-3 bg-surface-subtle rounded-full overflow-hidden border border-border-default flex">
-                  <div
-                    className="h-full bg-emerald-500 transition-all duration-500 ease-out"
-                    style={{ width: `${(stats.completed / 30) * 100}%` }}
-                  ></div>
-                  <div
-                    className="h-full bg-amber-400 transition-all duration-500 ease-out"
-                    style={{ width: `${(stats.reserved / 30) * 100}%` }}
-                  ></div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-semibold pt-1">
-                  <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                    <span>مقروء: {stats.completed}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                    <span>محجوز: {stats.reserved}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-text-muted bg-surface-subtle px-3 py-1 rounded-xl border border-border-default">
-                    <span className="w-2.5 h-2.5 rounded-full bg-border-default"></span>
-                    <span>متاح: {stats.available}</span>
-                  </div>
-
-                  {khatmah.isCompleted && (
-                    <button
-                      onClick={() => setIsDuaaModalOpen(true)}
-                      className="mr-auto px-3.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow animate-bounce"
-                    >
-                      <span>🤲</span>
-                      <span>دعاء ختم القرآن</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Celebratory Completed Banner */}
-          {khatmah?.isCompleted && (
-            <div className="p-6 bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-teal-500/15 border-2 border-emerald-500/40 rounded-3xl text-center space-y-4 shadow-md animate-fade-in">
-              <div className="text-4xl sm:text-5xl">🎉 🤲 ✨</div>
-              <div className="space-y-1">
-                <h3 className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300">
-                  مبارك! تم بحمد الله إتمام هذه الختمة المباركة بالكامل
-                </h3>
-                <p className="text-sm text-text-secondary max-w-xl mx-auto leading-relaxed">
-                  تقبل الله من جميع القراء والمشاركين، وجعل هذا العمل في ميزان حسناتكم ونوراً لكم.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                <button
-                  onClick={() => setIsDuaaModalOpen(true)}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow flex items-center gap-2 transition-all"
-                >
-                  <span>🤲</span>
-                  <span>قراءة دعاء ختم القرآن الكريم</span>
-                </button>
-
-                <button
-                  onClick={handleStartNewCycle}
-                  className="px-5 py-2.5 bg-surface hover:bg-surface-hover text-text-primary border border-border-default font-bold rounded-2xl shadow-sm flex items-center gap-2 transition-all"
-                >
-                  <span>🔄</span>
-                  <span>تجديد الختمة لدورة جديدة</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Loading state for single khatmah */}
-          {isLoading && (
-            <div className="text-center py-16 space-y-3">
-              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <p className="text-sm font-semibold text-text-secondary">جاري تحديث بيانات الأجزاء...</p>
-            </div>
-          )}
-
-          {/* Error state */}
-          {error && !isLoading && (
-            <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-3xl text-center space-y-3">
-              <p className="text-base font-bold text-red-600">{error}</p>
-              <div className="flex justify-center gap-3">
-                <button
-                  onClick={() => loadKhatmahData(currentKhatmahId || '')}
-                  className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl"
-                >
-                  إعادة المحاولة
-                </button>
-                <button
-                  onClick={handleBackToAllKhatmahs}
-                  className="px-4 py-2 bg-surface border border-border-default text-text-primary text-xs font-bold rounded-xl"
-                >
-                  الرجوع لكافة الختمات
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 30 Juz Numbers Grid: Clean, intuitive number-only grid with status colors */}
-          {!isLoading && khatmah && (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-text-primary flex items-center gap-2">
-                  <span>📚</span>
-                  <span>أجزاء القرآن الكريم (1 - 30)</span>
-                </h3>
-
-                {/* Color Legend */}
-                <div className="flex items-center gap-3 text-xs font-bold">
-                  <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
-                    <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-                    <span>مقروء</span>
-                  </span>
-                  <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
-                    <span className="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
-                    <span>محجوز</span>
-                  </span>
-                  <span className="flex items-center gap-1.5 text-text-muted">
-                    <span className="w-3 h-3 rounded-full bg-surface border border-border-default inline-block"></span>
-                    <span>متاح</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Responsive 30 Parts Board */}
-              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2.5 sm:gap-3">
-                {Array.from({ length: 30 }, (_, idx) => {
-                  const partNum = idx + 1;
-                  const partData: KhatmahPart = khatmah.parts?.[partNum] || {
-                    partNumber: partNum,
-                    status: 'available',
-                  };
-
-                  const isCompleted = partData.status === 'completed';
-                  const isReserved = partData.status === 'reserved';
-
-                  const reader = isCompleted
-                    ? (partData.completedBy || partData.reservedBy || 'مكتمل')
-                    : isReserved
-                    ? (partData.reservedBy || 'محجوز')
-                    : 'متاح';
-
-                  return (
-                    <button
-                      key={`part-box-${partNum}`}
-                      type="button"
-                      onClick={() => handlePartClick(partNum)}
-                      title={`الجزء ${partNum}: ${
-                        isCompleted
-                          ? `تمت القراءة (${reader})`
-                          : isReserved
-                          ? `محجوز (${reader})`
-                          : 'متاح للحجز'
-                      }`}
-                      className={`relative aspect-square rounded-2xl sm:rounded-3xl p-1 sm:p-2 border-2 transition-all flex flex-col items-center justify-center cursor-pointer select-none shadow-sm hover:scale-[1.04] active:scale-95 group ${
-                        isCompleted
-                          ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/60 hover:border-emerald-500 text-emerald-900 dark:text-emerald-100'
-                          : isReserved
-                          ? 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/50 hover:border-amber-500 text-amber-900 dark:text-amber-100'
-                          : 'bg-surface hover:bg-surface-subtle border-border-default hover:border-primary/60 text-text-primary'
-                      }`}
-                    >
-                      {/* Top indicator badge */}
-                      {isCompleted ? (
-                        <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] shadow-sm font-bold">
-                          ✓
-                        </span>
-                      ) : isReserved ? (
-                        <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-amber-400 ring-2 ring-amber-400/40"></span>
-                      ) : null}
-
-                      {/* Part Number Prominent Display */}
-                      <span
-                        className={`text-xl sm:text-2xl md:text-3xl font-black font-mono leading-none tracking-tight ${
-                          isCompleted
-                            ? 'text-emerald-700 dark:text-emerald-300'
-                            : isReserved
-                            ? 'text-amber-700 dark:text-amber-300'
-                            : 'text-text-primary group-hover:text-primary transition-colors'
-                        }`}
-                      >
-                        {partNum}
-                      </span>
-
-                      {/* Bottom status text / reader name */}
-                      <span
-                        className={`text-[10px] sm:text-[11px] font-bold truncate max-w-full px-1 mt-1 text-center leading-none ${
-                          isCompleted
-                            ? 'text-emerald-700 dark:text-emerald-300'
-                            : isReserved
-                            ? 'text-amber-800 dark:text-amber-200'
-                            : 'text-text-muted group-hover:text-primary'
-                        }`}
-                      >
-                        {isCompleted ? reader : isReserved ? reader : '+ احجز'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           )}
         </div>
@@ -1094,23 +1163,16 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
             khatmah.parts[selectedPartForAction]?.reservedBy
           }
           status={
-            khatmah.parts[selectedPartForAction]?.status === 'completed'
+            isCurrentExpired || khatmah.parts[selectedPartForAction]?.status === 'completed'
               ? 'completed'
               : 'reserved'
           }
+          isLocked={isCurrentLocked}
           onClose={() => setSelectedPartForAction(null)}
           onReadNow={() => handleNavigateToJuzReading(selectedPartForAction)}
           onComplete={() => handleCompletePart(selectedPartForAction)}
           onUnreserve={() => handleUnreserve(selectedPartForAction)}
           onUncomplete={() => handleUncompletePart(selectedPartForAction)}
-        />
-      )}
-
-      {/* Create Khatmah Modal */}
-      {isCreateModalOpen && (
-        <CreateKhatmahModal
-          onClose={() => setIsCreateModalOpen(false)}
-          onCreate={handleCreateKhatmah}
         />
       )}
 

@@ -95,21 +95,34 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <form onSubmit={handleSubmit} className="bg-surface border border-border-default rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+    <div 
+      className="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center p-3 sm:p-4 animate-fade-in overscroll-contain"
+      dir="rtl"
+      onClick={onClose}
+    >
+      <form 
+        onSubmit={handleSubmit} 
+        className="bg-surface border border-border-default rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[85vh] animate-scale-in" 
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="p-5 border-b border-border-default flex items-center justify-between bg-surface-subtle">
+        <div className="shrink-0 p-4 sm:p-5 border-b border-border-default flex items-center justify-between bg-surface-subtle">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">📖</span>
-            <h2 className="text-xl font-bold text-text-primary">إنشاء ختمة جماعية جديدة</h2>
+            <span className="text-xl sm:text-2xl">📖</span>
+            <h2 className="text-base sm:text-lg font-bold text-text-primary">إنشاء ختمة جماعية جديدة</h2>
           </div>
-          <button type="button" onClick={onClose} className="p-2 text-text-muted hover:text-text-primary rounded-full hover:bg-surface transition-colors">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="p-1.5 sm:p-2 text-text-muted hover:text-text-primary rounded-full hover:bg-surface transition-colors cursor-pointer"
+            aria-label="إغلاق"
+          >
             <ClearIcon className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <div className="p-5 space-y-4 overflow-y-auto">
+        {/* Form Body - with flex-1 min-h-0 to ensure proper scrolling on Android */}
+        <div className="flex-1 min-h-0 p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain">
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 rounded-xl text-sm font-medium">
               {error}
@@ -118,21 +131,21 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
 
           {/* Khatmah Type Selection */}
           <div>
-            <label className="block text-sm font-bold mb-2 text-text-primary">
+            <label className="block text-xs sm:text-sm font-bold mb-2 text-text-primary">
               نوع الختمة <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setKhatmahType('once')}
-                className={`p-3 rounded-2xl border text-right transition-all flex flex-col gap-1 ${
+                className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1 cursor-pointer ${
                   khatmahType === 'once'
-                    ? 'bg-primary/10 border-primary text-primary font-bold shadow-sm ring-1 ring-primary'
+                    ? 'bg-primary/10 border-primary text-primary font-bold shadow-xs ring-1 ring-primary'
                     : 'bg-surface border-border-default text-text-secondary hover:bg-surface-subtle'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">📌 ختمة لمرة واحدة</span>
+                  <span className="text-xs sm:text-sm">📌 ختمة لمرة واحدة</span>
                   {khatmahType === 'once' && <span className="text-xs">✓</span>}
                 </div>
                 <span className="text-[11px] text-text-muted font-normal">
@@ -143,14 +156,14 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
               <button
                 type="button"
                 onClick={() => setKhatmahType('monthly_recurring')}
-                className={`p-3 rounded-2xl border text-right transition-all flex flex-col gap-1 ${
+                className={`p-3 rounded-xl border text-right transition-all flex flex-col gap-1 cursor-pointer ${
                   khatmahType === 'monthly_recurring'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold shadow-sm ring-1 ring-emerald-500'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold shadow-xs ring-1 ring-emerald-500'
                     : 'bg-surface border-border-default text-text-secondary hover:bg-surface-subtle'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">🔄 ختمة دورية شهرية</span>
+                  <span className="text-xs sm:text-sm">🔄 ختمة دورية شهرية</span>
                   {khatmahType === 'monthly_recurring' && <span className="text-xs">✓</span>}
                 </div>
                 <span className="text-[11px] text-text-muted font-normal">
@@ -162,7 +175,7 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
 
           {/* Title */}
           <div>
-            <label htmlFor="khatmah-title" className="block text-sm font-bold mb-1.5 text-text-primary">
+            <label htmlFor="khatmah-title" className="block text-xs sm:text-sm font-bold mb-1.5 text-text-primary">
               اسم الختمة <span className="text-red-500">*</span>
             </label>
             <input
@@ -171,14 +184,14 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
               value={title}
               onChange={e => setTitle(e.target.value)}
               required
-              placeholder="مثال: ختمة الأهل والأصدقاء / ختمة سورة البقرة"
-              className="w-full p-3 border rounded-xl bg-surface border-border-default text-text-primary text-sm focus:border-primary outline-none transition-colors"
+              placeholder="مثال: ختمة الأهل والأصدقاء / ختمة مباركة"
+              className="w-full p-3 border rounded-xl bg-surface border-border-default text-text-primary text-base focus:border-primary outline-none transition-colors"
             />
           </div>
 
           {/* Dedication */}
           <div>
-            <label htmlFor="khatmah-dedication" className="block text-sm font-bold mb-1.5 text-text-primary">
+            <label htmlFor="khatmah-dedication" className="block text-xs sm:text-sm font-bold mb-1.5 text-text-primary">
               الإهداء أو النية <span className="text-xs text-text-muted font-normal">(اختياري)</span>
             </label>
             <input
@@ -187,14 +200,14 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
               value={dedication}
               onChange={e => setDedication(e.target.value)}
               placeholder="مثال: بنية الشفاء العاجل / عن روح المرحوم..."
-              className="w-full p-3 border rounded-xl bg-surface border-border-default text-text-primary text-sm focus:border-primary outline-none transition-colors"
+              className="w-full p-3 border rounded-xl bg-surface border-border-default text-text-primary text-base focus:border-primary outline-none transition-colors"
             />
           </div>
 
           {/* Duration Selector (for non-recurring khatmahs) */}
           {khatmahType === 'once' ? (
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-text-primary">
+              <label className="block text-xs sm:text-sm font-bold text-text-primary">
                 مدة الختمة المتوقعة
               </label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
@@ -210,9 +223,9 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
                     key={opt.key}
                     type="button"
                     onClick={() => setDurationChoice(opt.key as DurationChoice)}
-                    className={`py-2 px-1 text-xs rounded-xl border font-bold transition-all ${
+                    className={`py-2 px-1 text-xs rounded-xl border font-bold transition-all cursor-pointer ${
                       durationChoice === opt.key
-                        ? 'bg-primary text-white border-primary shadow-sm'
+                        ? 'bg-primary text-white border-primary shadow-xs'
                         : 'bg-surface border-border-default text-text-secondary hover:bg-surface-subtle'
                     }`}
                   >
@@ -231,7 +244,7 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
                     max="365"
                     value={customDays}
                     onChange={e => setCustomDays(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-24 p-2 border rounded-xl bg-surface border-border-default text-center text-sm font-bold text-text-primary focus:border-primary outline-none"
+                    className="w-20 p-2 border rounded-xl bg-surface border-border-default text-center text-sm font-bold text-text-primary focus:border-primary outline-none"
                   />
                   <span className="text-xs text-text-muted">يوماً من اليوم</span>
                 </div>
@@ -246,20 +259,20 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
               )}
             </div>
           ) : (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl text-xs space-y-1">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-xs space-y-1">
               <div className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
                 <span>🔄</span>
                 <span>ختمة دورية شهرية مستمرة</span>
               </div>
               <p className="text-text-secondary leading-relaxed">
-                تظل هذه الختمة بنفس الرابط الثابت دائماً، وتتجدد تلقائياً في بداية كل شهر جديد ليتمكن المشاركون من حجز أجزائهم مجدداً.
+                تظل هذه الختمة بنفس الرابط الثابت دائماً، وتتجدد تلقائياً في بداية كل شهر جديد.
               </p>
             </div>
           )}
 
           {/* Creator Name */}
           <div>
-            <label htmlFor="khatmah-creator" className="block text-sm font-bold mb-1.5 text-text-primary">
+            <label htmlFor="khatmah-creator" className="block text-xs sm:text-sm font-bold mb-1.5 text-text-primary">
               اسم منشئ الختمة <span className="text-xs text-text-muted font-normal">(اختياري)</span>
             </label>
             <input
@@ -268,23 +281,27 @@ const CreateKhatmahModal: React.FC<CreateKhatmahModalProps> = ({ onClose, onCrea
               value={createdBy}
               onChange={e => setCreatedBy(e.target.value)}
               placeholder="اسمك أو كنيتك (مثل: فاعل خير / أبو محمد)"
-              className="w-full p-3 border rounded-xl bg-surface border-border-default text-text-primary text-sm focus:border-primary outline-none transition-colors"
+              className="w-full p-3 border rounded-xl bg-surface border-border-default text-text-primary text-base focus:border-primary outline-none transition-colors"
             />
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-surface-subtle border-t border-border-default flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm text-text-secondary hover:bg-surface rounded-xl">
+        {/* Footer - shrink-0 to guarantee it always stays visible on screen */}
+        <div className="shrink-0 p-3 sm:p-4 bg-surface-subtle border-t border-border-default flex justify-end gap-2.5">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="px-4 py-2.5 text-sm text-text-secondary hover:bg-surface rounded-xl border border-border-default hover:border-border-hover cursor-pointer"
+          >
             إلغاء
           </button>
           <button
             type="submit"
             disabled={isCreating || !title.trim()}
-            className="px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-xl shadow hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center gap-2"
+            className="px-5 sm:px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-xl shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
           >
-            {isCreating ? <SpinnerIcon className="w-5 h-5" /> : <PlusIcon className="w-5 h-5" />}
-            {isCreating ? 'جاري الإنشاء...' : 'إنشاء الختمة'}
+            {isCreating ? <SpinnerIcon className="w-4 h-4 animate-spin" /> : <PlusIcon className="w-4 h-4" />}
+            <span>{isCreating ? 'جاري الإنشاء...' : 'إنشاء الختمة'}</span>
           </button>
         </div>
       </form>
