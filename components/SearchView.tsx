@@ -401,7 +401,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [onSaveAyah]);
 
   const handleCopyAyah = useCallback((ayah: Ayah) => {
-    const isImlaei = copyTextFormat === 'imlaei' || (copyTextFormat !== 'imlaei' && fontStyle === 'imlai_1');
+    const isImlaei = copyTextFormat === 'imlaei' || fontStyle === 'imlai_1';
     let ayahText = ayah.text || '';
 
     if (isImlaei) {

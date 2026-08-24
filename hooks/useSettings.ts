@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { QuranEdition, FontSize, BrowsingMode, FontStyleType, WordClickBehavior, MushafType } from '../types';
+import type { QuranEdition, FontSize, FontStyleType, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat } from '../types';
 import { downloadAllMushafFonts, checkMushafFontsDownloaded } from '../utils/mushafFonts';
 
 const QURAN_EDITION_KEY = 'qran_app_edition';
@@ -17,9 +17,11 @@ const COPY_TEXT_FORMAT_KEY = 'qran_app_copy_text_format';
 const COPY_CITATION_FORMAT_KEY = 'qran_app_copy_citation_format';
 const COPY_MULTI_FORMAT_KEY = 'qran_app_copy_multi_format';
 const SHOW_BOTTOM_NAV_BAR_KEY = 'qran_app_show_bottom_nav_bar';
+const SHOW_IMLAEI_TASHKEEL_KEY = 'qran_app_show_imlaei_tashkeel';
 
 const DEFAULT_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
+    { identifier: "quran-simple", language: "ar", name: "الرسم الإملائي (مُشكل)", englishName: "Simple", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
     { identifier: "quran-uthmani-quran-academy", language: "ar", name: "الرسم العثماني", englishName: "Uthmani (Quran Academy)", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" }
 ];
 
@@ -91,6 +93,9 @@ export const useSettings = () => {
 
     const [showBottomNavBar, setShowBottomNavBar] = useState<boolean>(
         () => safeGetItem(SHOW_BOTTOM_NAV_BAR_KEY, 'false') === 'true'
+    );
+    const [showImlaeiTashkeel, setShowImlaeiTashkeel] = useState<boolean>(
+        () => safeGetItem(SHOW_IMLAEI_TASHKEEL_KEY, 'false') === 'true'
     );
 
     // Madinah Font Download State
@@ -185,6 +190,7 @@ export const useSettings = () => {
     useEffect(() => { safeSetItem(COPY_CITATION_FORMAT_KEY, copyCitationFormat); }, [copyCitationFormat]);
     useEffect(() => { safeSetItem(COPY_MULTI_FORMAT_KEY, copyMultiFormat); }, [copyMultiFormat]);
     useEffect(() => { safeSetItem(SHOW_BOTTOM_NAV_BAR_KEY, String(showBottomNavBar)); }, [showBottomNavBar]);
+    useEffect(() => { safeSetItem(SHOW_IMLAEI_TASHKEEL_KEY, String(showImlaeiTashkeel)); }, [showImlaeiTashkeel]);
 
     const displayEdition = useMemo(() => {
         const found = activeEditions.find(e => e.identifier === selectedEdition) || DEFAULT_EDITIONS[0];
@@ -219,6 +225,7 @@ export const useSettings = () => {
         copyMultiFormat, setCopyMultiFormat,
         enableMorphology, setEnableMorphology,
         showBottomNavBar, setShowBottomNavBar,
+        showImlaeiTashkeel, setShowImlaeiTashkeel,
         displayEdition,
         fontDownloadProgress, setFontDownloadProgress,
         isDownloadingFonts, setIsDownloadingFonts,

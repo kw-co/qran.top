@@ -41,12 +41,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
     const handleEditionToggle = useCallback(() => {
         if (selectedEdition === 'quran-simple-clean') {
             setSelectedEdition('quran-uthmani-quran-academy');
-            setBrowsingMode('page');
         } else {
             setSelectedEdition('quran-simple-clean');
-            setBrowsingMode('full');
         }
-    }, [selectedEdition, setSelectedEdition, setBrowsingMode]);
+    }, [selectedEdition, setSelectedEdition]);
 
     const handlePlaySurah = useCallback(() => {
         let startIndex = 0;

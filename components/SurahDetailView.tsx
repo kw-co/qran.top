@@ -168,7 +168,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
           const sections: string[] = [];
           for (const [surahName, ayahs] of Object.entries(groupedBySurah)) {
               const formattedAyahs = ayahs.map(a => {
-                  const isImlaei = copyTextFormat === 'imlaei' || (copyTextFormat !== 'imlaei' && fontStyle === 'imlai_1');
+                  const isImlaei = copyTextFormat === 'imlaei' || fontStyle === 'imlai_1';
                   let ayahText = a.text || '';
                   if (isImlaei) {
                       const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
@@ -184,7 +184,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
       } else {
           // Individual format (default old behavior)
           textToCopy = sortedAyahs.map(a => {
-              const isImlaei = copyTextFormat === 'imlaei' || (copyTextFormat !== 'imlaei' && fontStyle === 'imlai_1');
+              const isImlaei = copyTextFormat === 'imlaei' || fontStyle === 'imlai_1';
               let ayahText = a.text || '';
               if (isImlaei) {
                   const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
@@ -594,7 +594,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   };
 
   const handleCopyAyah = (ayah: Ayah) => {
-    const isImlaei = copyTextFormat === 'imlaei' || (copyTextFormat !== 'imlaei' && fontStyle === 'imlai_1');
+    const isImlaei = copyTextFormat === 'imlaei' || fontStyle === 'imlai_1';
     let ayahText = ayah.text || '';
 
     if (isImlaei) {

@@ -1,6 +1,6 @@
 /**
  * Cloudflare Worker for Group Khatmah (الختمة الجماعية) - QRAN.TOP
- * الباحث في القرآن الكريم
+ * الباحث في المصحف الشريف
  */
 
 export default {

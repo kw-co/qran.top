@@ -28,6 +28,7 @@ const ReadingSettings: React.FC = () => {
         wordClickBehavior, setWordClickBehavior,
         enableMorphology, setEnableMorphology,
         showBottomNavBar, setShowBottomNavBar,
+        showImlaeiTashkeel, setShowImlaeiTashkeel,
         fontDownloadProgress,
         isDownloadingFonts,
         isMushafDownloaded,
@@ -408,27 +409,53 @@ const ReadingSettings: React.FC = () => {
                         )}
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => setSelectedEdition('quran-simple-clean')}
-                        className={`p-5 rounded-xl border text-right transition-all flex flex-col justify-between cursor-pointer ${
-                            selectedEdition.includes('simple-clean')
+                    <div
+                        className={`p-5 rounded-xl border text-right transition-all flex flex-col justify-between ${
+                            selectedEdition.includes('simple')
                                 ? 'bg-surface border-primary ring-2 ring-primary/20 shadow-xs'
-                                : 'bg-surface border-border-default hover:border-primary/30'
+                                : 'bg-surface border-border-default'
                         }`}
                     >
-                        <div>
-                            <div className="font-bold text-text-primary text-base">الرسم الإملائي المبسط</div>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedEdition(showImlaeiTashkeel ? 'quran-simple' : 'quran-simple-clean')}
+                            className="w-full text-right cursor-pointer group"
+                        >
+                            <div className="font-bold text-text-primary text-base group-hover:text-primary transition-colors">الرسم الإملائي المبسط</div>
                             <div className="text-xs text-text-muted mt-1 leading-relaxed">
                                 نص مبسط سريع التحميل مخصص للبحث والتدبر المباشر ووضوح القراءة.
                             </div>
-                        </div>
-                        {selectedEdition.includes('simple-clean') && (
-                            <span className="mt-3 text-xs text-primary font-bold flex items-center gap-1">
-                                <CheckIcon className="w-4 h-4" /> مُفعل الآن
-                            </span>
+                        </button>
+                        
+                        {selectedEdition.includes('simple') && (
+                            <div className="mt-4 pt-4 border-t border-border-subtle">
+                                <span className="mb-3 text-xs text-primary font-bold flex items-center gap-1">
+                                    <CheckIcon className="w-4 h-4" /> مُفعل الآن
+                                </span>
+                                
+                                <label className="flex items-center gap-3 cursor-pointer mt-2 hover:bg-surface-hover p-2 rounded-lg transition-colors">
+                                    <div className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none bg-surface-hover border border-border-default">
+                                        <input 
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={showImlaeiTashkeel}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setShowImlaeiTashkeel(checked);
+                                                setSelectedEdition(checked ? 'quran-simple' : 'quran-simple-clean');
+                                            }}
+                                        />
+                                        <span
+                                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-primary transition-transform ${showImlaeiTashkeel ? '-translate-x-4' : '-translate-x-1'}`}
+                                        />
+                                    </div>
+                                    <span className="text-sm font-medium text-text-primary select-none">
+                                        إظهار التشكيل
+                                    </span>
+                                </label>
+                            </div>
                         )}
-                    </button>
+                    </div>
                 </div>
             </div>
 

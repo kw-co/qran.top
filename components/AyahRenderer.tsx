@@ -80,7 +80,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
         wordClickBehavior 
     } = useSettingsContext();
 
-    const isImlaei1 = fontStyle === 'imlai_1' || displayEdition.identifier.includes('simple-clean');
+    const isImlaei1 = fontStyle === 'imlai_1' || displayEdition.identifier.includes('simple-clean') || displayEdition.identifier === 'quran-simple';
 
     const [v4TajweedData, setV4TajweedData] = useState<QuranV4TajweedVerse[]>([]);
     const [playingWordKey, setPlayingWordKey] = useState<string | null>(null);
