@@ -1,18 +1,16 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import type { Ayah, SurahData, Collections, SavedItem } from '../types';
 
 import HomeView from './HomeView';
-
-// Lazy loaded views for optimal bundle splitting and performance
-const SurahDetailView = lazy(() => import('./SurahDetailView'));
-const SearchView = lazy(() => import('./SearchView').then(module => ({ default: module.SearchView })));
-const SettingsView = lazy(() => import('./SettingsView'));
-const SavedView = lazy(() => import('./SavedView'));
-const WordAnalysisView = lazy(() => import('./WordAnalysisView'));
-const PrivacyPolicyView = lazy(() => import('./PrivacyPolicyView'));
-const AboutView = lazy(() => import('./AboutView'));
-const HistoryView = lazy(() => import('./HistoryView'));
-const GroupKhatmahView = lazy(() => import('./khatmiyah/GroupKhatmahView'));
+import SurahDetailView from './SurahDetailView';
+import { SearchView } from './SearchView';
+import SettingsView from './SettingsView';
+import SavedView from './SavedView';
+import WordAnalysisView from './WordAnalysisView';
+import PrivacyPolicyView from './PrivacyPolicyView';
+import AboutView from './AboutView';
+import HistoryView from './HistoryView';
+import GroupKhatmahView from './khatmiyah/GroupKhatmahView';
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -186,9 +184,9 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
     };
 
     return (
-        <Suspense fallback={null}>
+        <>
             {renderRoute()}
-        </Suspense>
+        </>
     );
 };
 
