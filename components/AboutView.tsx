@@ -44,7 +44,7 @@ const AboutView: React.FC = () => {
                 <div className="inline-flex p-4 rounded-2xl bg-primary/10 border border-primary/20 mb-4 shadow-xs">
                     <LogoIcon className="w-16 h-16 text-primary mx-auto"/>
                 </div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-text-primary">عن تطبيق QRAN.TOP</h1>
+                <h1 className="text-3xl sm:text-4xl font-bold text-text-primary">عن تطبيق الباحث في المصحف الشريف</h1>
                 <p className="text-lg sm:text-xl text-text-secondary mt-2 max-w-2xl mx-auto">
                     منصة قرآنية متكاملة تجمع بين أصالة الرسم العثماني وقوة البحث والتدبر الرقمي والختمات الجماعية
                 </p>
@@ -59,7 +59,7 @@ const AboutView: React.FC = () => {
                 <section id="general-idea" className="bg-surface p-6 sm:p-8 rounded-3xl border border-border-default shadow-xs">
                     <h2 className="text-2xl font-bold mb-4 text-text-primary border-r-4 border-primary pr-3">رؤية التطبيق وفلسفته</h2>
                     <p className="text-base sm:text-lg text-text-secondary leading-relaxed">
-                        تطبيق <strong>QRAN.TOP (الباحث في القرآن الكريم)</strong> هو منصة قرآنية حديثة ومتطورة صُممت خصيصاً لتيسير تلاوة القرآن الكريم، والبحث الدقيق في ألفاظه ومعانيه، ومشاركة ختماته المباركة بين الأهل والأصدقاء ومجموعات القراءة حول العالم.
+                        تطبيق <strong>الباحث في المصحف الشريف</strong> هو منصة قرآنية حديثة ومتطورة صُممت خصيصاً لتيسير تلاوة القرآن الكريم، والبحث الدقيق في ألفاظه ومعانيه، ومشاركة ختماته المباركة بين الأهل والأصدقاء ومجموعات القراءة حول العالم.
                     </p>
                     <p className="text-base text-text-secondary mt-3 leading-relaxed">
                         يجمع التطبيق بين الدقة العالية لخط مصحف المدينة المنورة بالرسم العثماني المعتمد، وبين محرك البحث الصوتي والنصي فائق السرعة، مع أدوات متقدمة لحفظ الآيات وتدوين الملاحظات والتدبر الشخصي دون الحاجة لإنشاء حسابات أو جمع بيانات شخصية.

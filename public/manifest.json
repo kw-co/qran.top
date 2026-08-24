@@ -1,7 +1,7 @@
 {
-  "short_name": "QRAN.TOP",
-  "name": "QRAN.TOP - مستكشف المصحف الشريف",
-  "description": "مستكشف قرآني حديث وسريع. تصفح المصحف الشريف، وابحث عن أي كلمة أو عبارة بدقة، واكتشف التراكيب اللغوية بشكل تفاعلي. تجربة فريدة لدراسة وتدبر المصحف.",
+  "short_name": "الباحث",
+  "name": "الباحث في المصحف الشريف",
+  "description": "الباحث في المصحف الشريف: رفيقك الأمثل لتدبر القرآن الكريم. ابحث بدقة، تصفح بالرسم العثماني، واكتشف المعاني والروابط القرآنية بكل سهولة.",
   "icons": [
     {
       "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-family='Amiri Quran, serif' font-size='90' text-anchor='middle' dominant-baseline='central' fill='%2322c55e'%3E۞%3C/text%3E%3C/svg%3E",

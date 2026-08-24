@@ -19,7 +19,7 @@ const EditionChoiceModal: React.FC<EditionChoiceModalProps> = ({ onSelect }) => 
                 className="bg-surface rounded-lg shadow-xl w-full max-w-lg mx-auto p-6 text-center"
             >
                 <h2 id="edition-choice-title" className="text-2xl font-bold text-text-primary mb-2">
-                    مرحباً بك في QRAN.TOP
+                    مرحباً بك في الباحث في المصحف الشريف
                 </h2>
                 <p className="text-text-secondary mb-6">
                     أي طريقة عرض تفضل لاستخدامها كواجهة أساسية؟ (يمكنك التغيير لاحقاً)

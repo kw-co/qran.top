@@ -57,7 +57,7 @@ const Logo: React.FC<{ dataSourceStatus: 'primary' | 'fallback'; isHomePage: boo
         >
             <LogoIcon className="w-7 h-7 text-primary flex-shrink-0" />
             <span className="text-xl font-bold text-text-primary tracking-tighter">
-                QRAN<span className={dotColorClass}>.</span>TOP
+                الباحث
             </span>
         </div>
     );
@@ -153,7 +153,7 @@ const Header: React.FC<HeaderProps> = ({
         const isPage = path.startsWith('#/page/');
         const isRelevant = isSurah || isPage || isSearch;
         
-        let title = "QRAN.TOP";
+        let title = "الباحث في المصحف الشريف";
         let searchQuery = "";
 
         if (!isHome) {

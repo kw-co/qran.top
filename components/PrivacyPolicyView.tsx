@@ -133,7 +133,7 @@ const PrivacyPolicyView: React.FC = () => {
             <div className="qran-top-privacy-body animate-fade-in">
                 <div className="qran-top-privacy-container">
                     <header>
-                        <h1 id="header-title">{lang === 'ar' ? 'سياسة الخصوصية لتطبيق QRAN.TOP' : 'Privacy Policy - QRAN.TOP'}</h1>
+                        <h1 id="header-title">{lang === 'ar' ? 'سياسة الخصوصية لتطبيق الباحث في المصحف الشريف' : 'Privacy Policy - Al-Bahith'}</h1>
                         <p id="header-date" className="text-sm mt-2 opacity-80">{lang === 'ar' ? 'آخر تحديث: 22 أغسطس 2026' : 'Last updated: August 22, 2026'}</p>
                     </header>
                     
@@ -145,7 +145,7 @@ const PrivacyPolicyView: React.FC = () => {
                     <div id="arabic-content" style={{ display: lang === 'ar' ? 'block' : 'none' }}>
                         <section>
                             <h2>مقدمة والتزامنا بالخصوصية</h2>
-                            <p>نحن في تطبيق <strong>QRAN.TOP (الباحث في القرآن الكريم)</strong> نلتزم بأعلى معايير الأمان والخصوصية وحفظ سرية بيانات مستخدمينا. تم تصميم التطبيق كمنصة مفتوحة لخدمة كتاب الله دون الحاجة لإنشاء حسابات أو تقديم أي معلومات شخصية أو حساسة.</p>
+                            <p>نحن في تطبيق <strong>الباحث في المصحف الشريف</strong> نلتزم بأعلى معايير الأمان والخصوصية وحفظ سرية بيانات مستخدمينا. تم تصميم التطبيق كمنصة مفتوحة لخدمة كتاب الله دون الحاجة لإنشاء حسابات أو تقديم أي معلومات شخصية أو حساسة.</p>
                         </section>
 
                         <section>
@@ -188,7 +188,7 @@ const PrivacyPolicyView: React.FC = () => {
                     <div id="english-content" className="lang-en" style={{ display: lang === 'en' ? 'block' : 'none' }}>
                         <section>
                             <h2>Introduction & Privacy Commitment</h2>
-                            <p>At <strong>QRAN.TOP</strong>, we are committed to upholding the highest standards of privacy and data security. The platform is designed to serve readers of the Holy Quran without requiring user accounts or collecting personal identifiable information.</p>
+                            <p>At <strong>Al-Bahith fi Al-Mushaf Al-Sharif</strong>, we are committed to upholding the highest standards of privacy and data security. The platform is designed to serve readers of the Holy Quran without requiring user accounts or collecting personal identifiable information.</p>
                         </section>
 
                         <section>

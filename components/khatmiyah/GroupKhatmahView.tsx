@@ -498,8 +498,8 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     const k = (targetId && uniqueKhatmahsList.find(item => item.id === targetId)) || khatmah;
     const url = getShareUrl(targetId);
     const textToCopy = k
-      ? `🌿 دعوة للمشاركة في ختمة قرآنية مباركة: "${k.title}"${k.dedication ? `\n🕊️ الإهداء: ${k.dedication}` : ''}\n📱 تطبيق الباحث في القرآن الكريم - QRAN.TOP\nشاركنا الأجر واختر جزءك عبر الرابط:\n${url}`
-      : `🌿 الختمات القرآنية الجماعية - برنامج الباحث في القرآن الكريم (QRAN.TOP)\n${url}`;
+      ? `🌿 دعوة للمشاركة في ختمة قرآنية مباركة: "${k.title}"${k.dedication ? `\n🕊️ الإهداء: ${k.dedication}` : ''}\n📱 تطبيق الباحث في القرآن الكريم - الباحث في المصحف الشريف\nشاركنا الأجر واختر جزءك عبر الرابط:\n${url}`
+      : `🌿 الختمات القرآنية الجماعية - برنامج الباحث في القرآن الكريم (الباحث في المصحف الشريف)\n${url}`;
 
     try {
       await navigator.clipboard.writeText(textToCopy);
@@ -522,9 +522,9 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     if (k) {
       text = `🌿 *دعوة للمشاركة في ختمة قرآنية مباركة*\n📖 *${k.title}*${
         k.dedication ? `\n🕊️ *الإهداء:* ${k.dedication}` : ''
-      }\n\n📱 *برنامج الباحث في القرآن الكريم (QRAN.TOP)*\nشاركنا الأجر واختر جزءك الآن عبر الرابط المباشر:\n${url}`;
+      }\n\n📱 *برنامج الباحث في القرآن الكريم (الباحث في المصحف الشريف)*\nشاركنا الأجر واختر جزءك الآن عبر الرابط المباشر:\n${url}`;
     } else {
-      text = `🌿 *ختمة القرآن الكريم الجماعية*\n📱 *برنامج الباحث في القرآن الكريم (QRAN.TOP)*\nشاركنا قراءة وختم القرآن الكريم وتوزيع الأجزاء عبر الرابط:\n${url}`;
+      text = `🌿 *ختمة القرآن الكريم الجماعية*\n📱 *برنامج الباحث في القرآن الكريم (الباحث في المصحف الشريف)*\nشاركنا قراءة وختم القرآن الكريم وتوزيع الأجزاء عبر الرابط:\n${url}`;
     }
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank');
@@ -537,9 +537,9 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     if (k) {
       text = `🌿 دعوة للمشاركة في ختمة قرآنية مباركة: ${k.title}${
         k.dedication ? ` (${k.dedication})` : ''
-      }\nبرنامج الباحث في القرآن الكريم - QRAN.TOP\nاختر جزءك وشاركنا الأجر عبر الرابط:\n${url}`;
+      }\nبرنامج الباحث في القرآن الكريم - الباحث في المصحف الشريف\nاختر جزءك وشاركنا الأجر عبر الرابط:\n${url}`;
     } else {
-      text = `🌿 ختمة القرآن الكريم الجماعية - برنامج الباحث في القرآن الكريم (QRAN.TOP)\n${url}`;
+      text = `🌿 ختمة القرآن الكريم الجماعية - برنامج الباحث في القرآن الكريم (الباحث في المصحف الشريف)\n${url}`;
     }
     const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
     window.open(tgUrl, '_blank');
