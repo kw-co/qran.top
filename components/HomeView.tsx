@@ -20,12 +20,11 @@ type ActiveTab = 'surahs' | 'pages' | 'juz' | 'hizbs';
 
 const HomeView: React.FC<HomeViewProps> = ({ surahList, juzList, hizbList }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('surahs');
-  const { setFontStyle, setSelectedEdition, setBrowsingMode } = useSettingsContext();
+  const { setFontStyle, setSelectedEdition } = useSettingsContext();
 
   const enableUthmaniPageMode = () => {
     setFontStyle('mushaf');
     setSelectedEdition('quran-uthmani-quran-academy');
-    setBrowsingMode('page');
   };
 
   const TabButton: React.FC<{ tab: ActiveTab; label: string; icon: React.ReactNode }> = ({ tab, label, icon }) => (

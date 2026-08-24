@@ -2,7 +2,6 @@ import React, { Suspense, lazy } from 'react';
 import type { Ayah, SurahData, Collections, SavedItem } from '../types';
 
 import HomeView from './HomeView';
-import LoadingScreen from './LoadingScreen';
 
 // Lazy loaded views for optimal bundle splitting and performance
 const SurahDetailView = lazy(() => import('./SurahDetailView'));
@@ -78,7 +77,7 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
     }, [performSearch, isSearchPage, isSearchNumber, searchQueryVal, isRootSearchVal]);
 
     const renderRoute = () => {
-        if (isInitialLoading) return <LoadingScreen />;
+        if (isInitialLoading) return null;
         if (pathParts[0] === 'saved') return <SavedView collections={collections} collectionId={pathParts[1] || null} onDeleteCollection={handleDeleteCollection} onDeleteSavedItem={handleDeleteSavedItem} onUpdateNotes={updateItemNotes} />;
         if (pathParts[0] === 'history') return <HistoryView surahList={QURAN_INDEX} />;
         if (pathParts[0] === 'analysis') return <WordAnalysisView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} initialWord={pathParts[1] ? decodeURIComponent(pathParts[1]) : undefined} />;
@@ -122,7 +121,7 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
                 return <SurahDetailView 
                     surah={pageSurahs[0]}
                     pageSurahs={pageSurahs}
-                    highlightAyahNumber={queryAyah !== null ? queryAyah : startAyahInFirstSurah}
+                    highlightAyahNumber={queryAyah}
                     onWordClick={handleSearch}
                     onSaveAyah={handleSaveItem}
                     onSearchByAyahNumber={handleSearchByAyahNumber}
@@ -143,12 +142,17 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
                 return null;
             }
             const surahNumber = parseInt(pathParts[1], 10);
-            const highlightAyahNumber = queryParams.get('ayah') ? parseInt(queryParams.get('ayah')!, 10) : null;
+            const queryAyah = queryParams.get('ayah') ? parseInt(queryParams.get('ayah')!, 10) : null;
+            const navOnly = queryParams.get('navOnly') === 'true';
+            
             const surah = quranData.find(s => s.number === surahNumber);
             if (surah) {
+                const targetPage = queryAyah ? surah.ayahs.find(a => a.numberInSurah === queryAyah)?.page : undefined;
+
                 return <SurahDetailView 
                     surah={surah}
-                    highlightAyahNumber={highlightAyahNumber}
+                    highlightAyahNumber={navOnly ? null : queryAyah}
+                    forcedPageNumber={targetPage}
                     onWordClick={handleSearch}
                     onSaveAyah={handleSaveItem}
                     onSearchByAyahNumber={handleSearchByAyahNumber}
@@ -182,7 +186,7 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
     };
 
     return (
-        <Suspense fallback={<LoadingScreen />}>
+        <Suspense fallback={null}>
             {renderRoute()}
         </Suspense>
     );

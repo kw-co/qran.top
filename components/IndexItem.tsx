@@ -11,13 +11,12 @@ interface IndexItemProps {
 }
 
 const IndexItem: React.FC<IndexItemProps> = ({ type, number, startSurah, startAyah, startSurahName }) => {
-  const { setFontStyle, setSelectedEdition, setBrowsingMode } = useSettingsContext();
+  const { setFontStyle, setSelectedEdition } = useSettingsContext();
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     setFontStyle('mushaf');
     setSelectedEdition('quran-uthmani-quran-academy');
-    setBrowsingMode('page');
     const targetHash = e.currentTarget.getAttribute('href');
     if (targetHash) {
       window.location.hash = targetHash;
@@ -27,7 +26,7 @@ const IndexItem: React.FC<IndexItemProps> = ({ type, number, startSurah, startAy
   return (
     <li>
       <a
-        href={`#/surah/${startSurah}?ayah=${startAyah}`}
+        href={`#/surah/${startSurah}?ayah=${startAyah}&navOnly=true`}
         onClick={handleClick}
         className="flex items-center gap-2 p-2 bg-surface rounded-md shadow-sm hover:shadow-md hover:bg-surface-hover transition-all duration-200 cursor-pointer border border-border-subtle h-full flex-col text-center"
         aria-label={`${type} ${number}`}

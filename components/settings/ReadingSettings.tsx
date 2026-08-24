@@ -22,12 +22,12 @@ const ReadingSettings: React.FC = () => {
     const { 
         fontSize, setFontSize, 
         fontStyle, setFontStyle, 
-        browsingMode, setBrowsingMode, 
         selectedEdition, setSelectedEdition,
         enableTajweed, setEnableTajweed,
         enableWordAudio, setEnableWordAudio,
         wordClickBehavior, setWordClickBehavior,
         enableMorphology, setEnableMorphology,
+        showBottomNavBar, setShowBottomNavBar,
         fontDownloadProgress,
         isDownloadingFonts,
         isMushafDownloaded,
@@ -288,7 +288,6 @@ const ReadingSettings: React.FC = () => {
                                     }
                                     setFontStyle(style.id);
                                     if (style.id === 'mushaf') {
-                                        setBrowsingMode('page');
                                         setSelectedEdition('quran-uthmani-quran-academy');
                                     } else if (style.id === 'uthmani') {
                                         setSelectedEdition('quran-uthmani-quran-academy');
@@ -433,43 +432,27 @@ const ReadingSettings: React.FC = () => {
                 </div>
             </div>
 
-            {/* Browsing Mode */}
+            {/* Bottom Nav Bar Setting */}
             <div className="p-6 bg-surface-subtle rounded-2xl border border-border-default space-y-4">
                 <div>
-                    <h3 className="font-bold text-lg text-text-primary">نمط التصفح الافتراضي</h3>
-                    <p className="text-xs text-text-muted">اختر طريقة التنقل بين آيات السورة الكريمة</p>
+                    <h3 className="font-bold text-lg text-text-primary">شريط التنقل السفلي</h3>
+                    <p className="text-xs text-text-muted">إظهار أو إخفاء شريط التنقل السفلي المخصص للانتقال بين الصفحات.</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-4">
                     <button
                         type="button"
-                        onClick={() => {
-                            if (fontStyle === 'mushaf') {
-                                setFontStyle('imlai_1');
-                            }
-                            setBrowsingMode('full');
-                        }}
-                        className={`p-4 rounded-xl border text-right transition-all cursor-pointer ${
-                            browsingMode === 'full'
-                                ? 'bg-surface border-primary ring-2 ring-primary/20 shadow-xs'
-                                : 'bg-surface border-border-default hover:border-primary/30'
-                        }`}
+                        onClick={() => setShowBottomNavBar(!showBottomNavBar)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${showBottomNavBar ? 'bg-primary' : 'bg-surface-hover border border-border-default'}`}
+                        aria-pressed={showBottomNavBar}
                     >
-                        <div className="font-bold text-text-primary text-base">العرض المستمر الشامل (كل السورة)</div>
-                        <div className="text-xs text-text-muted mt-1">عرض جميع آيات السورة في قائمة واحدة متصلة وسلسة.</div>
+                        <span className="sr-only">تفعيل شريط التنقل السفلي</span>
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showBottomNavBar ? '-translate-x-6' : '-translate-x-1'}`}
+                        />
                     </button>
-
-                    <button
-                        type="button"
-                        onClick={() => setBrowsingMode('page')}
-                        className={`p-4 rounded-xl border text-right transition-all cursor-pointer ${
-                            browsingMode === 'page'
-                                ? 'bg-surface border-primary ring-2 ring-primary/20 shadow-xs'
-                                : 'bg-surface border-border-default hover:border-primary/30'
-                        }`}
-                    >
-                        <div className="font-bold text-text-primary text-base">التصفح حسب صفحات المصحف</div>
-                        <div className="text-xs text-text-muted mt-1">تقسيم العرض حسب أرقام صفحات المصحف الشريف (604 صفحة).</div>
-                    </button>
+                    <span className="text-sm font-bold text-text-primary">
+                        {showBottomNavBar ? 'مُفعل' : 'مُعطل'}
+                    </span>
                 </div>
             </div>
         </div>

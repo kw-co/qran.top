@@ -9,7 +9,6 @@ interface HistoryViewProps {
 }
 
 interface ReadingStop {
-    browsingMode: 'page' | 'full' | string;
     surahNumber: number;
     surahName: string;
     ayahNumber: number;
@@ -170,7 +169,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ surahList }) => {
                         {stops.map((stop, index) => {
                             const stopSurah = surahList.find(s => s.number === stop.surahNumber);
                             const displayName = stopSurah ? formatSurahNameForDisplay(stopSurah.name) : stop.surahName;
-                            const linkUrl = stop.browsingMode === 'page' ? `#/page/${stop.pageNumber}?ayah=${stop.ayahNumber}` : `#/surah/${stop.surahNumber}?ayah=${stop.ayahNumber}`;
+                            const linkUrl = stop.pageNumber ? `#/page/${stop.pageNumber}?ayah=${stop.ayahNumber}` : `#/surah/${stop.surahNumber}?ayah=${stop.ayahNumber}`;
 
                             return (
                                 <div 
@@ -180,24 +179,17 @@ const HistoryView: React.FC<HistoryViewProps> = ({ surahList }) => {
                                     {/* Stop metadata & title */}
                                     <div className="flex items-start gap-4 flex-grow">
                                         <div className="p-3 bg-primary/10 text-primary rounded-xl flex-shrink-0 flex items-center justify-center">
-                                            {stop.browsingMode === 'page' ? (
-                                                <BookOpenIcon className="w-6 h-6" />
-                                            ) : (
-                                                <FlagIcon className="w-6 h-6" />
-                                            )}
+                                            <BookOpenIcon className="w-6 h-6" />
                                         </div>
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <h2 className="text-xl font-bold text-text-primary">
                                                     سورة {displayName}
                                                 </h2>
-                                                <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                                    {stop.browsingMode === 'page' ? 'عرض بالصفحات' : 'عرض بالسورة'}
-                                                </span>
                                             </div>
                                             
                                             <p className="text-sm text-text-secondary">
-                                                {stop.browsingMode === 'page' ? (
+                                                {stop.pageNumber ? (
                                                     <>الصفحة <strong className="text-text-primary font-bold">{stop.pageNumber}</strong> • الآية <strong className="text-text-primary font-bold">{stop.ayahNumber}</strong></>
                                                 ) : (
                                                     <>الآية <strong className="text-text-primary font-bold">{stop.ayahNumber}</strong></>

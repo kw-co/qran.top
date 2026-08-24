@@ -16,7 +16,6 @@ export const DownloadMushafModal: React.FC<DownloadMushafModalProps> = ({ isOpen
         cancelFontDownload,
         setFontStyle,
         setSelectedEdition,
-        setBrowsingMode,
         fontStyle
     } = useSettingsContext();
 
@@ -29,7 +28,6 @@ export const DownloadMushafModal: React.FC<DownloadMushafModalProps> = ({ isOpen
     const handleActivateMushaf = () => {
         setFontStyle('mushaf');
         setSelectedEdition('quran-uthmani-quran-academy');
-        setBrowsingMode('page');
         onClose();
     };
 

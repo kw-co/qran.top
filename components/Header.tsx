@@ -141,7 +141,7 @@ const Header: React.FC<HeaderProps> = ({
     
     // Consume Settings from Context
     const { 
-        fontStyle, setFontStyle, selectedEdition, setSelectedEdition, setBrowsingMode, selectedAudioEdition,
+        fontStyle, setFontStyle, selectedEdition, setSelectedEdition, selectedAudioEdition,
         isMushafDownloaded, openDownloadMushafModal
     } = useSettingsContext();
 
@@ -196,7 +196,6 @@ const Header: React.FC<HeaderProps> = ({
             // Next: uthmani
             setFontStyle('uthmani');
             setSelectedEdition('quran-uthmani-quran-academy');
-            setBrowsingMode('full');
         } else if (fontStyle === 'uthmani') {
             // Next: mushaf
             if (!isMushafDownloaded) {
@@ -209,19 +208,16 @@ const Header: React.FC<HeaderProps> = ({
                 // If user has already seen the modal once, cycle directly back to imlai_1
                 setFontStyle('imlai_1');
                 setSelectedEdition('quran-simple-clean');
-                setBrowsingMode('full');
                 return;
             }
             setFontStyle('mushaf');
             setSelectedEdition('quran-uthmani-quran-academy');
-            setBrowsingMode('page');
         } else {
             // From mushaf -> imlai_1
             setFontStyle('imlai_1');
             setSelectedEdition('quran-simple-clean');
-            setBrowsingMode('full');
         }
-    }, [fontStyle, isMushafDownloaded, setFontStyle, setSelectedEdition, setBrowsingMode, openDownloadMushafModal]);
+    }, [fontStyle, isMushafDownloaded, setFontStyle, setSelectedEdition, openDownloadMushafModal]);
 
     const getToggleLabel = () => {
         switch (fontStyle) {

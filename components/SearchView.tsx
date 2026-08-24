@@ -52,7 +52,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const [wordSortMode, setWordSortMode] = useState<'match' | 'frequency' | 'quran'>('match');
   
   // Consume Settings from Context
-  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions, fontSize } = useSettingsContext();
+  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions, fontSize, copyTextFormat, copyCitationFormat } = useSettingsContext();
 
   const itemRefs = useRef<React.RefObject<HTMLLIElement>[]>([]);
   
@@ -401,7 +401,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [onSaveAyah]);
 
   const handleCopyAyah = useCallback((ayah: Ayah) => {
-    const isImlaei = fontStyle === 'imlai_1';
+    const isImlaei = copyTextFormat === 'imlaei' || (copyTextFormat !== 'imlaei' && fontStyle === 'imlai_1');
     let ayahText = ayah.text || '';
 
     if (isImlaei) {
@@ -409,7 +409,17 @@ export const SearchView: React.FC<SearchViewProps> = ({
         ayahText = ayahText.replace(marksToRemoveRegex, '');
     }
 
-    const textToCopy = `"${ayahText}" (سورة ${formatSurahNameForDisplay(ayah.surah?.name)} - الآية ${ayah.numberInSurah})`;
+    const cleanSurahName = formatSurahNameForDisplay(ayah.surah?.name);
+    
+    let textToCopy = '';
+    if (copyCitationFormat === 'none') {
+        textToCopy = ayahText;
+    } else if (copyCitationFormat === 'long') {
+        textToCopy = `"${ayahText}" (سورة ${cleanSurahName} - الآية ${ayah.numberInSurah})`;
+    } else {
+        textToCopy = `${ayahText} (${cleanSurahName}- ${ayah.numberInSurah})`;
+    }
+
     navigator.clipboard.writeText(textToCopy).then(() => {
         setCopiedAyah(ayah.number);
         setTimeout(() => setCopiedAyah(null), 2000);

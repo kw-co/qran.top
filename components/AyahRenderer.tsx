@@ -73,7 +73,6 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
     // Consume Settings from Context
     const { 
         displayEdition, 
-        browsingMode, 
         enableTajweed, 
         enableWordAudio, 
         enableMorphology, 
@@ -251,11 +250,11 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                     }
                                     setActivePopover({ ayah: ayah, triggerElement: e.currentTarget });
                                 }}
-                                className={`popover-trigger mx-1 select-none cursor-pointer hover:opacity-80 transition-opacity ${browsingMode === 'page' ? 'ayah-marker' : 'text-sm font-sans font-bold text-primary-text rounded-md p-1 -m-1'}`}
+                                className={`popover-trigger mx-1 select-none cursor-pointer hover:opacity-80 transition-opacity ayah-marker`}
                                 aria-label={`إجراءات للآية ${ayah.numberInSurah}`}
                                 aria-haspopup="true"
                             >
-                                {browsingMode === 'page' ? ayah.numberInSurah : `﴿${ayah.numberInSurah}﴾`}
+                                {ayah.numberInSurah}
                             </button>
                         </span>
                     </span>

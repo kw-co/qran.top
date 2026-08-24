@@ -20,7 +20,7 @@ const Toolbox: React.FC<ToolboxProps> = ({
 }) => {
     const [isShown, setIsShown] = useState(true);
     const lastScrollY = useRef(0);
-    const { fontSize, setFontSize, browsingMode, setBrowsingMode, selectedAudioEdition } = useSettingsContext();
+    const { fontSize, setFontSize, selectedAudioEdition } = useSettingsContext();
 
     // Effect to handle toolbox visibility on scroll
     useEffect(() => {
@@ -185,20 +185,6 @@ const Toolbox: React.FC<ToolboxProps> = ({
                     <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </ToolButton>
                 
-                <div className="h-5 w-px bg-border-default mx-1"></div>
-
-                {/* Browsing Mode Group */}
-                <ToolButton
-                    onClick={() => setBrowsingMode(browsingMode === 'full' ? 'page' : 'full')}
-                    label={browsingMode === 'full' ? 'التحويل إلى عرض الصفحات' : 'التحويل إلى العرض الكامل'}
-                >
-                    {browsingMode === 'full' ? (
-                        <BookOpenIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                    ) : (
-                        <ListBulletIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                    )}
-                </ToolButton>
-
             </div>
         </div>
     );

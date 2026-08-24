@@ -13,6 +13,10 @@ const WORD_AUDIO_KEY = 'qran_app_enable_word_audio';
 const WORD_CLICK_BEHAVIOR_KEY = 'qran_app_word_click_behavior';
 const ENABLE_MORPHOLOGY_KEY = 'qran_app_enable_morphology';
 const DOWNLOADING_FONTS_KEY = 'qran_app_downloading_fonts';
+const COPY_TEXT_FORMAT_KEY = 'qran_app_copy_text_format';
+const COPY_CITATION_FORMAT_KEY = 'qran_app_copy_citation_format';
+const COPY_MULTI_FORMAT_KEY = 'qran_app_copy_multi_format';
+const SHOW_BOTTOM_NAV_BAR_KEY = 'qran_app_show_bottom_nav_bar';
 
 const DEFAULT_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
@@ -50,13 +54,6 @@ export const useSettings = () => {
     const [selectedEdition, setSelectedEdition] = useState<string>(
         () => safeGetItem(QURAN_EDITION_KEY, 'quran-simple-clean')
     );
-    
-    // Default to 'full' mode as it pairs with simple text
-    const [browsingMode, setBrowsingMode] = useState<BrowsingMode>(() => {
-        const storedMode = safeGetItem(BROWSING_MODE_KEY, null) as BrowsingMode | null;
-        if (storedMode) return storedMode;
-        return 'full';
-    });
 
     const activeEditions = DEFAULT_EDITIONS;
 
@@ -78,6 +75,22 @@ export const useSettings = () => {
 
     const [enableMorphology, setEnableMorphology] = useState<boolean>(
         () => safeGetItem(ENABLE_MORPHOLOGY_KEY, 'true') === 'true'
+    );
+
+    const [copyTextFormat, setCopyTextFormat] = useState<CopyTextFormat>(
+        () => safeGetItem(COPY_TEXT_FORMAT_KEY, 'imlaei') as CopyTextFormat
+    );
+
+    const [copyCitationFormat, setCopyCitationFormat] = useState<CopyCitationFormat>(
+        () => safeGetItem(COPY_CITATION_FORMAT_KEY, 'short') as CopyCitationFormat
+    );
+
+    const [copyMultiFormat, setCopyMultiFormat] = useState<any>(
+        () => safeGetItem(COPY_MULTI_FORMAT_KEY, 'consecutive')
+    );
+
+    const [showBottomNavBar, setShowBottomNavBar] = useState<boolean>(
+        () => safeGetItem(SHOW_BOTTOM_NAV_BAR_KEY, 'false') === 'true'
     );
 
     // Madinah Font Download State
@@ -128,7 +141,6 @@ export const useSettings = () => {
             
             // Auto-activate mushaf mode
             setFontStyle('mushaf');
-            setBrowsingMode('page');
             setSelectedEdition('quran-uthmani-quran-academy');
             
         } catch (e: any) {
@@ -160,22 +172,19 @@ export const useSettings = () => {
         }
     }, []); // Only run once on mount
 
-    useEffect(() => {
-        if (fontStyle === 'mushaf' && browsingMode !== 'page') {
-            setBrowsingMode('page');
-        }
-    }, [fontStyle, browsingMode]);
-
     useEffect(() => { safeSetItem(QURAN_EDITION_KEY, selectedEdition); }, [selectedEdition]);
     useEffect(() => { safeSetItem(FONT_SIZE_KEY, fontSize); }, [fontSize]);
     useEffect(() => { safeSetItem(FONT_STYLE_KEY, fontStyle); }, [fontStyle]);
     useEffect(() => { safeSetItem(MUSHAF_TYPE_KEY, mushafType); }, [mushafType]);
-    useEffect(() => { safeSetItem(BROWSING_MODE_KEY, browsingMode); }, [browsingMode]);
     useEffect(() => { safeSetItem(AUDIO_EDITION_KEY, selectedAudioEdition); }, [selectedAudioEdition]);
     useEffect(() => { safeSetItem(TAJWEED_MODE_KEY, String(enableTajweed)); }, [enableTajweed]);
     useEffect(() => { safeSetItem(WORD_AUDIO_KEY, String(enableWordAudio)); }, [enableWordAudio]);
     useEffect(() => { safeSetItem(WORD_CLICK_BEHAVIOR_KEY, wordClickBehavior); }, [wordClickBehavior]);
     useEffect(() => { safeSetItem(ENABLE_MORPHOLOGY_KEY, String(enableMorphology)); }, [enableMorphology]);
+    useEffect(() => { safeSetItem(COPY_TEXT_FORMAT_KEY, copyTextFormat); }, [copyTextFormat]);
+    useEffect(() => { safeSetItem(COPY_CITATION_FORMAT_KEY, copyCitationFormat); }, [copyCitationFormat]);
+    useEffect(() => { safeSetItem(COPY_MULTI_FORMAT_KEY, copyMultiFormat); }, [copyMultiFormat]);
+    useEffect(() => { safeSetItem(SHOW_BOTTOM_NAV_BAR_KEY, String(showBottomNavBar)); }, [showBottomNavBar]);
 
     const displayEdition = useMemo(() => {
         const found = activeEditions.find(e => e.identifier === selectedEdition) || DEFAULT_EDITIONS[0];
@@ -199,14 +208,17 @@ export const useSettings = () => {
         fontSize, setFontSize,
         fontStyle, setFontStyle,
         mushafType, setMushafType,
-        browsingMode, setBrowsingMode,
         activeEditions,
         selectedEdition, setSelectedEdition,
         selectedAudioEdition, setSelectedAudioEdition,
         enableTajweed, setEnableTajweed,
         enableWordAudio, setEnableWordAudio,
         wordClickBehavior, setWordClickBehavior,
+        copyTextFormat, setCopyTextFormat,
+        copyCitationFormat, setCopyCitationFormat,
+        copyMultiFormat, setCopyMultiFormat,
         enableMorphology, setEnableMorphology,
+        showBottomNavBar, setShowBottomNavBar,
         displayEdition,
         fontDownloadProgress, setFontDownloadProgress,
         isDownloadingFonts, setIsDownloadingFonts,

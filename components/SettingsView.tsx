@@ -33,33 +33,32 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     }, [window.location.hash]);
 
     const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-        { id: 'reading', label: 'القراءة والخطوط', icon: <BookOpenIcon className="w-5 h-5" /> },
-        { id: 'audio', label: 'الصوتيات والقراء', icon: <SpeakerWaveIcon className="w-5 h-5" /> },
-        { id: 'appearance', label: 'المظهر والواجهة', icon: <SunIcon className="w-5 h-5" /> },
-        { id: 'tadabbur', label: 'دفتر التدبر', icon: <FolderIcon className="w-5 h-5" /> },
-        { id: 'export_format', label: 'تنسيق التصدير', icon: <PaperIcon className="w-5 h-5" /> },
-        { id: 'api_key', label: 'الذكاء الاصطناعي', icon: <SparklesIcon className="w-5 h-5" /> },
-        { id: 'storage', label: 'البيانات والذاكرة', icon: <TrashIcon className="w-5 h-5" /> },
+        { id: 'reading', label: 'القراءة', icon: <BookOpenIcon className="w-5 h-5" /> },
+        { id: 'audio', label: 'الصوتيات', icon: <SpeakerWaveIcon className="w-5 h-5" /> },
+        { id: 'appearance', label: 'المظهر', icon: <SunIcon className="w-5 h-5" /> },
+        { id: 'tadabbur', label: 'التدبر', icon: <FolderIcon className="w-5 h-5" /> },
+        { id: 'export_format', label: 'التصدير', icon: <PaperIcon className="w-5 h-5" /> },
+        { id: 'api_key', label: 'الذكاء', icon: <SparklesIcon className="w-5 h-5" /> },
+        { id: 'storage', label: 'البيانات', icon: <TrashIcon className="w-5 h-5" /> },
     ];
     
     return (
         <div className="animate-fade-in w-full max-w-6xl mx-auto px-4 py-6">
             {/* Header Title */}
             <div className="mb-6 text-center sm:text-right">
-                <h1 className="text-3xl font-extrabold text-text-primary tracking-tight">إعدادات التطبيق الشاملة</h1>
-                <p className="text-sm text-text-muted mt-1">خصص كل تفاصيل تجربتك القرآنية والبحثية والتحليلية بما يتناسب مع تفضيلاتك.</p>
+                <h1 className="text-2xl font-bold text-text-primary tracking-tight">الإعدادات</h1>
             </div>
 
-            <main className="bg-surface p-4 sm:p-8 rounded-2xl shadow-lg border border-border-default transition-colors duration-300 relative">
+            <main className="bg-surface p-4 sm:p-6 rounded-2xl shadow-lg border border-border-default transition-colors duration-300 relative">
                 {/* Scrollable Tab Navigation */}
-                <div className="flex border-b border-border-default mb-8 overflow-x-auto no-scrollbar gap-1 sm:gap-2 pb-1">
+                <div className="flex border-b border-border-default mb-6 overflow-x-auto no-scrollbar gap-1 sm:gap-2 pb-1">
                     {TABS.map((tab) => {
                         const isActive = activeTab === tab.id;
                         return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex-shrink-0 px-4 py-3 text-sm sm:text-base font-bold transition-all rounded-xl flex items-center gap-2 ${
+                                className={`flex-shrink-0 px-3 py-2 text-sm font-bold transition-all rounded-xl flex items-center gap-1.5 ${
                                     isActive
                                         ? 'bg-primary text-white shadow-xs'
                                         : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'

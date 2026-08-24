@@ -108,11 +108,13 @@ export type Collections = Record<string, Collection>;
 
 // --- Type for new settings ---
 export type FontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
-export type BrowsingMode = 'full' | 'page';
 export type MushafType = 'madinah';
 export type FontStyleType = 'imlai_1' | 'uthmani' | 'mushaf';
 export type PlaybackMode = 'continuous' | 'single' | 'selection_juz' | 'selection_surah';
 export type WordClickBehavior = 'auto' | 'direct_search' | 'show_menu';
+export type CopyTextFormat = 'imlaei' | 'current_view';
+export type CopyCitationFormat = 'short' | 'long' | 'none';
+export type CopyMultiFormat = 'consecutive' | 'separated';
 
 // --- Types for Group Khatmah (الختمة الجماعية) ---
 export interface KhatmahPart {

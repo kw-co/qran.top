@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import type { FontSize, FontStyleType, BrowsingMode, QuranEdition, WordClickBehavior, MushafType } from '../types';
+import type { FontSize, FontStyleType, QuranEdition, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat } from '../types';
 
 interface SettingsContextType {
     fontSize: FontSize;
@@ -8,8 +8,6 @@ interface SettingsContextType {
     setFontStyle: (style: FontStyleType) => void;
     mushafType: MushafType;
     setMushafType: (type: MushafType) => void;
-    browsingMode: BrowsingMode;
-    setBrowsingMode: (mode: BrowsingMode) => void;
     activeEditions: QuranEdition[];
     selectedEdition: string;
     setSelectedEdition: (id: string) => void;
@@ -21,8 +19,16 @@ interface SettingsContextType {
     setEnableWordAudio: (enabled: boolean) => void;
     wordClickBehavior: WordClickBehavior;
     setWordClickBehavior: (behavior: WordClickBehavior) => void;
+    copyTextFormat: CopyTextFormat;
+    setCopyTextFormat: (format: CopyTextFormat) => void;
+    copyCitationFormat: CopyCitationFormat;
+    setCopyCitationFormat: (format: CopyCitationFormat) => void;
+    copyMultiFormat: any;
+    setCopyMultiFormat: (format: any) => void;
     enableMorphology: boolean;
     setEnableMorphology: (enabled: boolean) => void;
+    showBottomNavBar: boolean;
+    setShowBottomNavBar: (show: boolean) => void;
     displayEdition: QuranEdition;
     fontDownloadProgress: number;
     setFontDownloadProgress: (progress: number) => void;

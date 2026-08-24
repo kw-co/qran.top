@@ -11,6 +11,7 @@ interface MushafPageViewProps {
   isSelectionMode?: boolean;
   selectedAyahKeys?: string[];
   onAyahClick?: (e: React.MouseEvent, surahNum: number, ayahNum: number, text: string) => void;
+  onAyahActionClick?: (e: React.MouseEvent, surahNum: number, ayahNum: number) => void;
   highlightAyahNumber?: number | null;
   targetSurahNumber?: number | null;
   currentlyPlayingAyahGlobalNumber?: number | null;
@@ -23,6 +24,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   isSelectionMode,
   selectedAyahKeys,
   onAyahClick,
+  onAyahActionClick,
   highlightAyahNumber,
   targetSurahNumber,
   currentlyPlayingAyahGlobalNumber
@@ -322,6 +324,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           if (isSelectionMode || e.ctrlKey || e.metaKey) {
                               const fullText = verse.words.filter((w:any) => w.char_type_name === 'word').map((w:any) => w.text_uthmani).join(' ');
                               if (onAyahClick) onAyahClick(e, sNum, verse.verse_number, fullText);
+                              return;
+                          }
+                          if (isEnd && onAyahActionClick) {
+                              onAyahActionClick(e, sNum, verse.verse_number);
                               return;
                           }
                           if (onWordClick && word.char_type_name === 'word') {

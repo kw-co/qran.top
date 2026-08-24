@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckIcon, RefreshIcon } from '../icons';
 import { safeLocalStorage } from '../../utils/storage';
+import { useSettingsContext } from '../../contexts/SettingsContext';
 
 const EXPORT_TEMPLATE_KEY = 'qran_app_export_template';
 
@@ -21,6 +22,7 @@ const DEFAULT_EXPORT_TEMPLATE = `ملخص البحث عن: "{{query}}"
 `;
 
 const ExportFormatSettings: React.FC = () => {
+    const { copyTextFormat, setCopyTextFormat, copyCitationFormat, setCopyCitationFormat, copyMultiFormat, setCopyMultiFormat } = useSettingsContext();
     const [template, setTemplate] = useState(DEFAULT_EXPORT_TEMPLATE);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -45,11 +47,64 @@ const ExportFormatSettings: React.FC = () => {
     };
     
     return (
-        <div className="animate-fade-in">
-            <h2 className="text-2xl font-semibold mb-2 text-text-primary">ضبط تنسيق ملف البحث</h2>
-            <p className="text-text-secondary mb-8">خصص شكل المخرجات النصية عند استخدام أدوات 'نسخ كل النتائج' أو 'تحميل النتائج'. استخدم المتغيرات المتاحة لتضمين البيانات التي تحتاجها بالترتيب الذي تفضله.</p>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="p-5 bg-surface-subtle rounded-lg border border-border-default">
+        <div className="animate-fade-in space-y-12">
+            <div>
+                <h2 className="text-2xl font-semibold mb-2 text-text-primary">نسخ الآية المفردة</h2>
+                <p className="text-text-secondary mb-6">خصص طريقة نسخ الآيات عند النقر على خيار "نسخ" من قائمة الآية.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-surface-subtle p-5 rounded-xl border border-border-default">
+                    <div>
+                        <label className="block text-sm font-medium text-text-primary mb-2">نوع نص الآية المنسوخ</label>
+                        <select
+                            value={copyTextFormat}
+                            onChange={(e) => setCopyTextFormat(e.target.value as any)}
+                            className="w-full p-2.5 bg-surface border border-border-default rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
+                        >
+                            <option value="imlaei">إملائي (افتراضي)</option>
+                            <option value="current_view">حسب العرض الحالي</option>
+                        </select>
+                        <p className="text-xs text-text-muted mt-2">
+                            الإملائي مناسب للمشاركة العامة والبحث. "حسب العرض" سينسخ بالرسم العثماني إذا كنت تتصفح به.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-text-primary mb-2">تنسيق توثيق الآية (المرجع)</label>
+                        <select
+                            value={copyCitationFormat}
+                            onChange={(e) => setCopyCitationFormat(e.target.value as any)}
+                            className="w-full p-2.5 bg-surface border border-border-default rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
+                        >
+                            <option value="short">(البقرة - 2) (افتراضي)</option>
+                            <option value="long">"النص" (سورة البقرة - الآية 2)</option>
+                            <option value="none">بدون توثيق (النص فقط)</option>
+                        </select>
+                        <p className="text-xs text-text-muted mt-2">
+                            اختر كيف سيتم إضافة اسم السورة ورقم الآية للنص المنسوخ.
+                        </p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-text-primary mb-2">تنسيق التحديد المتعدد</label>
+                        <select
+                            value={copyMultiFormat || 'consecutive'}
+                            onChange={(e) => setCopyMultiFormat(e.target.value as any)}
+                            className="w-full p-2.5 bg-surface border border-border-default rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
+                        >
+                            <option value="consecutive">نص متتالي (مع أرقام الآيات)</option>
+                            <option value="separated">آيات منفصلة (حسب التوثيق)</option>
+                        </select>
+                        <p className="text-xs text-text-muted mt-2">
+                            تنسيق النص عند نسخ أكثر من آية معاً. النص المتتالي يعرض الآيات بجانب بعضها مع التوثيق في النهاية.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="border-t border-border-default pt-8">
+                <h2 className="text-2xl font-semibold mb-2 text-text-primary">ضبط تنسيق تصدير البحث</h2>
+                <p className="text-text-secondary mb-8">خصص شكل المخرجات النصية عند استخدام أدوات 'نسخ كل النتائج' أو 'تحميل النتائج' في صفحة البحث.</p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="p-5 bg-surface-subtle rounded-xl border border-border-default">
                     <h3 className="text-xl font-semibold mb-3 text-text-primary">محرر القالب</h3>
                     <textarea
                         id="export-template-editor"
@@ -100,6 +155,7 @@ const ExportFormatSettings: React.FC = () => {
                         </div>
                      </div>
                 </div>
+            </div>
             </div>
         </div>
     );

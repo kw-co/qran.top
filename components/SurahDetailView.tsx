@@ -146,16 +146,61 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
 
   const handleCopyMultiple = () => {
       if (selectedAyahs.length === 0) return;
-      const textToCopy = selectedAyahs.map(a => {
-          const isImlaei = fontStyle === 'imlai_1';
-          let ayahText = a.text || '';
-          if (isImlaei) {
-              const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
-              ayahText = ayahText.replace(marksToRemoveRegex, '');
+
+      const sortedAyahs = [...selectedAyahs].sort((a, b) => {
+          if (a.surahNum !== b.surahNum) return a.surahNum - b.surahNum;
+          return a.ayahNum - b.ayahNum;
+      });
+
+      let textToCopy = '';
+
+      if (copyMultiFormat === 'consecutive') {
+          // Group by Surah
+          const groupedBySurah = sortedAyahs.reduce((acc, current) => {
+              const surahName = formatSurahNameForDisplay(current.surahName);
+              if (!acc[surahName]) {
+                  acc[surahName] = [];
+              }
+              acc[surahName].push(current);
+              return acc;
+          }, {} as Record<string, typeof sortedAyahs>);
+
+          const sections: string[] = [];
+          for (const [surahName, ayahs] of Object.entries(groupedBySurah)) {
+              const formattedAyahs = ayahs.map(a => {
+                  const isImlaei = copyTextFormat === 'imlaei' || (copyTextFormat !== 'imlaei' && fontStyle === 'imlai_1');
+                  let ayahText = a.text || '';
+                  if (isImlaei) {
+                      const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
+                      ayahText = ayahText.replace(marksToRemoveRegex, '');
+                  }
+                  return `${ayahText} (${a.ayahNum})`;
+              }).join(' ');
+
+              // Add Surah name at the end
+              sections.push(`${formattedAyahs}\nسورة ${surahName}`);
           }
-          const cleanSurahName = formatSurahNameForDisplay(a.surahName);
-          return `"${ayahText}" (سورة ${cleanSurahName} - الآية ${a.ayahNum})`;
-      }).join('\n\n');
+          textToCopy = sections.join('\n\n---\n\n');
+      } else {
+          // Individual format (default old behavior)
+          textToCopy = sortedAyahs.map(a => {
+              const isImlaei = copyTextFormat === 'imlaei' || (copyTextFormat !== 'imlaei' && fontStyle === 'imlai_1');
+              let ayahText = a.text || '';
+              if (isImlaei) {
+                  const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
+                  ayahText = ayahText.replace(marksToRemoveRegex, '');
+              }
+              const cleanSurahName = formatSurahNameForDisplay(a.surahName);
+              
+              if (copyCitationFormat === 'none') {
+                  return ayahText;
+              } else if (copyCitationFormat === 'long') {
+                  return `"${ayahText}" (سورة ${cleanSurahName} - الآية ${a.ayahNum})`;
+              } else {
+                  return `${ayahText} (${cleanSurahName}- ${a.ayahNum})`;
+              }
+          }).join('\n\n');
+      }
 
       navigator.clipboard.writeText(textToCopy).then(() => {
           setShowMultiCopyToast(true);
@@ -164,7 +209,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
           setSelectedAyahs([]);
       });
   };
-  
+
   const [wordPopoverState, setWordPopoverState] = useState<{
     ayahNumberInSurah: number;
     simpleText: string;
@@ -176,17 +221,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   const prevHighlightAyahNumber = useRef<number | null>(null);
 
   // Consume Settings from Context
-  const { displayEdition, fontSize, fontStyle, browsingMode, setFontStyle, setSelectedEdition, setBrowsingMode } = useSettingsContext();
-
-  // Enforce page mode when navigating to a specific page
-  useEffect(() => {
-    if (forcedPageNumber) {
-      if (browsingMode !== 'page') {
-        setBrowsingMode('page');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forcedPageNumber, setFontStyle, setSelectedEdition, setBrowsingMode]);
+  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar } = useSettingsContext();
 
   // Determine current page logic
   const { ayahsByPage, firstPage, lastPage, getPageForAyahNumber } = useMemo(() => {
@@ -285,7 +320,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-  }, [highlightAyahNumber, currentlyPlayingAyahGlobalNumber, surah, browsingMode, pageSurahs, forcedPageNumber]);
+  }, [highlightAyahNumber, currentlyPlayingAyahGlobalNumber, surah, pageSurahs, forcedPageNumber]);
 
   // This separate effect ensures the "previous" values are always updated *after* the main scrolling effect has run.
   // This correctly handles all cases, including when audio playback causes an early return in the main effect.
@@ -321,14 +356,11 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   
   // Prepare content to render
   const contentToRender = useMemo(() => {
-      if (browsingMode === 'page') {
-          return pageSurahs || (ayahsByPage.get(currentPage) ? [{...surah, ayahs: ayahsByPage.get(currentPage)!}] : []);
-      }
-      return [surah];
-  }, [browsingMode, ayahsByPage, currentPage, surah, pageSurahs]);
+      return pageSurahs || (ayahsByPage.get(currentPage) ? [{...surah, ayahs: ayahsByPage.get(currentPage)!}] : []);
+  }, [ayahsByPage, currentPage, surah, pageSurahs]);
 
   const pageInfo = useMemo(() => {
-    if (browsingMode !== 'page' || !hizbQuarterStartMap || contentToRender.length === 0) return null;
+    if (!hizbQuarterStartMap || contentToRender.length === 0) return null;
     
     // Use the first surah/ayah on the page for Header Info
     const firstSurah = contentToRender[0];
@@ -376,7 +408,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
         markers,
         side: currentPage % 2 === 0 ? 'left' : 'right'
     };
-  }, [currentPage, browsingMode, contentToRender, hizbQuarterStartMap]);
+  }, [currentPage, contentToRender, hizbQuarterStartMap]);
 
         
   const findActiveAyah = () => {
@@ -408,51 +440,32 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
-    const saveProgress = () => {
+      const saveProgress = () => {
       let activeAyahNum: number | null = null;
       let activeSurahNum = surah.number;
       let activePageNum = currentPage;
 
-      if (browsingMode === 'page') {
-        const active = findActiveAyah();
-        if (active && pageSurahs && pageSurahs.some(s => s.number === active.surahNumber)) {
-          activeSurahNum = active.surahNumber;
-          activeAyahNum = active.ayahNumber;
-        } else {
-          const firstSurahSegment = contentToRender[0];
-          if (firstSurahSegment && firstSurahSegment.ayahs && firstSurahSegment.ayahs.length > 0) {
-            activeSurahNum = firstSurahSegment.number;
-            activeAyahNum = firstSurahSegment.ayahs[0].numberInSurah;
-          }
-        }
-
-        const lastPosition = {
-          browsingMode: 'page',
-          pageNumber: activePageNum,
-          surahNumber: activeSurahNum,
-          ayahNumber: activeAyahNum || 1,
-          timestamp: Date.now()
-        };
-        safeLocalStorage.setItem('qran_last_read_position', JSON.stringify(lastPosition));
-        safeLocalStorage.setItem('qran_last_route', `#/page/${activePageNum}?ayah=${activeAyahNum || 1}`);
+      const active = findActiveAyah();
+      if (active && pageSurahs && pageSurahs.some(s => s.number === active.surahNumber)) {
+        activeSurahNum = active.surahNumber;
+        activeAyahNum = active.ayahNumber;
       } else {
-        const active = findActiveAyah();
-        if (active) {
-          activeSurahNum = active.surahNumber;
-          activeAyahNum = active.ayahNumber;
-        } else if (surah.ayahs && surah.ayahs.length > 0) {
-          activeAyahNum = surah.ayahs[0].numberInSurah;
+        const firstSurahSegment = contentToRender[0];
+        if (firstSurahSegment && firstSurahSegment.ayahs && firstSurahSegment.ayahs.length > 0) {
+          activeSurahNum = firstSurahSegment.number;
+          activeAyahNum = firstSurahSegment.ayahs[0].numberInSurah;
         }
-
-        const lastPosition = {
-          browsingMode: 'full',
-          surahNumber: activeSurahNum,
-          ayahNumber: activeAyahNum || 1,
-          timestamp: Date.now()
-        };
-        safeLocalStorage.setItem('qran_last_read_position', JSON.stringify(lastPosition));
-        safeLocalStorage.setItem('qran_last_route', `#/surah/${activeSurahNum}?ayah=${activeAyahNum || 1}`);
       }
+
+      const lastPosition = {
+        browsingMode: 'page',
+        pageNumber: activePageNum,
+        surahNumber: activeSurahNum,
+        ayahNumber: activeAyahNum || 1,
+        timestamp: Date.now()
+      };
+      safeLocalStorage.setItem('qran_last_read_position', JSON.stringify(lastPosition));
+      safeLocalStorage.setItem('qran_last_route', `#/page/${activePageNum}?ayah=${activeAyahNum || 1}`);
 
       // Automatically save to reading stops (history)
       try {
@@ -466,28 +479,21 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
         const surahName = surahObj ? surahObj.name : `سورة ${activeSurahNum}`;
 
         const newStop = {
-          browsingMode,
+          browsingMode: 'page',
           surahNumber: activeSurahNum,
           surahName,
           ayahNumber: activeAyahNum || 1,
-          pageNumber: browsingMode === 'page' ? activePageNum : undefined,
+          pageNumber: activePageNum,
           timestamp: Date.now()
         };
 
         const isDuplicate = stops.length > 0 && 
           stops[0].surahNumber === activeSurahNum && 
           stops[0].ayahNumber === (activeAyahNum || 1) &&
-          (browsingMode === 'page' ? stops[0].pageNumber === activePageNum : stops[0].browsingMode === 'full');
+          stops[0].pageNumber === activePageNum;
 
         if (!isDuplicate) {
-          stops = stops.filter(s => {
-            if (browsingMode === 'page') {
-              return s.pageNumber !== activePageNum;
-            } else {
-              return s.surahNumber !== activeSurahNum;
-            }
-          });
-
+          stops = stops.filter(s => s.pageNumber !== activePageNum);
           stops.unshift(newStop);
           stops = stops.slice(0, 50);
           safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
@@ -509,7 +515,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
       window.removeEventListener('scroll', handleScroll);
       clearTimeout(timeoutId);
     };
-  }, [surah.number, currentPage, browsingMode, contentToRender, pageSurahs]);
+  }, [surah.number, currentPage, contentToRender, pageSurahs]);
 
   if (displayEdition.format === 'audio') {
     return (
@@ -560,11 +566,11 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
       const activeAyahNum = ayah.numberInSurah;
       
       const newStop = {
-        browsingMode,
+        browsingMode: 'page',
         surahNumber: activeSurahNum,
         surahName: activeSurahName,
         ayahNumber: activeAyahNum,
-        pageNumber: browsingMode === 'page' ? currentPage : undefined,
+        pageNumber: currentPage,
         timestamp: Date.now()
       };
 
@@ -588,7 +594,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   };
 
   const handleCopyAyah = (ayah: Ayah) => {
-    const isImlaei = fontStyle === 'imlai_1';
+    const isImlaei = copyTextFormat === 'imlaei' || (copyTextFormat !== 'imlaei' && fontStyle === 'imlai_1');
     let ayahText = ayah.text || '';
 
     if (isImlaei) {
@@ -598,7 +604,16 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
     
     const surahName = ayah.surah?.name || surah.name;
     const cleanSurahName = formatSurahNameForDisplay(surahName);
-    const textToCopy = `"${ayahText}" (سورة ${cleanSurahName} - الآية ${ayah.numberInSurah})`;
+    
+    let textToCopy = '';
+    if (copyCitationFormat === 'none') {
+        textToCopy = ayahText;
+    } else if (copyCitationFormat === 'long') {
+        textToCopy = `"${ayahText}" (سورة ${cleanSurahName} - الآية ${ayah.numberInSurah})`;
+    } else {
+        textToCopy = `${ayahText} (${cleanSurahName}- ${ayah.numberInSurah})`;
+    }
+
     navigator.clipboard.writeText(textToCopy).then(() => {
         setCopiedAyah(ayah.number);
         setTimeout(() => setCopiedAyah(null), 2000);
@@ -658,8 +673,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   return (
     <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
       <div className="overflow-hidden rounded-lg">
-        {browsingMode === 'page' ? (
-          fontStyle === 'mushaf' ? (
+        {fontStyle === 'mushaf' ? (
             <MushafPageView 
               pageNumber={currentPage} 
               onPageChange={navigateToPage}
@@ -671,6 +685,34 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
               onAyahClick={(e, surahNum, ayahNum, text) => {
                  const sName = QURAN_INDEX.find(s => s.number === surahNum)?.name || '';
                  handleAyahSelection(e, surahNum, ayahNum, text, sName);
+              }}
+              onAyahActionClick={(e, surahNum, ayahNum) => {
+                  let ayahToPass: Ayah | undefined;
+                  for (const surahSegment of contentToRender) {
+                      if (surahSegment.number === surahNum) {
+                          ayahToPass = surahSegment.ayahs.find(a => a.numberInSurah === ayahNum);
+                          break;
+                      }
+                  }
+                  if (!ayahToPass && surah.number === surahNum) {
+                      ayahToPass = surah.ayahs.find(a => a.numberInSurah === ayahNum);
+                  }
+                  if (ayahToPass) {
+                      setActivePopover({ ayah: ayahToPass, triggerElement: e.currentTarget as HTMLElement });
+                  } else {
+                     const fallbackAyah: Ayah = {
+                         number: 0,
+                         numberInSurah: ayahNum,
+                         juz: 1,
+                         text: '', 
+                         surah: {
+                            number: surahNum,
+                            name: QURAN_INDEX.find(s => s.number === surahNum)?.name || `سورة ${surahNum}`,
+                            englishName: '', englishNameTranslation: '', revelationType: ''
+                         }
+                     };
+                     setActivePopover({ ayah: fallbackAyah, triggerElement: e.currentTarget as HTMLElement });
+                  }
               }}
               highlightAyahNumber={highlightAyahNumber}
               targetSurahNumber={surah.number}
@@ -774,59 +816,10 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
                     </footer>
                 </div>
             </div>
-          )
-        ) : (
-            <main
-                className={`bg-surface p-6 sm:p-8 rounded-lg shadow-md transition-colors duration-300`}
-            >
-                {/* Full Surah Mode or Simple Text Page Mode (though page mode forces Uthmani usually) */}
-                {/* Render simpler version for full mode, just one surah usually */}
-                
-                {contentToRender.map((surahSegment, index) => {
-                     const isStartOfSurah = surahSegment.ayahs[0].numberInSurah === 1;
-                     const showBismillah = isStartOfSurah && surahSegment.number !== 1 && surahSegment.number !== 9;
-                     
-                     // Ensure highlight is applied correctly even in text mode if multiple segments exist
-                     const isTargetSurah = surahSegment.number === surah.number;
-                     const effectiveHighlight = isTargetSurah ? highlightAyahNumber : null;
-
-                     return (
-                        <div key={surahSegment.number} className={index > 0 ? "mt-8 pt-8 border-t border-dashed border-border-default" : ""}>
-                             {isStartOfSurah && (
-                                <SurahHeaderStrip surahNumber={surahSegment.number} surahName={surahSegment.name} />
-                            )}
-                            {showBismillah && (
-                                <div className="text-center mb-8 font-bismillah text-2xl text-primary-text-strong">
-                                    بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
-                                </div>
-                            )}
-                            <div dir="rtl" className={`text-text-primary ${quranTextClass} text-justify`} style={{ textAlign: 'justify', textJustify: 'inter-word' }}>
-                                <AyahRenderer 
-                                    ayahsToRender={surahSegment.ayahs} 
-                                    surah={surahSegment} 
-                                    highlightAyahNumber={effectiveHighlight} 
-                                    onWordClick={onWordClick} 
-                                    currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber} 
-                                    simpleCleanData={simpleCleanData} 
-                                    wordPopoverState={wordPopoverState} 
-                                    setWordPopoverState={setWordPopoverState} 
-                                    setActivePopover={setActivePopover} 
-                                    playingAyahRef={playingAyahRef} 
-                                    highlightRef={highlightRef} 
-                                    firstAyahInfo={null}
-                                    isSelectionMode={isSelectionMode}
-                                    selectedAyahKeys={selectedAyahKeys}
-                                    onAyahClick={handleAyahSelection}
-                                />
-                            </div>
-                        </div>
-                     )
-                })}
-            </main>
-        )}
+          )}
       </div>
       
-      {browsingMode === 'page' && (
+      {showBottomNavBar && (
           <div className="mt-6 flex items-center justify-between p-2 bg-surface rounded-full shadow-md border border-border-default">
               <button 
                   onClick={() => navigateToPage(currentPage - 1)}

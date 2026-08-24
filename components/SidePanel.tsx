@@ -78,22 +78,6 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             <NavLink href="#/saved" icon={<BookmarkIcon className="w-5 h-5" />} label="دفتر التدبر" onNavigate={onNavigate} isActive={currentPath.startsWith('#/saved')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />
                             <NavLink href="#/settings" icon={<CogIcon className="w-5 h-5" />} label="الإعدادات" onNavigate={onNavigate} isActive={currentPath.startsWith('#/settings')} />
-                            
-                            <div className="!mt-4 pt-4 border-t border-border-default space-y-1">
-                                <NavLink href="#/about" icon={<InformationCircleIcon className="w-5 h-5" />} label="عن التطبيق والدليل" onNavigate={onNavigate} isActive={currentPath.startsWith('#/about')} />
-                                <NavLink href="#/privacy-policy" icon={<ShieldCheckIcon className="w-5 h-5" />} label="سياسة الخصوصية" onNavigate={onNavigate} isActive={currentPath.startsWith('#/privacy-policy')} />
-                                
-                                <a
-                                    href="https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1"
-                                    onClick={(e) => openExternalLink(e, "https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1")}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-3 p-2.5 rounded-lg text-base transition-colors text-text-secondary hover:bg-surface-hover"
-                                >
-                                    <GooglePlayIcon className="w-5 h-5 text-[#22c55e]" />
-                                    <span className="whitespace-nowrap font-medium">تحميل التطبيق</span>
-                                </a>
-                            </div>
                         </nav>
                     </div>
                     
@@ -101,8 +85,35 @@ const SidePanel: React.FC<SidePanelProps> = ({
                     <div className="flex-grow"></div>
                     
                     {/* Footer */}
-                    <div className="p-4 border-t border-border-default flex-shrink-0">
-                         <div className="flex items-center justify-between gap-2">
+                    <div className="p-4 border-t border-border-default flex-shrink-0 flex flex-col gap-4">
+                         <div className="flex items-center justify-center gap-4">
+                            <button
+                                onClick={() => { onClose(); onNavigate('#/about'); }}
+                                className={`p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/about') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
+                                aria-label="عن التطبيق والدليل"
+                                title="عن التطبيق والدليل"
+                            >
+                                <InformationCircleIcon className="w-6 h-6" />
+                            </button>
+                            <button
+                                onClick={() => { onClose(); onNavigate('#/privacy-policy'); }}
+                                className={`p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/privacy-policy') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
+                                aria-label="سياسة الخصوصية"
+                                title="سياسة الخصوصية"
+                            >
+                                <ShieldCheckIcon className="w-6 h-6" />
+                            </button>
+                            <a
+                                href="https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1"
+                                onClick={(e) => openExternalLink(e, "https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1")}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-surface-subtle text-[#22c55e] rounded-full hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+                                aria-label="تحميل التطبيق"
+                                title="تحميل التطبيق"
+                            >
+                                <GooglePlayIcon className="w-6 h-6" />
+                            </a>
                             <a 
                                 href="https://aboharon.com" 
                                 onClick={(e) => openExternalLink(e, "https://aboharon.com")}
@@ -112,15 +123,19 @@ const SidePanel: React.FC<SidePanelProps> = ({
                                 aria-label="موقع المطور"
                                 title="موقع المطور"
                             >
-                                <UserCircleIcon className="w-5 h-5" />
+                                <UserCircleIcon className="w-6 h-6" />
                             </a>
+                        </div>
+                        <div className="flex justify-center">
                             <button 
                                 onClick={() => window.location.reload()}
-                                className="text-[11px] font-mono text-text-muted hover:text-primary transition-colors cursor-pointer select-none px-2 py-1 rounded bg-surface-subtle hover:bg-surface-hover border border-border-default/40 flex items-center gap-1 active:scale-95"
+                                className="text-xs font-mono text-text-muted hover:text-primary transition-colors cursor-pointer select-none flex items-center gap-2 focus:outline-none active:scale-95 p-1"
                                 title="انقر هنا لإعادة تحميل التطبيق وتحديث الإصدار"
                             >
                                 <span>v1.0.10</span>
-                                <span className="text-[10px]">🔄</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
                             </button>
                         </div>
                     </div>

@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
-import type { BrowsingMode, Ayah } from '../types';
+import type { Ayah } from '../types';
 import SearchForm from './SearchForm';
 import ThemeToggleButton from './ThemeToggleButton';
 import { PlayIcon, SpinnerIcon } from './icons';
@@ -10,8 +10,6 @@ interface ControlBarProps {
     selectedEdition: string;
     setSelectedEdition: (edition: string) => void;
     currentPath: string;
-    browsingMode: BrowsingMode;
-    setBrowsingMode: (mode: BrowsingMode) => void;
     loadingEditions: string[];
     onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
     isPlaybackLoading: boolean;
@@ -24,8 +22,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
     selectedEdition,
     setSelectedEdition,
     currentPath,
-    browsingMode,
-    setBrowsingMode,
     loadingEditions,
     onStartPlayback,
     isPlaybackLoading,
