@@ -314,150 +314,6 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
     };
   }, []);
   
-  if (displayEdition.format === 'audio') {
-    return (
-      <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
-        <main className="bg-surface p-6 sm:p-8 rounded-lg shadow-md transition-colors duration-300">
-          <h3 className="text-xl font-bold mb-4 text-center text-primary-text">{displayEdition.name}</h3>
-          <div className="flex flex-col gap-2">
-            {surah.ayahs.map(ayah => (
-              ayah.audio ? (
-                <div key={ayah.number} className="flex items-center gap-4 py-2 px-3 my-1 bg-surface-subtle rounded-lg">
-                  <span className="font-bold text-primary-text">الآية {ayah.numberInSurah}</span>
-                  <audio
-                    controls
-                    src={ayah.audio}
-                    className="w-full h-10"
-                    preload="metadata"
-                    title={`الاستماع للآية ${ayah.numberInSurah}`}
-                  >
-                    متصفحك لا يدعم عنصر الصوت.
-                  </audio>
-                </div>
-              ) : null
-            ))}
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  const { className: quranTextClass } = getQuranTextStyle(fontStyle, fontSize);
-
-  const handleSaveClick = (ayah: Ayah) => {
-    onSaveAyah({
-      type: 'ayah',
-      id: `${ayah.surah?.number || surah.number}:${ayah.numberInSurah}`,
-      surah: ayah.surah?.number || surah.number,
-      ayah: ayah.numberInSurah,
-      text: ayah.text || '',
-      createdAt: Date.now(),
-    });
-    setActivePopover(null);
-  };
-
-  const handleSaveReadingStop = (ayah: Ayah) => {
-    try {
-      const activeSurahNum = ayah.surah?.number || surah.number;
-      const activeSurahName = ayah.surah?.name || surah.name;
-      const activeAyahNum = ayah.numberInSurah;
-      
-      const newStop = {
-        browsingMode,
-        surahNumber: activeSurahNum,
-        surahName: activeSurahName,
-        ayahNumber: activeAyahNum,
-        pageNumber: browsingMode === 'page' ? currentPage : undefined,
-        timestamp: Date.now()
-      };
-
-      const stored = safeLocalStorage.getItem('qran_reading_stops');
-      let stops: any[] = [];
-      if (stored) {
-        stops = JSON.parse(stored);
-      }
-      
-      // Remove any existing stop for the same surah and ayah
-      stops = stops.filter(s => !(s.surahNumber === activeSurahNum && s.ayahNumber === activeAyahNum));
-      
-      // Add new stop to front, slice to max 5
-      stops.unshift(newStop);
-      stops = stops.slice(0, 50);
-      
-      safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
-    } catch (e) {
-      console.error("Failed to save reading stop", e);
-    }
-  };
-
-  const handleCopyAyah = (ayah: Ayah) => {
-    const isImlaei = fontStyle === 'imlai_1';
-    let ayahText = ayah.text || '';
-
-    if (isImlaei) {
-        const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
-        ayahText = ayahText.replace(marksToRemoveRegex, '');
-    }
-    
-    const surahName = ayah.surah?.name || surah.name;
-    const cleanSurahName = formatSurahNameForDisplay(surahName);
-    const textToCopy = `"${ayahText}" (سورة ${cleanSurahName} - الآية ${ayah.numberInSurah})`;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        setCopiedAyah(ayah.number);
-        setTimeout(() => setCopiedAyah(null), 2000);
-        setActivePopover(null);
-    });
-  };
-
-  const handleSearchByAyahText = (ayah: Ayah) => {
-    const sNum = ayah.surah?.number || surah.number;
-    const simpleSurah = simpleCleanData.find(s => s.number === sNum);
-    const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
-    const simpleTextToSearch = simpleAyah?.text;
-
-    if (simpleTextToSearch) {
-        onWordClick(simpleTextToSearch, 'quran-simple-clean', { surah: sNum, ayah: ayah.numberInSurah, wordIndex: 0 });
-    } else if (ayah.text) {
-        onWordClick(ayah.text, displayEdition.identifier, { surah: sNum, ayah: ayah.numberInSurah, wordIndex: 0 });
-    }
-    setActivePopover(null);
-  };
-  
-  const handlePlayFromAyah = (ayah: Ayah) => {
-    let ayahsWithSurahInfo: Ayah[] = [];
-    if (pageSurahs) {
-        ayahsWithSurahInfo = pageSurahs.flatMap(s => 
-            s.ayahs.map(a => ({
-                ...a,
-                surah: {
-                    number: s.number,
-                    name: s.name,
-                    englishName: s.englishName,
-                    englishNameTranslation: s.englishNameTranslation,
-                    revelationType: s.revelationType,
-                }
-            }))
-        );
-    } else {
-        ayahsWithSurahInfo = surah.ayahs.map(a => ({
-            ...a,
-            surah: {
-                number: surah.number,
-                name: surah.name,
-                englishName: surah.englishName,
-                englishNameTranslation: surah.englishNameTranslation,
-                revelationType: surah.revelationType,
-            }
-        }));
-    }
-    
-    const startIndex = ayahsWithSurahInfo.findIndex(a => a.number === ayah.number);
-    if (startIndex !== -1) {
-        onStartPlayback(ayahsWithSurahInfo, selectedAudioEdition, startIndex);
-    }
-    setActivePopover(null);
-  };
-  
   // Navigation functions using global Routing (Hash)
   const navigateToPage = (pageNum: number) => {
       window.location.hash = `#/page/${pageNum}`;
@@ -654,6 +510,150 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
       clearTimeout(timeoutId);
     };
   }, [surah.number, currentPage, browsingMode, contentToRender, pageSurahs]);
+
+  if (displayEdition.format === 'audio') {
+    return (
+      <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
+        <main className="bg-surface p-6 sm:p-8 rounded-lg shadow-md transition-colors duration-300">
+          <h3 className="text-xl font-bold mb-4 text-center text-primary-text">{displayEdition.name}</h3>
+          <div className="flex flex-col gap-2">
+            {surah.ayahs.map(ayah => (
+              ayah.audio ? (
+                <div key={ayah.number} className="flex items-center gap-4 py-2 px-3 my-1 bg-surface-subtle rounded-lg">
+                  <span className="font-bold text-primary-text">الآية {ayah.numberInSurah}</span>
+                  <audio
+                    controls
+                    src={ayah.audio}
+                    className="w-full h-10"
+                    preload="metadata"
+                    title={`الاستماع للآية ${ayah.numberInSurah}`}
+                  >
+                    متصفحك لا يدعم عنصر الصوت.
+                  </audio>
+                </div>
+              ) : null
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const { className: quranTextClass } = getQuranTextStyle(fontStyle, fontSize);
+
+  const handleSaveClick = (ayah: Ayah) => {
+    onSaveAyah({
+      type: 'ayah',
+      id: `${ayah.surah?.number || surah.number}:${ayah.numberInSurah}`,
+      surah: ayah.surah?.number || surah.number,
+      ayah: ayah.numberInSurah,
+      text: ayah.text || '',
+      createdAt: Date.now(),
+    });
+    setActivePopover(null);
+  };
+
+  const handleSaveReadingStop = (ayah: Ayah) => {
+    try {
+      const activeSurahNum = ayah.surah?.number || surah.number;
+      const activeSurahName = ayah.surah?.name || surah.name;
+      const activeAyahNum = ayah.numberInSurah;
+      
+      const newStop = {
+        browsingMode,
+        surahNumber: activeSurahNum,
+        surahName: activeSurahName,
+        ayahNumber: activeAyahNum,
+        pageNumber: browsingMode === 'page' ? currentPage : undefined,
+        timestamp: Date.now()
+      };
+
+      const stored = safeLocalStorage.getItem('qran_reading_stops');
+      let stops: any[] = [];
+      if (stored) {
+        stops = JSON.parse(stored);
+      }
+      
+      // Remove any existing stop for the same surah and ayah
+      stops = stops.filter(s => !(s.surahNumber === activeSurahNum && s.ayahNumber === activeAyahNum));
+      
+      // Add new stop to front, slice to max 5
+      stops.unshift(newStop);
+      stops = stops.slice(0, 50);
+      
+      safeLocalStorage.setItem('qran_reading_stops', JSON.stringify(stops));
+    } catch (e) {
+      console.error("Failed to save reading stop", e);
+    }
+  };
+
+  const handleCopyAyah = (ayah: Ayah) => {
+    const isImlaei = fontStyle === 'imlai_1';
+    let ayahText = ayah.text || '';
+
+    if (isImlaei) {
+        const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
+        ayahText = ayahText.replace(marksToRemoveRegex, '');
+    }
+    
+    const surahName = ayah.surah?.name || surah.name;
+    const cleanSurahName = formatSurahNameForDisplay(surahName);
+    const textToCopy = `"${ayahText}" (سورة ${cleanSurahName} - الآية ${ayah.numberInSurah})`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        setCopiedAyah(ayah.number);
+        setTimeout(() => setCopiedAyah(null), 2000);
+        setActivePopover(null);
+    });
+  };
+
+  const handleSearchByAyahText = (ayah: Ayah) => {
+    const sNum = ayah.surah?.number || surah.number;
+    const simpleSurah = simpleCleanData.find(s => s.number === sNum);
+    const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
+    const simpleTextToSearch = simpleAyah?.text;
+
+    if (simpleTextToSearch) {
+        onWordClick(simpleTextToSearch, 'quran-simple-clean', { surah: sNum, ayah: ayah.numberInSurah, wordIndex: 0 });
+    } else if (ayah.text) {
+        onWordClick(ayah.text, displayEdition.identifier, { surah: sNum, ayah: ayah.numberInSurah, wordIndex: 0 });
+    }
+    setActivePopover(null);
+  };
+  
+  const handlePlayFromAyah = (ayah: Ayah) => {
+    let ayahsWithSurahInfo: Ayah[] = [];
+    if (pageSurahs) {
+        ayahsWithSurahInfo = pageSurahs.flatMap(s => 
+            s.ayahs.map(a => ({
+                ...a,
+                surah: {
+                    number: s.number,
+                    name: s.name,
+                    englishName: s.englishName,
+                    englishNameTranslation: s.englishNameTranslation,
+                    revelationType: s.revelationType,
+                }
+            }))
+        );
+    } else {
+        ayahsWithSurahInfo = surah.ayahs.map(a => ({
+            ...a,
+            surah: {
+                number: surah.number,
+                name: surah.name,
+                englishName: surah.englishName,
+                englishNameTranslation: surah.englishNameTranslation,
+                revelationType: surah.revelationType,
+            }
+        }));
+    }
+    
+    const startIndex = ayahsWithSurahInfo.findIndex(a => a.number === ayah.number);
+    if (startIndex !== -1) {
+        onStartPlayback(ayahsWithSurahInfo, selectedAudioEdition, startIndex);
+    }
+    setActivePopover(null);
+  };
 
   return (
     <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">

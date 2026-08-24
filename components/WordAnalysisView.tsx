@@ -4,7 +4,6 @@ import { normalizeArabicText } from '../utils/text';
 import { ChartBarIcon, CheckIcon, CopyIcon, SpinnerIcon, SparklesIcon, ComputerDesktopIcon, QueueListIcon, ClearIcon, ArrowUpTrayIcon, RefreshIcon, PlusIcon } from './icons';
 import { useAiAnalysis } from '../hooks/useAiAnalysis';
 import PromptViewerModal from './analysis/PromptViewerModal';
-import ApiKeyModal from './analysis/ApiKeyModal';
 
 
 interface WordAnalysisViewProps {
@@ -68,9 +67,6 @@ const WordAnalysisView: React.FC<WordAnalysisViewProps> = ({ simpleCleanData, in
         aiResult,
         setAiResult,
         triggerAnalysis,
-        isApiKeyModalOpen,
-        setIsApiKeyModalOpen,
-        handleApiKeySave
     } = useAiAnalysis(input);
     
     // UI state
@@ -325,15 +321,6 @@ const WordAnalysisView: React.FC<WordAnalysisViewProps> = ({ simpleCleanData, in
 
     return (
         <div className="animate-fade-in w-full max-w-4xl mx-auto px-4 py-8">
-            {isApiKeyModalOpen && (
-                <ApiKeyModal
-                    onClose={() => setIsApiKeyModalOpen(false)}
-                    onSave={(key) => {
-                        handleApiKeySave(key);
-                        handleAiAnalysis(); // retry
-                    }}
-                />
-            )}
             {promptInView && <PromptViewerModal prompt={promptInView} onClose={() => setPromptInView(null)} />}
             <header className="mb-8 text-center">
                 <h1 className="text-3xl font-bold text-primary-text-strong flex items-center justify-center gap-3">

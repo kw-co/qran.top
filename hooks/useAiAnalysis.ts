@@ -1,17 +1,8 @@
 import { useState, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
-import { safeLocalStorage } from '../utils/storage';
 
 export const useAiAnalysis = (word: string) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [aiResult, setAiResult] = useState('');
-
-    const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
-
-    const handleApiKeySave = (key: string) => {
-        safeLocalStorage.setItem('qran_user_api_key', key);
-        setIsApiKeyModalOpen(false);
-    };
 
     const triggerAnalysis = async (customPrompt: string, dataString: string) => {
         if (!word) return;
@@ -19,39 +10,42 @@ export const useAiAnalysis = (word: string) => {
         setAiResult('');
 
         try {
-            // الحصول على مفتاح API من localStorage
-            let apiKey = safeLocalStorage.getItem('qran_user_api_key');
-            
-            if (!apiKey) {
-                setIsApiKeyModalOpen(true);
+            const response = await fetch('/api/ai/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    word,
+                    customPrompt,
+                    dataString,
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                if (errData.error && errData.error.includes('GEMINI_API_KEY')) {
+                    setAiResult("لم يتم تكوين مفتاح GEMINI_API_KEY على الخادم.");
+                } else {
+                    setAiResult("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.");
+                }
                 setIsProcessing(false);
                 return;
             }
-            const ai = new GoogleGenAI({ apiKey });
-            const fullContent = `
-الكلمة المراد تحليلها: "${word}"
 
-تعليمات التحليل:
-${customPrompt}
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
 
-البيانات الإحصائية المستخرجة من القرآن (المثاني):
-${dataString}
-            `;
-
-            const response = await ai.models.generateContentStream({
-                model: 'gemini-3.1-pro-preview',
-                contents: fullContent,
-            });
-
-            for await (const chunk of response) {
-                if (chunk.text) {
-                    setAiResult(prev => prev + chunk.text);
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    setAiResult(prev => prev + decoder.decode(value, { stream: true }));
                 }
             }
-
         } catch (error: any) {
             console.error("AI Error:", error);
-            setAiResult("حدث خطأ أثناء الاتصال بالذكاء الاصطناعي. يرجى التأكد من صحة مفتاح API والمحاولة مرة أخرى.");
+            setAiResult("حدث خطأ أثناء الاتصال بالخادم.");
         } finally {
             setIsProcessing(false);
         }
@@ -67,8 +61,5 @@ ${dataString}
         aiResult,
         setAiResult,
         triggerAnalysis,
-        isApiKeyModalOpen,
-        setIsApiKeyModalOpen,
-        handleApiKeySave
     };
 };

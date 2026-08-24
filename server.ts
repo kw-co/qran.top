@@ -18,6 +18,8 @@ import {
   clearAllBackendKhatmahs,
 } from './server/khatmahBackend';
 
+import { GoogleGenAI } from '@google/genai';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -44,6 +46,50 @@ async function startServer() {
     res.set('Expires', '0');
     res.set('Surrogate-Control', 'no-store');
     next();
+  });
+
+  app.post('/api/ai/analyze', async (req, res) => {
+    try {
+      const { word, customPrompt, dataString } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
+      }
+      
+      const ai = new GoogleGenAI({ apiKey });
+      const fullContent = `
+الكلمة المراد تحليلها: "${word}"
+
+تعليمات التحليل:
+${customPrompt}
+
+البيانات الإحصائية المستخرجة من القرآن (المثاني):
+${dataString}
+      `;
+
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Transfer-Encoding', 'chunked');
+
+      const response = await ai.models.generateContentStream({
+          model: 'gemini-3.1-pro-preview',
+          contents: fullContent,
+      });
+
+      for await (const chunk of response) {
+          if (chunk.text) {
+              res.write(chunk.text);
+          }
+      }
+      res.end();
+    } catch (err: any) {
+      console.error("AI Error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.' });
+      } else {
+        res.write('\n\n[Error occurred during streaming]');
+        res.end();
+      }
+    }
   });
 
   // 1. Health & Status
