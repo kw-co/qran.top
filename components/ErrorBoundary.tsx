@@ -21,6 +21,18 @@ class ErrorBoundary extends React.Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    
+    // Check if the error is related to failing to load a dynamic import chunk
+    const isChunkLoadError = error?.message?.includes('Failed to fetch dynamically imported module') || 
+                             error?.message?.includes('Importing a module script failed');
+                             
+    if (isChunkLoadError) {
+      const hasReloaded = sessionStorage.getItem('chunk_load_error_reloaded');
+      if (!hasReloaded) {
+        sessionStorage.setItem('chunk_load_error_reloaded', 'true');
+        window.location.reload();
+      }
+    }
   }
 
   public render() {
@@ -29,7 +41,7 @@ class ErrorBoundary extends React.Component<Props, State> {
         <div className="p-8 text-center bg-red-50 text-red-800 h-screen flex flex-col items-center justify-center">
           <h1 className="text-2xl font-bold mb-4">حدث خطأ غير متوقع</h1>
           <p className="mb-4">عذراً، حدثت مشكلة أثناء عرض الصفحة.</p>
-          <pre className="text-left bg-white p-4 rounded border whitespace-pre-wrap max-w-2xl text-sm overflow-auto">
+          <pre className="text-left bg-white p-4 rounded border whitespace-pre-wrap max-w-2xl text-sm overflow-auto" dir="ltr">
             {this.state.error?.toString()}
           </pre>
           <button 
@@ -37,8 +49,9 @@ class ErrorBoundary extends React.Component<Props, State> {
             onClick={() => {
                 this.setState({ hasError: false, error: null });
                 window.location.hash = '#/';
+                window.location.reload();
             }}>
-                العودة للرئيسية
+                العودة وتحديث الصفحة
           </button>
         </div>
       );
