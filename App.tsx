@@ -16,7 +16,7 @@ import SidePanel from './components/SidePanel';
 import AudioPlayerBar from './components/AudioPlayerBar';
 import Toolbox from './components/Toolbox';
 import SaveItemModal from './components/SaveItemModal';
-import UpdateNotification from './components/UpdateNotification';
+
 import { ArrowUpIcon, RefreshIcon, WifiOffIcon } from './components/icons';
 import Header from './components/Header';
 import ExternalLinkModal from './components/ExternalLinkModal';
@@ -54,11 +54,9 @@ const App: React.FC = () => {
         handleImportNotebook, updateItemNotes,
     } = useNotebook();
     
-    const { showUpdateNotification: showSWUpdate, handleUpdate: handleSWUpdate } = useServiceWorkerUpdater();
-    const { isUpdateAvailable: isAppUpdateAvailable, applyUpdate: handleAppUpdate } = { isUpdateAvailable: false, applyUpdate: () => {} };
+    useServiceWorkerUpdater();
     
-    const showUpdateNotification = showSWUpdate || isAppUpdateAvailable;
-    const handleUpdate = isAppUpdateAvailable ? handleAppUpdate : handleSWUpdate;
+    const { isUpdateAvailable: isAppUpdateAvailable, applyUpdate: handleAppUpdate } = { isUpdateAvailable: false, applyUpdate: () => {} };
     
     // --- App-level State ---
     const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -282,7 +280,7 @@ const App: React.FC = () => {
                             <ArrowUpIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                     )}
-                {showUpdateNotification && <UpdateNotification onUpdate={handleUpdate} />}
+                
             </div>
         </SettingsProvider>
     );
