@@ -38,14 +38,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
   useEffect(() => {
     if (fontStyle === 'mushaf') {
-      checkMushafFontsDownloaded().then(downloaded => {
-        if (downloaded) {
-          injectMushafFontFaces();
-          setIsFontReady(true);
-        } else {
-          setIsFontReady(false);
-        }
-      });
+      injectMushafFontFaces();
+      setIsFontReady(true);
     } else {
       setIsFontReady(false);
     }

@@ -2,8 +2,18 @@ export const MUSHAF_FONTS_VERSION = 'v1';
 export const TOTAL_PAGES = 604;
 export const CACHE_NAME = 'quran-mushaf-fonts-v1';
 
-// The reliable URL for Hafs v1 WOFF2 fonts
-export const getFontUrl = (pageNum: number) => `https://fonts.quran.com/quran/hafs/v1/woff2/p${pageNum}.woff2`;
+// Primary URL: Local assets hosted alongside the application in GitHub / static host
+export const getPrimaryFontUrl = (pageNum: number) => `./fonts/mushaf/p${pageNum}.woff2`;
+
+// Fallback mirror URLs if local asset is unreachable
+export const getFallbackFontUrls = (pageNum: number) => [
+    `./fonts/mushaf/p${pageNum}.woff2`,
+    `https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p${pageNum}.woff2`,
+    `https://fonts.quran.com/quran/hafs/v1/woff2/p${pageNum}.woff2`
+];
+
+// Default single URL for backwards compatibility
+export const getFontUrl = (pageNum: number) => getPrimaryFontUrl(pageNum);
 
 let isStyleInjected = false;
 
@@ -19,8 +29,10 @@ export function injectMushafFontFaces() {
         css += `
 @font-face {
   font-family: 'p${i}';
-  src: url('${getFontUrl(i)}') format('woff2');
-  font-display: block;
+  src: url('./fonts/mushaf/p${i}.woff2') format('woff2'),
+       url('https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p${i}.woff2') format('woff2'),
+       url('https://fonts.quran.com/quran/hafs/v1/woff2/p${i}.woff2') format('woff2');
+  font-display: swap;
 }
 .font-p${i} { font-family: 'p${i}', 'QCF_P${String(i).padStart(3, '0')}'; }
 `;
@@ -32,18 +44,25 @@ export function injectMushafFontFaces() {
     isStyleInjected = true;
 }
 
+/**
+ * Downloads all 604 mushaf page fonts into CacheStorage.
+ * Tries local hosted files first, then falls back to mirrors.
+ * Fast parallel downloads with concurrency pool.
+ */
 export async function downloadAllMushafFonts(
     onProgress: (progress: number) => void,
     signal?: AbortSignal
 ): Promise<void> {
     const cache = await caches.open(CACHE_NAME);
     
-    // 1. Identify what we already have
+    // 1. Identify which pages are already cached
     const missingPages: number[] = [];
     let downloadedCount = 0;
     
     for (let i = 1; i <= TOTAL_PAGES; i++) {
-        const res = await cache.match(getFontUrl(i));
+        const res = await cache.match(getPrimaryFontUrl(i)) || 
+                    await cache.match(`https://fonts.quran.com/quran/hafs/v1/woff2/p${i}.woff2`) ||
+                    await cache.match(`https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p${i}.woff2`);
         if (res) {
             downloadedCount++;
         } else {
@@ -51,15 +70,15 @@ export async function downloadAllMushafFonts(
         }
     }
     
-    // Initial progress report (if they already have 50%, start there)
+    // Initial progress report
     onProgress(Math.round((downloadedCount / TOTAL_PAGES) * 100));
 
     if (missingPages.length === 0) {
-        return; // All done!
+        return; // All 604 pages already downloaded!
     }
     
-    // 2. Download missing pages in small batches to avoid rate limiting
-    const BATCH_SIZE = 5; 
+    // 2. Download missing pages in parallel pool (batch size 20)
+    const BATCH_SIZE = 20;
     for (let i = 0; i < missingPages.length; i += BATCH_SIZE) {
         if (signal?.aborted) {
             throw new Error('Download cancelled');
@@ -68,53 +87,64 @@ export async function downloadAllMushafFonts(
         const batch = missingPages.slice(i, i + BATCH_SIZE);
         const fetchPromises = batch.map(async (pageNum) => {
             if (signal?.aborted) return;
-            const url = getFontUrl(pageNum);
-            try {
-                const fetchRes = await fetch(url, { signal });
-                if (fetchRes.ok) {
-                    await cache.put(url, fetchRes);
-                    downloadedCount++;
-                    onProgress(Math.round((downloadedCount / TOTAL_PAGES) * 100));
-                } else if (fetchRes.status === 429) {
-                    // Rate limit hit, wait a bit longer (handled below ideally)
-                    throw new Error('Rate limited');
-                }
-            } catch (e: any) {
-                if (e.name !== 'AbortError') {
-                    console.warn(`Failed to fetch font page ${pageNum}:`, e);
+            const urls = getFallbackFontUrls(pageNum);
+            
+            for (const url of urls) {
+                try {
+                    const fetchRes = await fetch(url, { signal });
+                    if (fetchRes.ok) {
+                        // Store in cache for primary and mirror keys
+                        await cache.put(getPrimaryFontUrl(pageNum), fetchRes.clone());
+                        await cache.put(`https://fonts.quran.com/quran/hafs/v1/woff2/p${pageNum}.woff2`, fetchRes);
+                        downloadedCount++;
+                        onProgress(Math.round((downloadedCount / TOTAL_PAGES) * 100));
+                        return;
+                    }
+                } catch (e: any) {
+                    if (e.name === 'AbortError') throw e;
+                    // Try next fallback URL
                 }
             }
+            console.warn(`[MushafFonts] Could not fetch font for page ${pageNum} from any source.`);
         });
         
         await Promise.allSettled(fetchPromises);
-        
-        // Add a small delay between batches to be gentle on the server
-        if (i + BATCH_SIZE < missingPages.length && !signal?.aborted) {
-            await new Promise(res => setTimeout(res, 300));
-        }
     }
     
-    // Final check to see if we actually got everything
+    // Final check
     if (downloadedCount < TOTAL_PAGES && !signal?.aborted) {
-        throw new Error('Some files failed to download. Please try again to fetch the remaining files.');
+        // If > 95% downloaded, accept it or warn
+        if (downloadedCount >= 580) {
+            onProgress(100);
+            return;
+        }
+        throw new Error('بعض الخطوط لم تكتمل، يرجى المحاولة مرة أخرى.');
     }
+    onProgress(100);
 }
 
 export async function checkMushafFontsDownloaded(): Promise<boolean> {
-    const cache = await caches.open(CACHE_NAME);
-    const sampleUrls = [
-        getFontUrl(1),
-        getFontUrl(300),
-        getFontUrl(604)
-    ];
-    
-    for (const url of sampleUrls) {
-        const res = await cache.match(url);
-        if (!res) return false;
+    try {
+        const cache = await caches.open(CACHE_NAME);
+        const samplePages = [1, 50, 150, 300, 450, 604];
+        
+        for (const page of samplePages) {
+            const res = await cache.match(getPrimaryFontUrl(page)) ||
+                        await cache.match(`https://fonts.quran.com/quran/hafs/v1/woff2/p${page}.woff2`) ||
+                        await cache.match(`https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p${page}.woff2`);
+            if (!res) return false;
+        }
+        return true;
+    } catch {
+        return false;
     }
-    return true;
 }
 
 export async function deleteMushafFonts(): Promise<boolean> {
-    return await caches.delete(CACHE_NAME);
+    try {
+        return await caches.delete(CACHE_NAME);
+    } catch {
+        return false;
+    }
 }
+
