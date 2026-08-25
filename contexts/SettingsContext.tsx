@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import type { FontSize, FontStyleType, QuranEdition, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat } from '../types';
+import type { FontSize, FontStyleType, QuranEdition, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat } from '../types';
 
 interface SettingsContextType {
     fontSize: FontSize;
@@ -23,8 +23,8 @@ interface SettingsContextType {
     setCopyTextFormat: (format: CopyTextFormat) => void;
     copyCitationFormat: CopyCitationFormat;
     setCopyCitationFormat: (format: CopyCitationFormat) => void;
-    copyMultiFormat: any;
-    setCopyMultiFormat: (format: any) => void;
+    copyMultiFormat: CopyMultiFormat;
+    setCopyMultiFormat: (format: CopyMultiFormat) => void;
     enableMorphology: boolean;
     setEnableMorphology: (enabled: boolean) => void;
     showBottomNavBar: boolean;

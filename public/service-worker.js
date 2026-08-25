@@ -14,7 +14,9 @@ const STATIC_FILES_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './thumbnail.svg'
+  './thumbnail.svg',
+  './icon-192x192.png',
+  './icon-512x512.png'
 ];
 
 // Install event: cache static assets and core data.

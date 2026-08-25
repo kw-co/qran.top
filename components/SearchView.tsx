@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from 'react';
 import type { Ayah, SurahData, SavedAyahItem, SavedSearchItem } from '../types';
 import { SearchIcon, ClearIcon, DocumentDuplicateIcon } from './icons';
-import { normalizeArabicText, formatSurahNameForDisplay } from '../utils/text';
+import { normalizeArabicText, formatSurahNameForDisplay, formatAyahForCopy } from '../utils/text';
 import { useSearchLogic } from '../hooks/useSearchLogic';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { ALL_AUDIO_EDITIONS } from '../data/audioEditions';
@@ -401,31 +401,35 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [onSaveAyah]);
 
   const handleCopyAyah = useCallback((ayah: Ayah) => {
-    const isImlaei = copyTextFormat === 'imlaei' || fontStyle === 'imlai_1';
     let ayahText = ayah.text || '';
+    const sNum = ayah.surah?.number;
+    const aNum = ayah.numberInSurah;
 
-    if (isImlaei) {
-        const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
-        ayahText = ayahText.replace(marksToRemoveRegex, '');
+    if (!ayahText && simpleCleanData && sNum) {
+        const foundSurah = simpleCleanData.find(s => s.number === sNum);
+        const foundAyah = foundSurah?.ayahs.find(a => a.numberInSurah === aNum);
+        if (foundAyah?.text) {
+            ayahText = foundAyah.text;
+        }
     }
 
-    const cleanSurahName = formatSurahNameForDisplay(ayah.surah?.name);
-    
-    let textToCopy = '';
-    if (copyCitationFormat === 'none') {
-        textToCopy = ayahText;
-    } else if (copyCitationFormat === 'long') {
-        textToCopy = `"${ayahText}" (سورة ${cleanSurahName} - الآية ${ayah.numberInSurah})`;
-    } else {
-        textToCopy = `${ayahText} (${cleanSurahName}- ${ayah.numberInSurah})`;
-    }
+    const surahName = ayah.surah?.name;
+    const textToCopy = formatAyahForCopy({
+        ayahText,
+        surahName,
+        surahNumber: sNum,
+        ayahNumber: aNum,
+        textFormat: copyTextFormat,
+        citationFormat: copyCitationFormat,
+        fontStyle
+    });
 
     navigator.clipboard.writeText(textToCopy).then(() => {
-        setCopiedAyah(ayah.number);
+        setCopiedAyah(ayah.number || aNum);
         setTimeout(() => setCopiedAyah(null), 2000);
         setActivePopover(null);
     });
-  }, [fontStyle]);
+  }, [copyTextFormat, copyCitationFormat, fontStyle, simpleCleanData]);
   const handleSearchByAyahText = (ayah: Ayah) => {
     const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah!.number);
     const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);

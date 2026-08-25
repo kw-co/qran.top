@@ -5,7 +5,7 @@ import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon } from 
 import { safeLocalStorage } from '../utils/storage';
 import AyahActionPopover from './AyahActionPopover';
 import AyahRenderer from './AyahRenderer';
-import { formatSurahNameForDisplay } from '../utils/text';
+import { formatSurahNameForDisplay, formatAyahForCopy, formatMultipleAyahsForCopy } from '../utils/text';
 import { QURAN_INDEX } from '../quranIndex';
 import { getQuranTextStyle } from '../utils/font';
 import { useResearchData } from '../hooks/useResearchData';
@@ -162,60 +162,27 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   const handleCopyMultiple = () => {
       if (selectedAyahs.length === 0) return;
 
-      const sortedAyahs = [...selectedAyahs].sort((a, b) => {
-          if (a.surahNum !== b.surahNum) return a.surahNum - b.surahNum;
-          return a.ayahNum - b.ayahNum;
+      const ayahsFormatted = selectedAyahs.map(a => {
+          let txt = a.text;
+          if (!txt && simpleCleanData) {
+              const foundSurah = simpleCleanData.find(s => s.number === a.surahNum);
+              const foundAyah = foundSurah?.ayahs.find(item => item.numberInSurah === a.ayahNum);
+              if (foundAyah?.text) txt = foundAyah.text;
+          }
+          return {
+              text: txt,
+              surahName: a.surahName,
+              surahNumber: a.surahNum,
+              ayahNumber: a.ayahNum
+          };
       });
 
-      let textToCopy = '';
-
-      if (copyMultiFormat === 'consecutive') {
-          // Group by Surah
-          const groupedBySurah = sortedAyahs.reduce((acc, current) => {
-              const surahName = formatSurahNameForDisplay(current.surahName);
-              if (!acc[surahName]) {
-                  acc[surahName] = [];
-              }
-              acc[surahName].push(current);
-              return acc;
-          }, {} as Record<string, typeof sortedAyahs>);
-
-          const sections: string[] = [];
-          for (const [surahName, ayahs] of Object.entries(groupedBySurah)) {
-              const formattedAyahs = ayahs.map(a => {
-                  const isImlaei = copyTextFormat === 'imlaei' || fontStyle === 'imlai_1';
-                  let ayahText = a.text || '';
-                  if (isImlaei) {
-                      const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
-                      ayahText = ayahText.replace(marksToRemoveRegex, '');
-                  }
-                  return `${ayahText} (${a.ayahNum})`;
-              }).join(' ');
-
-              // Add Surah name at the end
-              sections.push(`${formattedAyahs}\nسورة ${surahName}`);
-          }
-          textToCopy = sections.join('\n\n---\n\n');
-      } else {
-          // Individual format (default old behavior)
-          textToCopy = sortedAyahs.map(a => {
-              const isImlaei = copyTextFormat === 'imlaei' || fontStyle === 'imlai_1';
-              let ayahText = a.text || '';
-              if (isImlaei) {
-                  const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
-                  ayahText = ayahText.replace(marksToRemoveRegex, '');
-              }
-              const cleanSurahName = formatSurahNameForDisplay(a.surahName);
-              
-              if (copyCitationFormat === 'none') {
-                  return ayahText;
-              } else if (copyCitationFormat === 'long') {
-                  return `"${ayahText}" (سورة ${cleanSurahName} - الآية ${a.ayahNum})`;
-              } else {
-                  return `${ayahText} (${cleanSurahName}- ${a.ayahNum})`;
-              }
-          }).join('\n\n');
-      }
+      const textToCopy = formatMultipleAyahsForCopy(ayahsFormatted, {
+          textFormat: copyTextFormat,
+          citationFormat: copyCitationFormat,
+          multiFormat: copyMultiFormat,
+          fontStyle
+      });
 
       navigator.clipboard.writeText(textToCopy).then(() => {
           setShowMultiCopyToast(true);
@@ -610,28 +577,31 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   };
 
   const handleCopyAyah = (ayah: Ayah) => {
-    const isImlaei = copyTextFormat === 'imlaei' || fontStyle === 'imlai_1';
     let ayahText = ayah.text || '';
+    const sNum = ayah.surah?.number || surah.number;
+    const aNum = ayah.numberInSurah;
 
-    if (isImlaei) {
-        const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
-        ayahText = ayahText.replace(marksToRemoveRegex, '');
+    if (!ayahText && simpleCleanData) {
+        const foundSurah = simpleCleanData.find(s => s.number === sNum);
+        const foundAyah = foundSurah?.ayahs.find(a => a.numberInSurah === aNum);
+        if (foundAyah?.text) {
+            ayahText = foundAyah.text;
+        }
     }
     
     const surahName = ayah.surah?.name || surah.name;
-    const cleanSurahName = formatSurahNameForDisplay(surahName);
-    
-    let textToCopy = '';
-    if (copyCitationFormat === 'none') {
-        textToCopy = ayahText;
-    } else if (copyCitationFormat === 'long') {
-        textToCopy = `"${ayahText}" (سورة ${cleanSurahName} - الآية ${ayah.numberInSurah})`;
-    } else {
-        textToCopy = `${ayahText} (${cleanSurahName}- ${ayah.numberInSurah})`;
-    }
+    const textToCopy = formatAyahForCopy({
+        ayahText,
+        surahName,
+        surahNumber: sNum,
+        ayahNumber: aNum,
+        textFormat: copyTextFormat,
+        citationFormat: copyCitationFormat,
+        fontStyle
+    });
 
     navigator.clipboard.writeText(textToCopy).then(() => {
-        setCopiedAyah(ayah.number);
+        setCopiedAyah(ayah.number || aNum);
         setTimeout(() => setCopiedAyah(null), 2000);
         setActivePopover(null);
     });

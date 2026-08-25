@@ -112,9 +112,9 @@ export type MushafType = 'madinah';
 export type FontStyleType = 'imlai_1' | 'uthmani' | 'mushaf';
 export type PlaybackMode = 'continuous' | 'single' | 'selection_juz' | 'selection_surah';
 export type WordClickBehavior = 'auto' | 'direct_search' | 'show_menu';
-export type CopyTextFormat = 'imlaei' | 'current_view';
-export type CopyCitationFormat = 'short' | 'long' | 'none';
-export type CopyMultiFormat = 'consecutive' | 'separated';
+export type CopyTextFormat = 'clean' | 'tashkeel' | 'imlaei' | 'current_view';
+export type CopyCitationFormat = 'none' | 'short' | 'number_only' | 'long' | 'quran_brackets' | 'quran_brackets_with_ref';
+export type CopyMultiFormat = 'numbers_as_separators' | 'consecutive_with_surah' | 'separated' | 'plain_continuous' | 'consecutive';
 
 // --- Types for Group Khatmah (الختمة الجماعية) ---
 export interface KhatmahPart {

@@ -81,15 +81,15 @@ export const useSettings = () => {
     );
 
     const [copyTextFormat, setCopyTextFormat] = useState<CopyTextFormat>(
-        () => safeGetItem(COPY_TEXT_FORMAT_KEY, 'imlaei') as CopyTextFormat
+        () => safeGetItem(COPY_TEXT_FORMAT_KEY, 'clean') as CopyTextFormat
     );
 
     const [copyCitationFormat, setCopyCitationFormat] = useState<CopyCitationFormat>(
-        () => safeGetItem(COPY_CITATION_FORMAT_KEY, 'short') as CopyCitationFormat
+        () => safeGetItem(COPY_CITATION_FORMAT_KEY, 'none') as CopyCitationFormat
     );
 
-    const [copyMultiFormat, setCopyMultiFormat] = useState<any>(
-        () => safeGetItem(COPY_MULTI_FORMAT_KEY, 'consecutive')
+    const [copyMultiFormat, setCopyMultiFormat] = useState<CopyMultiFormat>(
+        () => safeGetItem(COPY_MULTI_FORMAT_KEY, 'numbers_as_separators') as CopyMultiFormat
     );
 
     const [showBottomNavBar, setShowBottomNavBar] = useState<boolean>(
