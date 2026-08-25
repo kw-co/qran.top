@@ -11,6 +11,7 @@ import PrivacyPolicyView from './PrivacyPolicyView';
 import AboutView from './AboutView';
 import HistoryView from './HistoryView';
 import GroupKhatmahView from './khatmiyah/GroupKhatmahView';
+import ResearchView from './ResearchView';
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -93,6 +94,7 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
         }
         if (pathParts[0] === 'about') return <AboutView />;
         if (pathParts[0] === 'privacy-policy') return <PrivacyPolicyView />;
+        if (pathParts[0] === 'research') return <ResearchView />;
         
         // Handle Page Route
         if (pathParts[0] === 'page' && pathParts[1]) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SurahReference } from '../types';
 import { formatSurahNameForDisplay } from '../utils/text';
+import { useResearchData } from '../hooks/useResearchData';
 
 interface SurahListItemProps {
   surah: SurahReference;
@@ -8,6 +9,8 @@ interface SurahListItemProps {
 
 const SurahListItem: React.FC<SurahListItemProps> = ({ surah }) => {
   const formattedName = formatSurahNameForDisplay(surah.name);
+  const researchData = useResearchData();
+  const surahResearch = researchData ? researchData[surah.number] : null;
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -32,6 +35,11 @@ const SurahListItem: React.FC<SurahListItemProps> = ({ surah }) => {
           <span className="text-md text-text-secondary font-semibold truncate block" title={formattedName}>
             {formattedName}
           </span>
+          {surahResearch && (
+            <span className="text-[10px] text-orange-600 dark:text-orange-400 truncate block mt-0.5" title={surahResearch.bookName}>
+              {surahResearch.bookName} - {surahResearch.prophet}
+            </span>
+          )}
         </div>
       </a>
     </li>

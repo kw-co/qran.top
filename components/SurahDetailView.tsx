@@ -8,6 +8,7 @@ import AyahRenderer from './AyahRenderer';
 import { formatSurahNameForDisplay } from '../utils/text';
 import { QURAN_INDEX } from '../quranIndex';
 import { getQuranTextStyle } from '../utils/font';
+import { useResearchData } from '../hooks/useResearchData';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { IslamicSectionDivider } from './IslamicDecorations';
 
@@ -28,7 +29,7 @@ interface SurahDetailViewProps {
   forcedPageNumber?: number; // Prop to enforce a specific page number
 }
 
-const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string }> = ({ surahNumber, surahName }) => {
+const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string; researchInfo?: { bookName: string, prophet: string } | null }> = ({ surahNumber, surahName, researchInfo }) => {
   const info = QURAN_INDEX.find(s => s.number === surahNumber);
   const ayahsCount = info?.numberOfAyahs || '';
   const formattedName = formatSurahNameForDisplay(surahName);
@@ -56,50 +57,63 @@ const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string }> = (
         <div className="absolute bottom-1 left-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
 
         {/* Inner Border Box */}
-        <div className="relative border border-primary/30 rounded-lg px-3 py-2 sm:px-6 sm:py-3 flex items-center justify-between gap-3 bg-surface/90 backdrop-blur-xs transition-colors duration-300">
-          
-          {/* Right Info: Surah Order in Quran */}
-          <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[110px]">
-            <span className="text-primary text-lg">۞</span>
-            <span>ترتيبها:</span>
-            <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{surahNumber}</span>
-          </div>
+        <div className="relative border border-primary/30 rounded-lg px-3 py-2 sm:px-6 sm:py-3 flex flex-col bg-surface/90 backdrop-blur-xs transition-colors duration-300">
+            <div className="flex items-center justify-between gap-3 w-full">
+                {/* Right Info: Surah Order in Quran */}
+                <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[110px]">
+                  <span className="text-primary text-lg">۞</span>
+                  <span>ترتيبها:</span>
+                  <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{surahNumber}</span>
+                </div>
+      
+                {/* Center Title Banner with Decorative Rosettes */}
+                <div className="flex-1 text-center flex items-center justify-center gap-2 sm:gap-3">
+                  <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
+                  <span className="text-primary text-xl font-serif opacity-75">﴿</span>
+                  <a 
+                    href={`#/surah/${surahNumber}`}
+                    className="inline-block transition-transform duration-200 hover:scale-105 cursor-pointer"
+                    title={`فتح سورة ${formattedName}`}
+                  >
+                    <h2 className="font-quran-title text-2.5xl sm:text-3xl font-bold text-primary-text-strong hover:text-primary transition-colors tracking-wide">
+                      {formattedName}
+                    </h2>
+                  </a>
+                  <span className="text-primary text-xl font-serif opacity-75">﴾</span>
+                  <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
+                </div>
+      
+                {/* Left Info: Ayahs Count */}
+                <div className="hidden sm:flex items-center justify-end gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[110px]">
+                  <span>آياتها:</span>
+                  <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{ayahsCount}</span>
+                  <span className="text-primary text-lg">۞</span>
+                </div>
+            </div>
 
-          {/* Center Title Banner with Decorative Rosettes */}
-          <div className="flex-1 text-center flex items-center justify-center gap-2 sm:gap-3">
-            <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
-            <span className="text-primary text-xl font-serif opacity-75">﴿</span>
-            <a 
-              href={`#/surah/${surahNumber}`}
-              className="inline-block transition-transform duration-200 hover:scale-105 cursor-pointer"
-              title={`فتح سورة ${formattedName}`}
-            >
-              <h2 className="font-quran-title text-2.5xl sm:text-3xl font-bold text-primary-text-strong hover:text-primary transition-colors tracking-wide">
-                {formattedName}
-              </h2>
-            </a>
-            <span className="text-primary text-xl font-serif opacity-75">﴾</span>
-            <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
-          </div>
+            {/* Research Data (if available) */}
+            {researchInfo && (
+                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-primary/20 w-full flex flex-col items-center justify-center text-center">
+                    <span className="text-xs sm:text-sm font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-3 py-1 rounded-full border border-orange-200 dark:border-orange-800/50 inline-block">
+                        {researchInfo.bookName}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-medium text-text-secondary mt-1.5">
+                        الرسول المخاطب: <strong className="text-text-primary font-bold">{researchInfo.prophet}</strong>
+                    </span>
+                </div>
+            )}
 
-          {/* Left Info: Ayahs Count */}
-          <div className="hidden sm:flex items-center justify-end gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[110px]">
-            <span>آياتها:</span>
-            <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{ayahsCount}</span>
-            <span className="text-primary text-lg">۞</span>
-          </div>
-        </div>
-
-        {/* Mobile Info Bar below center title on small screens */}
-        <div className="sm:hidden mt-1.5 pt-1.5 border-t border-primary/20 flex justify-between text-[12px] text-text-secondary px-3 font-medium">
-          <div className="flex items-center gap-1.5">
-            <span>ترتيبها:</span>
-            <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{surahNumber}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span>آياتها:</span>
-            <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{ayahsCount}</span>
-          </div>
+            {/* Mobile Info Bar below center title on small screens */}
+            <div className="sm:hidden mt-2 pt-2 border-t border-primary/20 flex justify-between text-[12px] text-text-secondary px-3 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <span>ترتيبها:</span>
+                  <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{surahNumber}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span>آياتها:</span>
+                  <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{ayahsCount}</span>
+                </div>
+            </div>
         </div>
       </div>
     </div>
@@ -123,6 +137,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   const [selectedAyahs, setSelectedAyahs] = useState<{surahNum: number, ayahNum: number, text: string, surahName: string}[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showMultiCopyToast, setShowMultiCopyToast] = useState(false);
+  const [showResearchModal, setShowResearchModal] = useState<{ surahNum: number, ayahNum: number } | null>(null);
   const selectedAyahKeys = useMemo(() => selectedAyahs.map(a => `${a.surahNum}:${a.ayahNum}`), [selectedAyahs]);
 
   const handleAyahSelection = (e: React.MouseEvent, surahNum: number, ayahNum: number, text: string, surahName: string) => {
@@ -222,6 +237,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
 
   // Consume Settings from Context
   const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar } = useSettingsContext();
+  const researchData = useResearchData();
 
   // Determine current page logic
   const { ayahsByPage, firstPage, lastPage, getPageForAyahNumber } = useMemo(() => {
@@ -756,7 +772,11 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
 
                                     {/* Surah Header if start of surah */}
                                     {isStartOfSurah && (
-                                        <SurahHeaderStrip surahNumber={surahSegment.number} surahName={surahSegment.name} />
+                                        <SurahHeaderStrip 
+                                            surahNumber={surahSegment.number} 
+                                            surahName={surahSegment.name} 
+                                            researchInfo={researchData ? researchData[surahSegment.number] : null}
+                                        />
                                     )}
 
                                     {/* Bismillah */}
@@ -888,6 +908,10 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
             onPlayFrom={handlePlayFromAyah}
             onSaveStop={handleSaveReadingStop}
             copiedAyah={copiedAyah}
+            onShowResearch={(surahNum, ayahNum) => {
+                setActivePopover(null);
+                setShowResearchModal({ surahNum, ayahNum });
+            }}
             onStartSelection={(ayah) => {
                 const sName = ayah.surah?.name || surah.name;
                 handleAyahSelection({ preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent, surah.number, ayah.numberInSurah, ayah.text || '', sName);
@@ -911,6 +935,55 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
                   <span className="text-xs font-bold text-white">نسخ</span>
               </button>
           </div>
+      )}
+
+      {/* Research Modal */}
+      {showResearchModal && researchData && researchData[showResearchModal.surahNum] && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowResearchModal(null)}>
+            <div className="bg-surface w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-primary/20 flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="p-6 bg-gradient-to-b from-orange-50 to-surface dark:from-orange-900/20 dark:to-surface flex flex-col items-center text-center gap-3 relative">
+                    <button onClick={() => setShowResearchModal(null)} className="absolute top-4 left-4 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                        <svg className="w-5 h-5 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center text-orange-600 dark:text-orange-400 mb-2">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-text-primary">فكرة السورة / الآية</h3>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-active border border-border-subtle text-sm">
+                        <span className="font-semibold text-text-secondary">الكتاب:</span>
+                        <span className="font-bold text-orange-600 dark:text-orange-400">{researchData[showResearchModal.surahNum].bookName}</span>
+                    </div>
+                </div>
+                <div className="p-6 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs text-text-subtle font-bold uppercase tracking-wider">الرسول المخاطب</span>
+                        <span className="text-base text-text-primary font-medium">{researchData[showResearchModal.surahNum].prophet}</span>
+                    </div>
+                    <div className="w-full h-px bg-border-subtle"></div>
+                    <div className="flex flex-col gap-2">
+                        <span className="text-xs text-text-subtle font-bold uppercase tracking-wider">الدليل و التوضيح</span>
+                        <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                            {researchData[showResearchModal.surahNum].description}
+                        </p>
+                    </div>
+                    {researchData[showResearchModal.surahNum].evidenceAyah && (
+                        <div className="mt-2 bg-primary/5 rounded-xl p-3 border border-primary/10">
+                            <span className="text-xs text-primary font-bold block mb-1">الآيات الدليلة:</span>
+                            <span className="text-sm font-mono text-text-primary font-semibold">{researchData[showResearchModal.surahNum].evidenceAyah}</span>
+                        </div>
+                    )}
+                </div>
+                <div className="p-4 bg-surface-active border-t border-border-subtle flex justify-end">
+                    <button onClick={() => setShowResearchModal(null)} className="px-6 py-2 rounded-xl bg-primary text-white font-bold hover:bg-primary-hover transition-colors shadow-sm">
+                        حسناً
+                    </button>
+                </div>
+            </div>
+        </div>
       )}
 
       {/* Toast Notification */}

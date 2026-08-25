@@ -1,7 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Ayah } from '../types';
-import { BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpeakerWaveIcon } from './icons';
+import { BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpeakerWaveIcon, LightBulbIcon } from './icons';
+import { useResearchData } from '../hooks/useResearchData';
 
 const AyahActionPopover: React.FC<{
     activePopover: { ayah: Ayah; triggerElement: HTMLElement };
@@ -14,10 +15,14 @@ const AyahActionPopover: React.FC<{
     onSaveStop?: (ayah: Ayah) => void;
     copiedAyah: number | null;
     onStartSelection?: (ayah: Ayah) => void;
-}> = ({ activePopover, onClose, onSave, onCopy, onPlayFrom, copiedAyah, onStartSelection }) => {
+    onShowResearch?: (surahNum: number, ayahNum: number) => void;
+}> = ({ activePopover, onClose, onSave, onCopy, onPlayFrom, copiedAyah, onStartSelection, onShowResearch }) => {
     
     const popoverRef = useRef<HTMLDivElement>(null);
     const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0, pointerEvents: 'none' });
+    const researchData = useResearchData();
+    const currentSurahNum = activePopover.ayah.surah?.number || 0;
+    const hasResearch = researchData ? !!researchData[currentSurahNum] : false;
 
     useLayoutEffect(() => {
         if (popoverRef.current) {
@@ -88,6 +93,21 @@ const AyahActionPopover: React.FC<{
                     <div className="hidden sm:block w-px h-5 bg-border-default"></div>
                 </>
             )}
+            
+            {hasResearch && onShowResearch && (
+                <>
+                    <button 
+                        onClick={() => { onShowResearch(currentSurahNum, activePopover.ayah.numberInSurah); }} 
+                        className="p-1.5 sm:p-2.5 rounded-xl text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-center gap-1.5 cursor-pointer font-bold" 
+                        title="فكرة هذه الآية/السورة"
+                    >
+                        <LightBulbIcon className="w-4 h-4 animate-pulse" />
+                        <span className="text-xs">تنويه</span>
+                    </button>
+                    <div className="hidden sm:block w-px h-5 bg-border-default"></div>
+                </>
+            )}
+
             <button onClick={() => { onCopy(activePopover.ayah); }} className="p-1.5 sm:p-2.5 rounded-xl text-text-subtle hover:bg-surface-hover hover:text-primary transition-colors flex items-center gap-1 cursor-pointer" title="نسخ الآية مع المرجع">
               {copiedAyah === activePopover.ayah.number ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4" />}
               <span className="text-xs font-semibold px-1">نسخ</span>

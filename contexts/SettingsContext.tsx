@@ -45,6 +45,8 @@ interface SettingsContextType {
     setIsDownloadMushafModalOpen: (open: boolean) => void;
     openDownloadMushafModal: () => void;
     closeDownloadMushafModal: () => void;
+    isResearchModeActive: boolean;
+    setIsResearchModeActive: (active: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, UserCircleIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, CheckIcon } from './icons';
+import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, UserCircleIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, CheckIcon, LightBulbIcon } from './icons';
 import { openExternalLink } from '../utils/navigation';
 import { useSettingsContext } from '../contexts/SettingsContext';
 
@@ -178,6 +178,14 @@ const SidePanel: React.FC<SidePanelProps> = ({
                                 title="سياسة الخصوصية"
                             >
                                 <ShieldCheckIcon className="w-6 h-6" />
+                            </button>
+                            <button
+                                onClick={() => { onClose(); onNavigate('#/research'); }}
+                                className={`p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/research') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
+                                aria-label="بنية المصحف الشريف"
+                                title="بنية المصحف الشريف"
+                            >
+                                <LightBulbIcon className="w-6 h-6" />
                             </button>
                             <button
                                 onClick={() => setIsDownloadMenuOpen(true)}

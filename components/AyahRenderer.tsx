@@ -4,6 +4,8 @@ import { useSettingsContext } from '../contexts/SettingsContext';
 import { fetchChapterTajweedVerses, QuranV4TajweedVerse, playSmartWordAudio } from '../services/quranApiV4';
 import WordActionPopover from './WordActionPopover';
 import WordMorphologyModal from './WordMorphologyModal';
+import { useResearchData } from '../hooks/useResearchData';
+import { LightBulbIcon } from './icons';
 
 interface AyahRendererProps {
     ayahsToRender: Ayah[];
@@ -79,6 +81,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
         fontStyle, 
         wordClickBehavior 
     } = useSettingsContext();
+    const researchData = useResearchData();
 
     const isImlaei1 = fontStyle === 'imlai_1' || displayEdition.identifier.includes('simple-clean') || displayEdition.identifier === 'quran-simple';
 
@@ -177,6 +180,10 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                 const baseText = (index === 0 && firstAyahInfo) ? firstAyahInfo.restOfAyah : ayah.text;
                 const textToDisplay = isImlaei1 ? cleanImlaiText(baseText) : baseText;
 
+                // Research Data Check
+                const ayahKey = `${surah.number}:${ayah.numberInSurah}`;
+                const matchingResearch = researchData ? Object.values(researchData).filter(r => r.evidenceAyah.includes(ayahKey)) : [];
+
                 // Find matching v4 tajweed ayah if available
                 const tajweedVerse = enableTajweed ? v4TajweedData.find(v => v.verse_number === ayah.numberInSurah) : null;
 
@@ -250,7 +257,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                     }
                                     setActivePopover({ ayah: ayah, triggerElement: e.currentTarget });
                                 }}
-                                className={`popover-trigger mx-1 select-none cursor-pointer hover:opacity-80 transition-opacity ayah-marker`}
+                                className={`popover-trigger mx-1 select-none cursor-pointer hover:opacity-80 transition-opacity ayah-marker ${matchingResearch.length > 0 ? 'text-orange-600 dark:text-orange-400 font-bold' : ''}`}
                                 aria-label={`إجراءات للآية ${ayah.numberInSurah}`}
                                 aria-haspopup="true"
                             >
