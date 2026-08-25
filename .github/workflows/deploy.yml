@@ -36,6 +36,33 @@ jobs:
 
       - name: Build
         run: |
+          mkdir -p public/fonts/mushaf
+          echo "Fetching Mushaf page fonts (1..604)..."
+          python3 -c "
+          import os, urllib.request, concurrent.futures
+          def dl(p):
+              target = f'public/fonts/mushaf/p{p}.woff2'
+              if os.path.exists(target) and os.path.getsize(target) > 1000:
+                  return
+              urls = [
+                  f'https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p{p}.woff2',
+                  f'https://fonts.quran.com/quran/hafs/v1/woff2/p{p}.woff2'
+              ]
+              for u in urls:
+                  try:
+                      req = urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'})
+                      with urllib.request.urlopen(req, timeout=10) as r:
+                          c = r.read()
+                          if len(c) > 1000:
+                              with open(target, 'wb') as f:
+                                  f.write(c)
+                              return
+                  except:
+                      pass
+          with concurrent.futures.ThreadPoolExecutor(max_workers=30) as ex:
+              list(ex.map(dl, range(1, 605)))
+          print('Fonts prepared! Count:', len(os.listdir('public/fonts/mushaf')))
+          "
           npm run build
           if [ -f "public/CNAME" ]; then cp public/CNAME dist/CNAME; fi
           if [ -f "dist/index.html" ]; then cp dist/index.html dist/404.html; fi
