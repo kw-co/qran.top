@@ -110,6 +110,7 @@ export type Collections = Record<string, Collection>;
 export type FontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 export type MushafType = 'madinah';
 export type FontStyleType = 'imlai_1' | 'uthmani' | 'mushaf';
+export type MushafFrameStyle = 'classic' | 'minimal' | 'borderless' | 'ornate';
 export type PlaybackMode = 'continuous' | 'single' | 'selection_juz' | 'selection_surah';
 export type WordClickBehavior = 'auto' | 'direct_search' | 'show_menu';
 export type CopyTextFormat = 'clean' | 'tashkeel' | 'imlaei' | 'current_view';

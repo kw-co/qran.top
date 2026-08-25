@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { QuranEdition, FontSize, FontStyleType, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat } from '../types';
+import type { QuranEdition, FontSize, FontStyleType, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat, MushafFrameStyle } from '../types';
 import { downloadAllMushafFonts, checkMushafFontsDownloaded } from '../utils/mushafFonts';
 
 const QURAN_EDITION_KEY = 'qran_app_edition';
 const FONT_SIZE_KEY = 'qran_app_font_size';
 const FONT_STYLE_KEY = 'qran_app_font_style';
 const MUSHAF_TYPE_KEY = 'qran_app_mushaf_type';
+const MUSHAF_FRAME_STYLE_KEY = 'qran_app_mushaf_frame_style';
 const AUDIO_EDITION_KEY = 'qran_app_audio_edition';
 const BROWSING_MODE_KEY = 'qran_app_browsing_mode';
 const TAJWEED_MODE_KEY = 'qran_app_enable_tajweed';
@@ -52,6 +53,11 @@ export const useSettings = () => {
 
     // Mushaf Type (only madinah)
     const [mushafType, setMushafType] = useState<MushafType>('madinah');
+
+    // Mushaf Frame Style: 'classic' | 'minimal' | 'borderless' | 'ornate'
+    const [mushafFrameStyle, setMushafFrameStyle] = useState<MushafFrameStyle>(
+        () => safeGetItem(MUSHAF_FRAME_STYLE_KEY, 'classic') as MushafFrameStyle
+    );
 
     // Default to 'quran-simple-clean' which is loaded instantly
     const [selectedEdition, setSelectedEdition] = useState<string>(
@@ -196,6 +202,7 @@ export const useSettings = () => {
     useEffect(() => { safeSetItem(SHOW_BOTTOM_NAV_BAR_KEY, String(showBottomNavBar)); }, [showBottomNavBar]);
     useEffect(() => { safeSetItem(SHOW_IMLAEI_TASHKEEL_KEY, String(showImlaeiTashkeel)); }, [showImlaeiTashkeel]);
     useEffect(() => { safeSetItem(RESEARCH_MODE_KEY, String(isResearchModeActive)); }, [isResearchModeActive]);
+    useEffect(() => { safeSetItem(MUSHAF_FRAME_STYLE_KEY, mushafFrameStyle); }, [mushafFrameStyle]);
 
     const displayEdition = useMemo(() => {
         const found = activeEditions.find(e => e.identifier === selectedEdition) || DEFAULT_EDITIONS[0];
@@ -219,6 +226,7 @@ export const useSettings = () => {
         fontSize, setFontSize,
         fontStyle, setFontStyle,
         mushafType, setMushafType,
+        mushafFrameStyle, setMushafFrameStyle,
         activeEditions,
         selectedEdition, setSelectedEdition,
         selectedAudioEdition, setSelectedAudioEdition,

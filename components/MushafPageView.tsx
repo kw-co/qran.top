@@ -31,7 +31,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 }) => {
   const [verses, setVerses] = useState<QuranV4Verse[]>([]);
   const [loading, setLoading] = useState(true);
-  const { fontStyle } = useSettingsContext();
+  const { fontStyle, mushafFrameStyle } = useSettingsContext();
   const [isFontReady, setIsFontReady] = useState(false);
 
   const totalPages = 604;
@@ -177,9 +177,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   };
 
   const showSurahName = !isFirstLineChapterHeader();
+  const frameClass = `frame-${mushafFrameStyle || 'classic'}`;
 
   return (
-    <div className="mushaf-page mx-auto w-full max-w-2xl shadow-2xl relative select-text" dir="rtl">
+    <div className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl shadow-2xl relative select-text`} dir="rtl">
       {/* Header */}
       <header className="mushaf-header flex justify-between px-4 font-bold text-amber-700/80 dark:text-amber-500/80 text-xs sm:text-sm border-b border-amber-200/50 pb-2 mb-2 sm:mb-4">
         {isOddPage ? (
@@ -274,11 +275,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             return (
               <div 
                 key={lineNum} 
-                className={`w-full flex items-center ${shouldCenter ? 'justify-center gap-2' : 'justify-between'} ${lineFontClass} leading-relaxed sm:leading-loose text-text-primary overflow-visible`}
+                className={`w-full flex items-center ${shouldCenter ? 'justify-center gap-2' : 'justify-between'} ${lineFontClass} leading-relaxed sm:leading-loose text-text-primary`}
                 style={
                   useMadinahGlyphFont 
-                    ? { padding: '0', fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', justifyContent: shouldCenter ? 'center' : 'space-between' } 
-                    : { padding: '0.1rem 0', fontSize: 'clamp(0.9rem, 4.2vw, 1.8rem)' }
+                    ? { padding: '0', fontSize: 'clamp(1.25rem, 5.2vw, 2.4rem)', justifyContent: shouldCenter ? 'center' : 'space-between' } 
+                    : { padding: '0.1rem 0', fontSize: 'clamp(0.85rem, 3.8vw, 1.75rem)' }
                 }
               >
                 {groupedItems.map(({ word, verse, pauseMarks }, idx) => {

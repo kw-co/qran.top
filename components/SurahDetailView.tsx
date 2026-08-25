@@ -203,7 +203,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   const prevHighlightAyahNumber = useRef<number | null>(null);
 
   // Consume Settings from Context
-  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar } = useSettingsContext();
+  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar, mushafFrameStyle } = useSettingsContext();
   const researchData = useResearchData();
 
   // Determine current page logic
@@ -706,7 +706,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
             />
           ) : (
              <div>
-                <div className="mushaf-page relative">
+                <div className={`mushaf-page frame-${mushafFrameStyle || 'classic'} relative`}>
                     {pageInfo?.markers.map((marker, index) => (
                          <div key={index} className={`hizb-marker ${pageInfo.side}`}>{marker.label}</div>
                     ))}
