@@ -274,23 +274,16 @@ const ReadingSettings: React.FC = () => {
                 <div className="space-y-3">
                     {FONT_STYLES.map((style) => {
                         const isSelected = fontStyle === style.id;
-                        const requiresDownload = style.requiresDownload;
-                        const isDownloaded = !requiresDownload || isMushafDownloaded;
-                        const isDownloading = requiresDownload && isDownloadingFonts;
+                        const isMushafStyle = style.id === 'mushaf';
+                        const isDownloading = isMushafStyle && isDownloadingFonts;
                         
                         return (
                             <div
                                 key={style.id}
                                 onClick={() => {
                                     if (isDownloading) return;
-                                    if (requiresDownload && !isMushafDownloaded) {
-                                        openDownloadMushafModal();
-                                        return;
-                                    }
                                     setFontStyle(style.id);
-                                    if (style.id === 'mushaf') {
-                                        setSelectedEdition('quran-uthmani-quran-academy');
-                                    } else if (style.id === 'uthmani') {
+                                    if (style.id === 'mushaf' || style.id === 'uthmani') {
                                         setSelectedEdition('quran-uthmani-quran-academy');
                                     } else {
                                         setSelectedEdition('quran-simple-clean');
@@ -301,40 +294,41 @@ const ReadingSettings: React.FC = () => {
                                         ? 'bg-surface-subtle border-border-subtle cursor-default' 
                                         : 'cursor-pointer hover:border-primary/40'
                                 } ${
-                                    isSelected && isDownloaded
+                                    isSelected
                                         ? 'bg-surface border-primary ring-2 ring-primary/20 shadow-xs'
                                         : (!isDownloading) ? 'bg-surface border-border-default' : ''
                                 }`}
                             >
                                 <div className="flex items-start gap-3 w-full">
                                     <div className={`w-5 h-5 rounded-full border flex flex-shrink-0 items-center justify-center mt-0.5 transition-colors ${
-                                        isSelected && isDownloaded ? 'border-primary bg-primary text-white' : 'border-border-default bg-surface'
+                                        isSelected ? 'border-primary bg-primary text-white' : 'border-border-default bg-surface'
                                     }`}>
-                                        {isSelected && isDownloaded && <CheckIcon className="w-3.5 h-3.5" />}
+                                        {isSelected && <CheckIcon className="w-3.5 h-3.5" />}
                                     </div>
                                     <div className="flex-1">
                                         <div className="font-bold text-base text-text-primary flex flex-wrap items-center gap-2">
                                             <span>{style.name}</span>
-                                            {requiresDownload && !isMushafDownloaded && !isDownloading && (
+                                            {isMushafStyle && !isMushafDownloaded && !isDownloading && (
                                                 <button 
                                                     type="button"
                                                     onClick={handleDownloadFonts}
-                                                    className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-primary text-white hover:bg-primary/90 active:scale-95 shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                                                    className="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                                                    title="تنزيل جميع الصفحات الـ 604 لتعمل بدون إنترنت نهائياً"
                                                 >
-                                                    <span>⬇️ تنزيل خطوط المصحف للبدء</span>
+                                                    <span>⬇️ تنزيل الكل للأوفلاين</span>
                                                 </button>
                                             )}
-                                            {requiresDownload && isMushafDownloaded && (
+                                            {isMushafStyle && isMushafDownloaded && (
                                                 <div className="flex items-center gap-1.5 mr-auto" onClick={(e) => e.stopPropagation()}>
                                                     <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
-                                                        <CheckIcon className="w-3.5 h-3.5" /> مثبتة
+                                                        <CheckIcon className="w-3.5 h-3.5" /> مثبت أوفلاين
                                                     </span>
                                                     <button
                                                         type="button"
                                                         onClick={handleDownloadFonts}
                                                         className="text-xs text-primary hover:underline"
                                                     >
-                                                        إعادة التنزيل
+                                                        تحديث
                                                     </button>
                                                     <span className="text-text-muted text-xs">•</span>
                                                     <button
@@ -368,7 +362,7 @@ const ReadingSettings: React.FC = () => {
                                                     <div 
                                                         className="bg-primary h-2 transition-all duration-300 rounded-full" 
                                                         style={{ width: `${Math.max(0, fontDownloadProgress)}%` }}
-                                                    ></div>
+                                                    />
                                                 </div>
                                             </div>
                                         )}

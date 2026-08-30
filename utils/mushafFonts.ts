@@ -32,7 +32,7 @@ export function injectMushafFontFaces() {
   src: url('./fonts/mushaf/p${i}.woff2') format('woff2'),
        url('https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p${i}.woff2') format('woff2'),
        url('https://fonts.quran.com/quran/hafs/v1/woff2/p${i}.woff2') format('woff2');
-  font-display: swap;
+  font-display: block;
 }
 .font-p${i} { font-family: 'p${i}', 'QCF_P${String(i).padStart(3, '0')}'; }
 `;
@@ -42,6 +42,39 @@ export function injectMushafFontFaces() {
     style.innerHTML = css;
     document.head.appendChild(style);
     isStyleInjected = true;
+}
+
+/**
+ * Ensures a specific page font is loaded into the browser memory before rendering,
+ * preventing FOUT (Flash of Unstyled Text / strange characters).
+ */
+export async function ensurePageFontLoaded(pageNum: number): Promise<boolean> {
+    injectMushafFontFaces();
+    if (!('fonts' in document)) return true;
+    try {
+        await (document as any).fonts.load(`16px p${pageNum}`);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Preloads adjacent page fonts (previous and next pages) in the background
+ * so that turning pages is instantaneous with zero rendering lag.
+ */
+export function preloadAdjacentPageFonts(currentPage: number) {
+    if (!('fonts' in document)) return;
+    const pagesToPreload = [
+        currentPage + 1,
+        currentPage - 1,
+        currentPage + 2,
+        currentPage - 2
+    ].filter(p => p >= 1 && p <= TOTAL_PAGES);
+
+    for (const page of pagesToPreload) {
+        (document as any).fonts.load(`16px p${page}`).catch(() => {});
+    }
 }
 
 /**

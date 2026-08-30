@@ -40,7 +40,7 @@ interface AppRouterProps {
     hizbQuarterStartMap: Map<number, number>;
     setIsSearching: (isSearching: boolean) => void;
     performSearchByAyahNumber: (num: number) => Ayah[];
-    performSearch: (query: string, isRootSearch?: boolean) => { results: Ayah[], finalSearchEdition: string, correctedQuery?: string };
+    performSearch: (query: string, isRootSearch?: boolean) => { results: Ayah[], finalSearchEdition: string, correctedQuery?: string, targetSurahNumber?: number, parsedQuery?: string };
     setIsSidePanelOpen?: (open: boolean) => void;
 }
 
@@ -71,7 +71,7 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
     }, [performSearchByAyahNumber, isSearchNumber, searchNumberVal]);
 
     const searchTextResult = React.useMemo(() => {
-        if (!isSearchPage || isSearchNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined };
+        if (!isSearchPage || isSearchNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined, targetSurahNumber: undefined as number | undefined, parsedQuery: undefined as string | undefined };
         return performSearch(searchQueryVal, isRootSearchVal);
     }, [performSearch, isSearchPage, isSearchNumber, searchQueryVal, isRootSearchVal]);
 
@@ -180,7 +180,7 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
             const query = pathParts[1] ? decodeURIComponent(pathParts[1]) : "";
             const isRootSearch = queryParams.get('mode') === 'root';
             const position = queryParams.get('s') ? { surah: parseInt(queryParams.get('s')!), ayah: parseInt(queryParams.get('a')!), wordIndex: parseInt(queryParams.get('w')!) } : undefined;
-            return <SearchView {...commonProps} query={query} results={searchTextResult.results} correctedQuery={searchTextResult.correctedQuery} autoOpenDiscussion={!!queryParams.get('from')} searchEdition={searchTextResult.finalSearchEdition} position={position} isRootSearch={isRootSearch} />;
+            return <SearchView {...commonProps} query={searchTextResult.parsedQuery || query} results={searchTextResult.results} correctedQuery={searchTextResult.correctedQuery} autoOpenDiscussion={!!queryParams.get('from')} searchEdition={searchTextResult.finalSearchEdition} position={position} isRootSearch={isRootSearch} targetSurahNumber={searchTextResult.targetSurahNumber} />;
         }
         return <HomeView surahList={QURAN_INDEX} juzList={JUZ_INDEX} hizbList={HIZB_INDEX} />;
     };

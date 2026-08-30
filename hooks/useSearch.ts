@@ -71,18 +71,47 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         return null;
     }, [surahNameMap]);
 
-    const performSearch = useCallback((query: string, isRootSearch?: boolean): { results: Ayah[], finalSearchEdition: string, correctedQuery?: string } => {
-        if (!allQuranData) return { results: [], finalSearchEdition: 'quran-simple-clean' };
+    const performSearch = useCallback((query: string, isRootSearch?: boolean): { results: Ayah[], finalSearchEdition: string, correctedQuery?: string, targetSurahNumber?: number, parsedQuery?: string } => {
+        if (!allQuranData) return { results: [], finalSearchEdition: 'quran-simple-clean', targetSurahNumber: undefined, parsedQuery: undefined };
         
-        if (isRootSearch) {
-            let matchingWords = findWordsByRoot(query, quranicWordList);
-            let correctedFromTypo: string | undefined = undefined;
+        let finalQuery = query;
+        let targetSurahNumber: number | null = null;
 
+        let syntaxMatch = query.match(/^(.*?)\s*@\s*(.+)$/);
+        if (!syntaxMatch) {
+            syntaxMatch = query.match(/^(.*?)\s+في سورة\s+(.+)$/);
+        }
+        if (!syntaxMatch) {
+            syntaxMatch = query.match(/^(.*?)\s+في سوره\s+(.+)$/);
+        }
+
+        if (syntaxMatch) {
+            const potentialQuery = syntaxMatch[1].trim();
+            let targetSurahName = normalizeArabicText(syntaxMatch[2].trim()).replace(/^سوره\s+/, '');
+            targetSurahNumber = surahNameMap.get(targetSurahName) || null;
+            
+            if (!targetSurahNumber) {
+                for (const [key, num] of surahNameMap.entries()) {
+                    if (key === targetSurahName || key.includes(targetSurahName)) {
+                        targetSurahNumber = num;
+                        break;
+                    }
+                }
+            }
+            
+            if (targetSurahNumber) {
+                finalQuery = potentialQuery;
+            }
+        }
+
+        if (isRootSearch) {
+            let matchingWords = findWordsByRoot(finalQuery, quranicWordList);
+            let correctedFromTypo: string | undefined = undefined;
             if (matchingWords.length === 0 && quranicWordList.size > 0) {
                 // Find closest word in the Quran using Levenshtein distance
                 let minDistance = 3; 
                 let bestMatch = '';
-                const normalizedQuery = normalizeArabicText(query);
+                const normalizedQuery = normalizeArabicText(finalQuery);
                 const queryLen = normalizedQuery.length;
                 if (queryLen >= 3) {
                     for (const dictWord of quranicWordList) {
@@ -102,9 +131,8 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
                     }
                 }
             }
-
             if (matchingWords.length === 0) {
-                return { results: [], finalSearchEdition: 'quran-simple-clean' };
+                return { results: [], finalSearchEdition: 'quran-simple-clean', targetSurahNumber: undefined, parsedQuery: undefined };
             }
             
             const matchingWordSet = new Set(matchingWords.map(normalizeArabicText));
@@ -119,11 +147,16 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
             });
             
             const matchingSet = new Set(matchingAyahNumbers);
-            const results = simpleSearchableAyahs.filter(ayah => matchingSet.has(ayah.number));
+            let results = simpleSearchableAyahs.filter(ayah => matchingSet.has(ayah.number));
+            if (targetSurahNumber) {
+                results = results.filter(ayah => ayah.surah.number === targetSurahNumber);
+            }
             return {
                 results,
                 finalSearchEdition: 'quran-simple-clean',
-                correctedQuery: correctedFromTypo ? matchingWords.join(' ') : matchingWords.join(' ')
+                correctedQuery: correctedFromTypo ? matchingWords.join(' ') : matchingWords.join(' '),
+                targetSurahNumber: targetSurahNumber || undefined,
+                parsedQuery: finalQuery
             };
         }
         
@@ -202,10 +235,10 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
             return { results: simpleSearchableAyahs.filter(ayah => matchingSet.has(ayah.number)), finalSearchEdition };
         };
 
-        const initialResult = executeSearch(query);
-        const normalizedQuery = normalizeArabicText(query);
+        let resultObj: { results: Ayah[], finalSearchEdition: string, correctedQuery?: string } = executeSearch(finalQuery);
+        const normalizedQuery = normalizeArabicText(finalQuery);
         const queryLen = normalizedQuery.length;
-        if (initialResult.results.length === 0 && !query.includes(' ') && !query.startsWith('"') && quranicWordList.size > 0 && queryLen >= 3) {
+        if (resultObj.results.length === 0 && !finalQuery.includes(' ') && !finalQuery.startsWith('"') && quranicWordList.size > 0 && queryLen >= 3) {
             let minDistance = 3; let bestMatch = '';
             for (const dictWord of quranicWordList) {
                 if (Math.abs(dictWord.length - queryLen) >= minDistance) continue;
@@ -215,10 +248,16 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
             }
             if (bestMatch) {
                 const correctedResult = executeSearch(bestMatch);
-                if (correctedResult.results.length > 0) return { ...correctedResult, correctedQuery: bestMatch };
+                if (correctedResult.results.length > 0) resultObj = { ...correctedResult, correctedQuery: bestMatch };
             }
         }
-        return initialResult;
+        
+        if (targetSurahNumber) {
+            resultObj.results = resultObj.results.filter(ayah => ayah.surah.number === targetSurahNumber);
+            return { ...resultObj, targetSurahNumber: targetSurahNumber || undefined, parsedQuery: finalQuery };
+        }
+
+        return { ...resultObj, targetSurahNumber: undefined, parsedQuery: finalQuery };
     }, [allQuranData, simpleSearchableAyahs, quranicWordList]);
 
     const performSearchByAyahNumber = useCallback((ayahNumber: number): Ayah[] => {

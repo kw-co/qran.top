@@ -34,6 +34,7 @@ interface SearchViewProps {
   onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
   correctedQuery?: string;
   isRootSearch?: boolean;
+  targetSurahNumber?: number;
 }
 
 export const SearchView: React.FC<SearchViewProps> = ({ 
@@ -41,7 +42,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     displayEditionData, searchEdition, position, 
     simpleCleanData, onSaveAyah, onSaveSearch, searchType = 'text',
     currentlyPlayingAyahGlobalNumber, isPlaybackLoading, onStartPlayback,
-    correctedQuery, isRootSearch = false
+    correctedQuery, isRootSearch = false, targetSurahNumber
 }) => {
   const [isEditableQuery, setIsEditableQuery] = useState(false);
   const [editableQuery, setEditableQuery] = useState(query);
@@ -462,7 +463,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
       <main className="bg-surface p-3.5 sm:p-6 md:p-8 rounded-lg shadow-md transition-colors duration-300 w-full max-w-full overflow-hidden">
         <PhraseFilters phraseFilters={phraseFilters} activePhraseFilter={activePhraseFilter} setActivePhraseFilter={setActivePhraseFilter} resultsCount={results.length}/>
         <SearchResultsHeader 
-            searchType={searchType} query={query} correctedQuery={correctedQuery}
+            searchType={searchType} query={query} correctedQuery={correctedQuery} targetSurahNumber={targetSurahNumber}
             displayedResultsCount={displayedResults.length} resultsCount={results.length}
             isSingleWordSearch={isSingleWordSearch} generalOccurrences={generalOccurrences}
             exactOccurrences={exactOccurrences} exactMatch={exactMatch} setExactMatch={setExactMatch}

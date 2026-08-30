@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchPageVersesV4, QuranV4Verse } from '../services/quranApiV4';
 import { QURAN_INDEX } from '../quranIndex';
 import { useSettingsContext } from '../contexts/SettingsContext';
-import { injectMushafFontFaces, checkMushafFontsDownloaded } from '../utils/mushafFonts';
+import { injectMushafFontFaces, ensurePageFontLoaded, preloadAdjacentPageFonts } from '../utils/mushafFonts';
 
 interface MushafPageViewProps {
   pageNumber: number;
@@ -48,12 +48,23 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
-    fetchPageVersesV4(pageNumber).then(data => {
+
+    const loadDataAndFont = async () => {
+      // Fetch verses data and ensure font for this page is ready simultaneously
+      const [data] = await Promise.all([
+        fetchPageVersesV4(pageNumber),
+        ensurePageFontLoaded(pageNumber)
+      ]);
+
       if (isMounted) {
         setVerses(data);
         setLoading(false);
+        // Preload next and previous pages in background for instant flipping
+        preloadAdjacentPageFonts(pageNumber);
       }
-    });
+    };
+
+    loadDataAndFont();
     return () => { isMounted = false; };
   }, [pageNumber]);
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Ayah } from '../../types';
 import { SparklesIcon } from '../icons';
+import { QURAN_INDEX } from '../../quranIndex';
 
 const SURAH_MUQATTAAT_MAP: Record<number, string> = {
     2: "الم",
@@ -38,6 +39,7 @@ interface SearchResultsHeaderProps {
     searchType: 'text' | 'number';
     query: string;
     correctedQuery?: string;
+    targetSurahNumber?: number;
     displayedResultsCount: number;
     resultsCount: number;
     isSingleWordSearch: boolean;
@@ -55,7 +57,7 @@ interface SearchResultsHeaderProps {
 }
 
 const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
-    searchType, query, correctedQuery, displayedResultsCount, resultsCount,
+    searchType, query, correctedQuery, targetSurahNumber, displayedResultsCount, resultsCount,
     isSingleWordSearch, generalOccurrences, exactOccurrences, exactMatch,
     setExactMatch, totalOccurrences, onJumpToOccurrence, 
     cachedAnalysisExists, onNewSearch, isRootSearch = false, onToggleRootSearch,
@@ -104,9 +106,14 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex-1 min-w-0">
                     {searchType === 'text' ? (
-                        <h3 className="text-lg font-semibold text-text-secondary">
-                            {isRootSearch ? 'نتائج البحث عن جذر الكلمة: ' : 'نتائج البحث عن الكلمات: '}
+                        <h3 className="text-lg font-semibold text-text-secondary flex items-center gap-2 flex-wrap">
+                            <span>{isRootSearch ? 'نتائج البحث عن جذر الكلمة: ' : 'نتائج البحث عن الكلمات: '}</span>
                             <span className="font-bold text-primary-text-strong">{query.replace(/"/g, '')}</span>
+                            {targetSurahNumber && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                                    في {QURAN_INDEX[targetSurahNumber - 1]?.name}
+                                </span>
+                            )}
                         </h3>
                     ) : (
                         <h3 className="text-lg font-semibold text-text-secondary">الآيات التي تحمل الرقم "<span className="font-bold text-primary-text-strong">{query}</span>"</h3>
