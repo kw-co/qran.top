@@ -40,6 +40,9 @@ interface SearchResultsHeaderProps {
     query: string;
     correctedQuery?: string;
     targetSurahNumber?: number;
+    activeMuqattaatFilter?: string;
+    setActiveMuqattaatFilter?: (val: string) => void;
+    baseResults?: Ayah[];
     displayedResultsCount: number;
     resultsCount: number;
     isSingleWordSearch: boolean;
@@ -54,28 +57,29 @@ interface SearchResultsHeaderProps {
     isRootSearch?: boolean;
     onToggleRootSearch?: (value: boolean) => void;
     displayedResults?: Ayah[];
+    showMuqattaatInSearch?: boolean;
 }
 
 const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
-    searchType, query, correctedQuery, targetSurahNumber, displayedResultsCount, resultsCount,
+    searchType, query, correctedQuery, targetSurahNumber, activeMuqattaatFilter = '', setActiveMuqattaatFilter, baseResults = [], displayedResultsCount, resultsCount,
     isSingleWordSearch, generalOccurrences, exactOccurrences, exactMatch,
     setExactMatch, totalOccurrences, onJumpToOccurrence, 
     cachedAnalysisExists, onNewSearch, isRootSearch = false, onToggleRootSearch,
-    displayedResults = []
+    displayedResults = [], showMuqattaatInSearch = true
 }) => {
     const finalQueryForChecks = correctedQuery || query;
     const shouldShowAnalysisButton = finalQueryForChecks.trim().split(/\s+/).filter(Boolean).length === 1 && searchType === 'text';
 
     const muqattaatInResults = React.useMemo(() => {
         if (!displayedResults || displayedResults.length === 0) return [];
-        const surahNumbers = Array.from(new Set(displayedResults.map(a => a.surah?.number).filter((n): n is number => !!n)));
+        const surahNumbers = Array.from(new Set(baseResults.map(a => a.surah?.number).filter((n): n is number => !!n)));
         
         // Group surah names by their unique muqatta'at letters
         const groups: Record<string, string[]> = {};
         for (const num of surahNumbers) {
             const letters = SURAH_MUQATTAAT_MAP[num];
             if (letters) {
-                const ayah = displayedResults.find(a => a.surah?.number === num);
+                const ayah = baseResults.find(a => a.surah?.number === num);
                 const surahName = ayah?.surah?.name || `سورة ${num}`;
                 if (!groups[letters]) {
                     groups[letters] = [];
@@ -112,6 +116,11 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                             {targetSurahNumber && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">
                                     في {QURAN_INDEX[targetSurahNumber - 1]?.name}
+                                </span>
+                            )}
+                            {activeMuqattaatFilter && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                                    السور التي تبدأ بـ {activeMuqattaatFilter}
                                 </span>
                             )}
                         </h3>
@@ -162,26 +171,40 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                         </div>
                     )}
                 </div>
-
-                {muqattaatInResults.length > 0 && (
+                {showMuqattaatInSearch && muqattaatInResults.length > 0 && (
                     <div className="flex items-center justify-start sm:justify-end flex-shrink-0 w-full sm:w-auto sm:max-w-[45%] bg-primary/5 dark:bg-primary/10 border border-primary/10 dark:border-primary/20 rounded-lg px-2.5 py-1.5 transition-all select-none">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-primary-text-strong font-bold justify-start sm:justify-end">
-                            {muqattaatInResults.map((item, idx) => (
+                            {muqattaatInResults.map((item, idx) => {
+                                
+                                const activeArray = activeMuqattaatFilter.split(',').map(f => f.trim()).filter(Boolean);
+                                const isActive = activeArray.includes(item.letters);
+                                return (
                                 <span key={item.letters} className="inline-flex items-center">
                                     {idx > 0 && <span className="mx-1 text-text-muted/40 font-normal">-</span>}
                                     <span 
-                                        className="cursor-help hover:text-primary transition-colors duration-150 decoration-dotted underline decoration-primary/30 underline-offset-2"
-                                        title={item.tooltip}
+                                        className={`cursor-pointer transition-all duration-150 decoration-dotted underline underline-offset-2 ${isActive ? 'text-primary font-bold decoration-primary bg-primary/10 rounded px-1' : 'hover:text-primary decoration-primary/30'}`}
+                                        title={isActive ? item.tooltip + " - انقر لإلغاء الفلترة" : item.tooltip + " - انقر للفلترة"}
+                                        onClick={() => {
+                                            if (setActiveMuqattaatFilter) {
+                                                let newFilters = activeMuqattaatFilter.split(',').map(f => f.trim()).filter(Boolean);
+                                                if (isActive) {
+                                                    newFilters = newFilters.filter(f => f !== item.letters);
+                                                } else {
+                                                    newFilters.push(item.letters);
+                                                }
+                                                setActiveMuqattaatFilter(newFilters.join(','));
+                                            }
+                                        }}
                                     >
-                                        {item.letters} <span className="text-primary/80 font-normal text-[10px]">({item.surahs.length})</span>
+                                        {item.letters} <span className={`font-normal text-[10px] ${isActive ? 'text-primary' : 'text-primary/80'}`}>({item.surahs.length})</span>
                                     </span>
                                 </span>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
             </div>
-
             {cachedAnalysisExists && shouldShowAnalysisButton && (
                 <div className="mt-3 pt-3 border-t border-border-default">
                     <a href={`#/analysis/${encodeURIComponent(finalQueryForChecks)}`} onClick={(e) => { e.preventDefault(); window.location.hash = `#/analysis/${encodeURIComponent(finalQueryForChecks)}`; }} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold rounded-md hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors">

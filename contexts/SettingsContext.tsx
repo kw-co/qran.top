@@ -31,6 +31,8 @@ interface SettingsContextType {
     setEnableMorphology: (enabled: boolean) => void;
     showBottomNavBar: boolean;
     setShowBottomNavBar: (show: boolean) => void;
+    showMuqattaatInSearch: boolean;
+    setShowMuqattaatInSearch: (show: boolean) => void;
     showImlaeiTashkeel: boolean;
     setShowImlaeiTashkeel: (show: boolean) => void;
     displayEdition: QuranEdition;

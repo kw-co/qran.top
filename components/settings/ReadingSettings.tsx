@@ -28,6 +28,7 @@ const ReadingSettings: React.FC = () => {
         wordClickBehavior, setWordClickBehavior,
         enableMorphology, setEnableMorphology,
         showBottomNavBar, setShowBottomNavBar,
+        showMuqattaatInSearch, setShowMuqattaatInSearch,
         showImlaeiTashkeel, setShowImlaeiTashkeel,
         fontDownloadProgress,
         isDownloadingFonts,
@@ -474,6 +475,33 @@ const ReadingSettings: React.FC = () => {
                     <span className="text-sm font-bold text-text-primary">
                         {showBottomNavBar ? 'مُفعل' : 'مُعطل'}
                     </span>
+                </div>
+            </div>
+
+            {/* Search Results Settings */}
+            <div className="p-6 bg-surface-subtle rounded-2xl border border-border-default space-y-4">
+                <div>
+                    <h3 className="font-bold text-lg text-text-primary">نتائج البحث</h3>
+                    <p className="text-xs text-text-muted">تخصيص الخيارات المعروضة في نتائج البحث</p>
+                </div>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="font-bold text-text-primary text-base">الأحرف النورانية (فواتح السور)</div>
+                        <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                            إظهار الأحرف النورانية (مثل: الم، طه، يس) بجانب نتائج البحث للسور التي تبدأ بها.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowMuqattaatInSearch(!showMuqattaatInSearch)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${showMuqattaatInSearch ? 'bg-primary' : 'bg-surface-hover border border-border-default'}`}
+                        aria-pressed={showMuqattaatInSearch}
+                    >
+                        <span className="sr-only">تفعيل إظهار الأحرف النورانية</span>
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showMuqattaatInSearch ? '-translate-x-6' : '-translate-x-1'}`}
+                        />
+                    </button>
                 </div>
             </div>
         </div>

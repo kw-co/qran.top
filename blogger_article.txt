@@ -1,0 +1,99 @@
+<!-- العنوان المقترح: الباحث القرآني qran.top: أضخم تطبيق ويب متكامل للقرآن (بحث ذكي، دفتر تدبر، وبدون إنترنت) -->
+
+<div dir="rtl" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.8; color: #222; font-size: 18px; max-width: 800px; margin: auto;">
+  
+  <!-- SEO Hidden Data (Schema.org) لمساعدة جوجل في فهم التطبيق وترتيبه بشكل ممتاز -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "الباحث القرآني",
+    "url": "https://qran.top/",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All",
+    "description": "تطبيق ويب متقدم للقرآن الكريم، يتميز ببحث ذكي مفصل، تحليل الكلمات، دفتر تدبر، فلاتر بحث، ختمات جماعية، وموثوقية عالية للمصادر.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <div style="text-align: center; margin-bottom: 25px;">
+    <a href="https://qran.top/" target="_blank" title="موقع الباحث القرآني qran.top">
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgtobAic9mvOoDf-RRnB5TP4UtzwchdosQqcIqjZs9Mj-WaR6cR5lwlWtDzmGP5c1PGrnRWoI4kplxFNFNRscoMX1zY4lF3DCcBACZcioxjYITuhMRG5RO_Rb0d6a9bkooVRRAtJ1JUkzBtw1ZsSyY1yPtZ4dl16toIC2hfNIvH_MSOPyQNorn_V2ptUhA1/s1600/thumbnail-smallf.png" alt="لقطة شاشة لموقع الباحث القرآني qran.top" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" />
+    </a>
+  </div>
+
+  <p style="font-size: 20px; font-weight: 600; color: #333; text-align: justify;">
+    إذا كنت تعتقد أنك رأيت كل تطبيقات القرآن المتاحة، فاستعد لتغيير رأيك تماماً. موقع <strong><a href="https://qran.top/" style="color: #2980b9; text-decoration: none;">qran.top</a></strong> ليس مجرد مصحف رقمي للقراءة، بل هو <strong>موسوعة تقنية شاملة</strong> ومحرك بحث جبار، تم بناؤه بأحدث لغات ومكتبات البرمجة وبمساعدة تقنيات <strong>Google AI Studio</strong> ليقدم لك تجربة مستخدم (UX) خيالية، سريعة، وبدون أي إعلانات.
+  </p>
+
+  <h2 style="border-bottom: 2px solid #2980b9; padding-bottom: 8px; margin-top: 35px; color: #2c3e50; font-size: 24px;">لماذا هذا التطبيق تحديداً؟ (الخلاصة السريعة):</h2>
+
+  <ul style="padding-right: 25px; margin-top: 20px; font-weight: bold; color: #444;">
+    <li style="margin-bottom: 10px;">محرك بحث خارق مع فلاتر ذكية وتصدير للنتائج.</li>
+    <li style="margin-bottom: 10px;">تحليل عميق للكلمات والجذور لفهم أدق.</li>
+    <li style="margin-bottom: 10px;">"دفتر التدبر" لتدوين ملاحظاتك وتأملاتك وحفظها.</li>
+    <li style="margin-bottom: 10px;">يعمل بدون إنترنت (Offline) بعد أول زيارة.</li>
+    <li style="margin-bottom: 10px;">مصادر موثوقة ومدققة (نص مجمع الملك فهد).</li>
+    <li style="margin-bottom: 10px;">ختمات جماعية وتلاوة تفاعلية كلمة بكلمة.</li>
+  </ul>
+
+  <hr style="border: 0; height: 1px; background: #e0e0e0; margin: 40px 0;" />
+
+  <h2 style="color: #27ae60; font-size: 26px; text-align: center; margin-bottom: 30px;">استكشف الإمكانيات المذهلة للتطبيق:</h2>
+
+  <!-- ميزة 1: البحث والفلاتر والتصدير -->
+  <section style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-right: 4px solid #c0392b; margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #c0392b; font-size: 22px;">🔍 1. محرك بحث لم ترَ مثله (فلاتر وتصدير)</h3>
+    <p style="margin-bottom: 10px;">البحث هنا يأخذك لمستوى آخر تماماً للباحثين والمهتمين:</p>
+    <ul style="padding-right: 20px; margin: 0; font-size: 17px;">
+      <li style="margin-bottom: 8px;"><strong>الفلاتر العميقة:</strong> يمكنك البحث بكلمات دقيقة، أو تصفية البحث بسورة معينة باستخدام صيغة ذكية جداً (مثال: اكتب <code>موسى في سورة الكهف</code> أو <code>موسى @الكهف</code>) وسيفهمك النظام فوراً.</li>
+      <li style="margin-bottom: 8px;"><strong>تصدير النتائج:</strong> هل أنت باحث وتجمع الآيات لرسالة ماجستير أو مقال؟ يمكنك <strong>تصدير نتائج البحث</strong> بضغطة زر لحفظها كملف ومشاركتها!</li>
+      <li style="margin-bottom: 0;"><strong>تصحيح الأخطاء:</strong> لو أخطأت بحرف أثناء سرعة الكتابة، سيتدارك النظام الخطأ ويجلب لك النتائج الصحيحة.</li>
+    </ul>
+  </section>
+
+  <!-- ميزة 2: دفتر التدبر -->
+  <section style="background: #fdfefe; padding: 20px; border-radius: 8px; border-right: 4px solid #2980b9; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+    <h3 style="margin-top: 0; color: #2980b9; font-size: 22px;">📓 2. دفتر التدبر: مساحتك الخاصة</h3>
+    <p style="margin-bottom: 0;">القرآن نزل ليتدبر. يوفر لك البرنامج <strong>"دفتر التدبر"</strong> الخاص بك. تقرأ آية استوقفتك؟ اضغط عليها واكتب خواطرك وملاحظاتك الشخصية، وسيتم حفظها بشكل آمن ومحلي على جهازك لتعود إليها متى شئت. أنت لا تقرأ فقط، أنت تتفاعل مع كتاب الله.</p>
+  </section>
+
+  <!-- ميزة 3: تحليل الكلمة والجذر -->
+  <section style="background: #fcf3cf; padding: 20px; border-radius: 8px; border-right: 4px solid #f39c12; margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #d35400; font-size: 22px;">🔬 3. الغوص في المعاني (تحليل الكلمة والجذر)</h3>
+    <p style="margin-bottom: 0;">هل تتساءل عن أصل كلمة معينة؟ يمكنك عبر البرنامج استخراج "الجذر" اللغوي لأي كلمة، ليعرض لك التطبيق <strong>كل المشتقات</strong> التي وردت في القرآن من هذا الجذر. مع تفصيل صرفي ممتاز يساعد المتدبرين وطلاب العلم اللغوي والشرعي على ربط المعاني ببعضها.</p>
+  </section>
+
+  <!-- ميزة 4: الموثوقية والمصادر -->
+  <section style="background: #e8f8f5; padding: 20px; border-radius: 8px; border-right: 4px solid #16a085; margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #16a085; font-size: 22px;">🛡️ 4. موثوقية لا مساومة فيها (النص القرآني)</h3>
+    <p style="margin-bottom: 0;">حتى يطمئن قلبك، بيانات المصحف والنصوص والتطابق الإملائي مأخوذة من <strong>أوثق المصادر الرقمية العالمية المعتمدة</strong> (المطابقة للرسم العثماني لمجمع الملك فهد لطباعة المصحف الشريف)، وتمت الاستعانة بأدق قواعد البيانات الإسلامية المفتوحة لضمان سلامة كل حرف وحركة من أي تحريف.</p>
+  </section>
+
+  <!-- ميزة 5: الختمة الجماعية والتلاوة -->
+  <section style="background: #f4ecf7; padding: 20px; border-radius: 8px; border-right: 4px solid #8e44ad; margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #8e44ad; font-size: 22px;">🤝 5. التلاوة التفاعلية والختمات الجماعية</h3>
+    <ul style="padding-right: 20px; margin: 0; font-size: 17px;">
+      <li style="margin-bottom: 8px;"><strong>تلاوة كلمة بكلمة:</strong> استمع لمقرئك المفضل، وتابع تظليل الكلمات لحظة نطقها، لتصحيح التلاوة وتسهيل الحفظ.</li>
+      <li style="margin-bottom: 0;"><strong>الختمة الجماعية:</strong> أنشئ رابطاً، شاركه مع عائلتك على الواتساب، ودع النظام ينظم توزيع الأجزاء وتتبع الإنجاز لكل فرد آلياً وبدون أي عشوائية.</li>
+    </ul>
+  </section>
+
+  <!-- ميزة 6: التكنولوجيا -->
+  <section style="background: #f2f4f4; padding: 20px; border-radius: 8px; border-right: 4px solid #34495e; margin-bottom: 25px;">
+    <h3 style="margin-top: 0; color: #2c3e50; font-size: 22px;">🚀 6. تقنية أحدث طراز.. وبدون إنترنت</h3>
+    <p style="margin-bottom: 0;">لأنه مبني بأحدث تقنيات الـ PWA، سيعمل معك التطبيق <strong>أوفلاين بالكامل</strong> بمجرد فتحك له لأول مرة. صفر تقطيع، وصفر إعلانات مزعجة. واجهة مريحة تدعم الوضع الليلي الحقيقي (Dark Mode) وتكبير الخط بكل سلاسة.</p>
+  </section>
+
+  <div style="margin-top: 40px; padding: 25px; background-color: #ecf0f1; border-radius: 8px; text-align: center; border: 1px dashed #bdc3c7;">
+    <p style="margin: 0; font-weight: bold; font-size: 22px; color: #2c3e50;">
+      ماذا تنتظر؟ اجعل هذا الكنز التقني على شاشة هاتفك الرئيسية الآن!<br/><br/>
+      👉 <a href="https://qran.top/" style="color: #c0392b; text-decoration: none; background: #fff; padding: 8px 20px; border-radius: 25px; border: 2px solid #c0392b; display: inline-block; transition: 0.3s; font-weight: bold;">انقر هنا وابدأ تجربتك مع qran.top</a>
+    </p>
+  </div>
+
+</div>

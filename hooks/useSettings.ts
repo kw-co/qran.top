@@ -18,6 +18,7 @@ const COPY_TEXT_FORMAT_KEY = 'qran_app_copy_text_format';
 const COPY_CITATION_FORMAT_KEY = 'qran_app_copy_citation_format';
 const COPY_MULTI_FORMAT_KEY = 'qran_app_copy_multi_format';
 const SHOW_BOTTOM_NAV_BAR_KEY = 'qran_app_show_bottom_nav_bar';
+const SHOW_MUQATTAAT_IN_SEARCH_KEY = 'qran_app_show_muqattaat_in_search';
 const SHOW_IMLAEI_TASHKEEL_KEY = 'qran_app_show_imlaei_tashkeel';
 const RESEARCH_MODE_KEY = 'qran_app_research_mode_active';
 
@@ -100,6 +101,9 @@ export const useSettings = () => {
 
     const [showBottomNavBar, setShowBottomNavBar] = useState<boolean>(
         () => safeGetItem(SHOW_BOTTOM_NAV_BAR_KEY, 'false') === 'true'
+    );
+    const [showMuqattaatInSearch, setShowMuqattaatInSearch] = useState<boolean>(
+        () => safeGetItem(SHOW_MUQATTAAT_IN_SEARCH_KEY, 'false') === 'true'
     );
     const [showImlaeiTashkeel, setShowImlaeiTashkeel] = useState<boolean>(
         () => safeGetItem(SHOW_IMLAEI_TASHKEEL_KEY, 'false') === 'true'
@@ -200,6 +204,7 @@ export const useSettings = () => {
     useEffect(() => { safeSetItem(COPY_CITATION_FORMAT_KEY, copyCitationFormat); }, [copyCitationFormat]);
     useEffect(() => { safeSetItem(COPY_MULTI_FORMAT_KEY, copyMultiFormat); }, [copyMultiFormat]);
     useEffect(() => { safeSetItem(SHOW_BOTTOM_NAV_BAR_KEY, String(showBottomNavBar)); }, [showBottomNavBar]);
+    useEffect(() => { safeSetItem(SHOW_MUQATTAAT_IN_SEARCH_KEY, String(showMuqattaatInSearch)); }, [showMuqattaatInSearch]);
     useEffect(() => { safeSetItem(SHOW_IMLAEI_TASHKEEL_KEY, String(showImlaeiTashkeel)); }, [showImlaeiTashkeel]);
     useEffect(() => { safeSetItem(RESEARCH_MODE_KEY, String(isResearchModeActive)); }, [isResearchModeActive]);
     useEffect(() => { safeSetItem(MUSHAF_FRAME_STYLE_KEY, mushafFrameStyle); }, [mushafFrameStyle]);
@@ -238,6 +243,7 @@ export const useSettings = () => {
         copyMultiFormat, setCopyMultiFormat,
         enableMorphology, setEnableMorphology,
         showBottomNavBar, setShowBottomNavBar,
+        showMuqattaatInSearch, setShowMuqattaatInSearch,
         showImlaeiTashkeel, setShowImlaeiTashkeel,
         displayEdition,
         fontDownloadProgress, setFontDownloadProgress,

@@ -17,7 +17,7 @@ import NeighboringWords from './search/NeighboringWords';
 interface SearchViewProps {
   query: string;
   results: Ayah[];
-  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean) => void;
+  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number) => void;
   onSearchByAyahNumber: (ayahNumber: number) => void;
   onSearchComplete: () => void;
   autoOpenDiscussion?: boolean;
@@ -35,6 +35,7 @@ interface SearchViewProps {
   correctedQuery?: string;
   isRootSearch?: boolean;
   targetSurahNumber?: number;
+  
 }
 
 export const SearchView: React.FC<SearchViewProps> = ({ 
@@ -53,7 +54,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const [wordSortMode, setWordSortMode] = useState<'match' | 'frequency' | 'quran'>('match');
   
   // Consume Settings from Context
-  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions, fontSize, copyTextFormat, copyCitationFormat } = useSettingsContext();
+  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions, fontSize, copyTextFormat, copyCitationFormat, showMuqattaatInSearch } = useSettingsContext();
 
   const itemRefs = useRef<React.RefObject<HTMLLIElement>[]>([]);
   
@@ -77,7 +78,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const {
     exactMatch, setExactMatch,
     visibleSuggestionsCount, handleShowMore,
-    activePhraseFilter, setActivePhraseFilter,
+    activePhraseFilter, setActivePhraseFilter, activeMuqattaatFilter, setActiveMuqattaatFilter,
     queryWords, isSingleWordSearch,
     phraseFilters,
     displayedResults,
@@ -463,7 +464,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
       <main className="bg-surface p-3.5 sm:p-6 md:p-8 rounded-lg shadow-md transition-colors duration-300 w-full max-w-full overflow-hidden">
         <PhraseFilters phraseFilters={phraseFilters} activePhraseFilter={activePhraseFilter} setActivePhraseFilter={setActivePhraseFilter} resultsCount={results.length}/>
         <SearchResultsHeader 
-            searchType={searchType} query={query} correctedQuery={correctedQuery} targetSurahNumber={targetSurahNumber}
+            searchType={searchType} query={query} correctedQuery={correctedQuery} targetSurahNumber={targetSurahNumber} activeMuqattaatFilter={activeMuqattaatFilter} setActiveMuqattaatFilter={setActiveMuqattaatFilter} showMuqattaatInSearch={showMuqattaatInSearch} baseResults={results}
             displayedResultsCount={displayedResults.length} resultsCount={results.length}
             isSingleWordSearch={isSingleWordSearch} generalOccurrences={generalOccurrences}
             exactOccurrences={exactOccurrences} exactMatch={exactMatch} setExactMatch={setExactMatch}
@@ -617,9 +618,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
                             const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah?.number);
                             const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
                             return (
-                               <SearchResultItem 
+                                <SearchResultItem 
                                     key={ayah.number} itemRef={itemRefs.current[index]} ayah={ayah} 
-                                    queryWords={searchType === 'number' ? [] : queryWords} onNewSearch={onNewSearch}
+                                    queryWords={searchType === 'number' ? [] : queryWords} currentQuery={query} onNewSearch={onNewSearch}
                                     displayEdition={displayEdition} displayEditionData={displayEditionData} searchEdition={searchEdition}
                                     fontSize={fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
                                     isPlaybackLoading={isPlaybackLoading}

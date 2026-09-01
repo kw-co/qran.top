@@ -3,6 +3,13 @@ import { useState, useMemo, useCallback, useEffect, useDeferredValue } from 'rea
 import type { Ayah } from '../types';
 import { normalizeArabicText, formatSurahNameForDisplay } from '../utils/text';
 import { safeLocalStorage } from '../utils/storage';
+const SURAH_MUQATTAAT_MAP: Record<number, string> = {
+    2: "الم", 3: "الم", 7: "المص", 10: "الر", 11: "الر", 12: "الر", 13: "المر", 14: "الر", 15: "الر",
+    19: "كهيعص", 20: "طه", 26: "طسم", 27: "طس", 28: "طسم", 29: "الم", 30: "الم", 31: "الم", 32: "الم",
+    36: "يس", 38: "ص", 40: "حم", 41: "حم", 42: "حم عسق", 43: "حم", 44: "حم", 45: "حم", 46: "حم",
+    50: "ق", 68: "ن"
+};
+
 
 const EXPORT_TEMPLATE_KEY = 'qran_app_export_template';
 const DEFAULT_EXPORT_TEMPLATE = `ملخص البحث عن: "{{query}}"
@@ -117,6 +124,7 @@ export const useSearchLogic = (
     const [exactMatch, setExactMatch] = useState(false);
     const [visibleSuggestionsCount, setVisibleSuggestionsCount] = useState(7);
     const [activePhraseFilter, setActivePhraseFilter] = useState('all');
+    const [activeMuqattaatFilter, setActiveMuqattaatFilter] = useState('');
 
     const queryWords = useMemo(() => {
         const finalQuery = correctedQuery || query;
@@ -208,6 +216,16 @@ export const useSearchLogic = (
         }
         
         let filtered = baseResults;
+        if (activeMuqattaatFilter && activeMuqattaatFilter.trim() !== '') {
+            const mFilters = activeMuqattaatFilter.split(',').map(f => f.trim()).filter(Boolean);
+            if (mFilters.length > 0) {
+                filtered = filtered.filter(ayah => {
+                    const ayahMuqattaat = SURAH_MUQATTAAT_MAP[ayah.surah?.number || 0];
+                    return mFilters.includes(ayahMuqattaat);
+                });
+            }
+        }
+        
         if (activePhraseFilter !== 'all' && activePhraseFilter.trim() !== '') {
             const filters = activePhraseFilter.split(',').map(f => f.trim()).filter(Boolean);
             if (filters.length > 0) {
@@ -234,7 +252,7 @@ export const useSearchLogic = (
         }
 
         return filtered;
-    }, [activeResults, queryWords, exactMatch, searchType, activePhraseFilter, isSingleWordSearch, isRootSearch]);
+    }, [activeResults, queryWords, exactMatch, searchType, activePhraseFilter, activeMuqattaatFilter, isSingleWordSearch, isRootSearch]);
 
     const occurrencesMap = useMemo(() => {
         if (searchType === 'number' || !query) return [];
@@ -371,6 +389,7 @@ export const useSearchLogic = (
         exactMatch, setExactMatch,
         visibleSuggestionsCount, handleShowMore,
         activePhraseFilter, setActivePhraseFilter,
+        activeMuqattaatFilter, setActiveMuqattaatFilter,
         queryWords, isSingleWordSearch,
         phraseFilters,
         displayedResults,

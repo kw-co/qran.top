@@ -11,7 +11,8 @@ import WordMorphologyModal from './WordMorphologyModal';
 interface SearchResultItemProps {
   ayah: Ayah;
   queryWords: string[];
-  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }) => void;
+  currentQuery?: string;
+  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number) => void;
   displayEdition: QuranEdition;
   displayEditionData: SurahData[];
   searchEdition: string;
@@ -69,11 +70,11 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
 };
 
     const SearchResultItem: React.FC<SearchResultItemProps> = ({ 
-    ayah, queryWords, onNewSearch, displayEdition, displayEditionData, 
+    ayah, queryWords, currentQuery, onNewSearch, displayEdition, displayEditionData, 
     fontSize, fontStyle, searchType, isCurrentlyPlaying, isPlaybackLoading, itemRef, pulsingWordIndex,
     resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah
 }) => {
-    const { wordClickBehavior, enableWordAudio, enableMorphology } = useSettingsContext();
+    const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch } = useSettingsContext();
 
     const [activeWordPopover, setActiveWordPopover] = useState<{
         word: string;
@@ -225,15 +226,22 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                 <div className="flex items-center gap-2 flex-shrink-0">
                     {(() => {
                         const letters = getSurahMuqattaat(displayAyah.surah?.number);
-                        if (!letters) return null;
+                        if (!letters || !showMuqattaatInSearch) return null;
                         return (
-                            <span 
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-primary/5 text-primary border border-primary/10 dark:bg-primary/10 dark:text-primary dark:border-primary/25 transition-all cursor-help select-none"
-                                title={`هذه السورة تبدأ بالأحرف النورانية: ${letters}`}
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    if (displayAyah.surah) {
+                                        const safeQuery = currentQuery ? encodeURIComponent(currentQuery) : '';
+                                        window.location.hash = `#/search/${safeQuery}?search_edition=${searchEdition || 'quran-simple-clean'}&ts=${displayAyah.surah.number}`;
+                                    }
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-primary/5 text-primary border border-primary/10 hover:bg-primary/10 active:scale-95 dark:bg-primary/10 dark:text-primary dark:border-primary/25 transition-all cursor-pointer select-none"
                             >
                                 <SparklesIcon className="w-2.5 h-2.5 flex-shrink-0 text-primary/70" />
                                 <span className="font-semibold">{letters}</span>
-                            </span>
+                            </button>
                         );
                     })()}
                     {onPlayAyah && (

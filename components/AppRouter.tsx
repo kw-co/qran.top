@@ -64,6 +64,8 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
     const searchNumberVal = isSearchNumber ? parseInt(pathParts[2], 10) : 0;
     const searchQueryVal = isSearchPage && !isSearchNumber ? (pathParts[1] ? decodeURIComponent(pathParts[1]) : "") : "";
     const isRootSearchVal = isSearchPage && !isSearchNumber && queryParams.get('mode') === 'root';
+    const targetSurahNumberVal = isSearchPage && queryParams.has('ts') ? parseInt(queryParams.get('ts')!) : undefined;
+    
 
     const searchNumberResults = React.useMemo(() => {
         if (!isSearchNumber) return [] as Ayah[];
@@ -72,8 +74,8 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
 
     const searchTextResult = React.useMemo(() => {
         if (!isSearchPage || isSearchNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined, targetSurahNumber: undefined as number | undefined, parsedQuery: undefined as string | undefined };
-        return performSearch(searchQueryVal, isRootSearchVal);
-    }, [performSearch, isSearchPage, isSearchNumber, searchQueryVal, isRootSearchVal]);
+        return performSearch(searchQueryVal, isRootSearchVal, targetSurahNumberVal);
+    }, [performSearch, isSearchPage, isSearchNumber, searchQueryVal, isRootSearchVal, targetSurahNumberVal]);
 
     const renderRoute = () => {
         if (isInitialLoading) return null;

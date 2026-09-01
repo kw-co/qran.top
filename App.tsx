@@ -98,7 +98,7 @@ const App: React.FC = () => {
     }, [isInitialLoading]);
 
     // --- Search Handlers ---
-    const handleSearch = (query: string, sourceEdition?: string, position?: { surah: number; ayah: number; wordIndex: number; }, isRootSearch?: boolean) => {
+    const handleSearch = (query: string, sourceEdition?: string, position?: { surah: number; ayah: number; wordIndex: number; }, isRootSearch?: boolean, targetSurahNumber?: number) => {
         const ayahRef = tryParseAyahReference(query);
         if (ayahRef && !position) {
             window.location.hash = `#/surah/${ayahRef.surah}?ayah=${ayahRef.ayah}`;
@@ -107,6 +107,7 @@ const App: React.FC = () => {
         setIsSearching(true);
         let url = `#/search/${encodeURIComponent(query)}?search_edition=${sourceEdition || 'quran-simple-clean'}`;
         if (isRootSearch) url += `&mode=root`;
+        if (targetSurahNumber) url += `&ts=${targetSurahNumber}`;
         if (position) url += `&s=${position.surah}&a=${position.ayah}&w=${position.wordIndex}`;
         window.location.hash = url;
     };
