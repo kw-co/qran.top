@@ -72,14 +72,14 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
 
     const muqattaatInResults = React.useMemo(() => {
         if (!displayedResults || displayedResults.length === 0) return [];
-        const surahNumbers = Array.from(new Set(baseResults.map(a => a.surah?.number).filter((n): n is number => !!n)));
+        const surahNumbers = Array.from(new Set(displayedResults.map(a => a.surah?.number).filter((n): n is number => !!n)));
         
         // Group surah names by their unique muqatta'at letters
         const groups: Record<string, string[]> = {};
         for (const num of surahNumbers) {
             const letters = SURAH_MUQATTAAT_MAP[num];
             if (letters) {
-                const ayah = baseResults.find(a => a.surah?.number === num);
+                const ayah = displayedResults.find(a => a.surah?.number === num);
                 const surahName = ayah?.surah?.name || `سورة ${num}`;
                 if (!groups[letters]) {
                     groups[letters] = [];

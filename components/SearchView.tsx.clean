@@ -1,44 +1,3 @@
-import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from 'react';
-import type { Ayah, SurahData, SavedAyahItem, SavedSearchItem } from '../types';
-import { SearchIcon, ClearIcon, DocumentDuplicateIcon } from './icons';
-import { normalizeArabicText, formatSurahNameForDisplay, formatAyahForCopy, copyToClipboard } from '../utils/text';
-import { useSearchLogic } from '../hooks/useSearchLogic';
-import { useSettingsContext } from '../contexts/SettingsContext';
-import { ALL_AUDIO_EDITIONS } from '../data/audioEditions';
-
-import AyahActionPopover from './AyahActionPopover';
-import SearchResultItem from './SearchResultItem';
-import SearchResultsHeader from './search/SearchResultsHeader';
-import SearchResultsToolbar from './search/SearchResultsToolbar';
-import PhraseFilters from './search/PhraseFilters';
-import DiacriticFilters from './search/DiacriticFilters';
-import NeighboringWords from './search/NeighboringWords';
-
-
-interface SearchViewProps {
-  query: string;
-  results: Ayah[];
-  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number) => void;
-  onSearchByAyahNumber: (ayahNumber: number) => void;
-  onSearchComplete: () => void;
-  autoOpenDiscussion?: boolean;
-  displayEditionData: SurahData[];
-  searchEdition: string;
-  position?: { surah: number, ayah: number, wordIndex: number };
-  simpleCleanData: SurahData[];
-  onSaveAyah: (item: SavedAyahItem) => void;
-  onSaveSearch: (item: SavedSearchItem) => void;
-  searchType?: 'text' | 'number';
-  // --- Props for audio playback ---
-  currentlyPlayingAyahGlobalNumber: number | null;
-  isPlaybackLoading: boolean;
-  onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
-  correctedQuery?: string;
-  isRootSearch?: boolean;
-  targetSurahNumber?: number;
-  
-}
-
 export const SearchView: React.FC<SearchViewProps> = ({ 
     query, results, onNewSearch, onSearchByAyahNumber, onSearchComplete, autoOpenDiscussion, 
     displayEditionData, searchEdition, position, 
@@ -91,7 +50,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   // Reset pagination whenever query, filters or sorting change
   useEffect(() => {
     setVisibleCount(INITIAL_BATCH_SIZE);
-  }, [query, correctedQuery, activePhraseFilter, exactMatch, searchType, isRootSearch]);
+  }, [query, correctedQuery, activePhraseFilter, exactMatch, wordSortMode, searchType, isRootSearch]);
 
   const paginatedResults = useMemo(() => {
     return displayedResults.slice(0, visibleCount);
@@ -191,13 +150,92 @@ export const SearchView: React.FC<SearchViewProps> = ({
     if (queryToSave) onSaveSearch({ type: 'search', id: queryToSave, query: queryToSave, createdAt: Date.now() });
   };
   
-  
+  const activeFiltersList = useMemo(() => {
+    if (activePhraseFilter === 'all' || !activePhraseFilter.trim()) return [];
+    return activePhraseFilter.split(',').map(s => s.trim()).filter(Boolean);
+  }, [activePhraseFilter]);
+
+  const handleToggleWordFilter = (word: string, normalized: string) => {
+    const exists = activeFiltersList.includes(normalized) || activeFiltersList.includes(word);
+    let nextFilters: string[];
+    if (exists) {
+      nextFilters = activeFiltersList.filter(f => f !== normalized && f !== word);
+    } else {
+      nextFilters = [...activeFiltersList, normalized];
+    }
+
+    if (nextFilters.length === 0) {
+      setActivePhraseFilter('all');
+    } else {
+      setActivePhraseFilter(nextFilters.join(','));
+    }
+  };
 
   const deferredResults = useDeferredValue(results);
 
   
 
-  
+  const sortedHighlightedWords = useMemo(() => {
+    if (phraseFilters.length === 0) return [];
+
+    const fullQueryNorm = normalizeArabicText((correctedQuery || query).trim());
+    const targets = Array.from(new Set([fullQueryNorm, ...queryWords.map(q => normalizeArabicText(q))])).filter(Boolean);
+
+    const getTier = (item: { normalized: string; word: string }) => {
+      const norm = item.normalized;
+
+      // Tier 0: Exact match
+      for (const target of targets) {
+        if (norm === target) return 0;
+      }
+
+      // Tier 1: Direct prefix match (word starts with query, e.g. "المفلحون" for "الم")
+      for (const target of targets) {
+        if (norm.startsWith(target)) return 1;
+      }
+
+      // Tier 2: Match after single grammatical prefix (و, ف, ب, ك, ل) e.g. "والمفلحون", "فالمستقيم"
+      const singlePrefixes = ['و', 'ف', 'ب', 'ك', 'ل'];
+      for (const target of targets) {
+        if (singlePrefixes.some(p => norm.startsWith(p) && norm.slice(p.length).startsWith(target))) {
+          return 2;
+        }
+      }
+
+      // Tier 3: Match after compound grammatical prefix (وال, فال, بال, كال, لل, وبال, وفال) e.g. "والظالمين" for "ظالم"
+      const compoundPrefixes = ['وال', 'فال', 'بال', 'كال', 'لل', 'وبال', 'وفال', 'ولل'];
+      for (const target of targets) {
+        if (compoundPrefixes.some(cp => norm.startsWith(cp) && norm.slice(cp.length).startsWith(target))) {
+          return 3;
+        }
+      }
+
+      // Tier 4: Incidental internal substring match (e.g. "والظالمون" or "العالمون" containing "الم" inside "ظالم" or "عالم")
+      return 4;
+    };
+
+    const listWithTier = highlightedWordOccurrences.map(item => ({
+      ...item,
+      tier: getTier(item)
+    }));
+
+    if (wordSortMode === 'match') {
+      return listWithTier.sort((a, b) => {
+        if (a.tier !== b.tier) return a.tier - b.tier;
+        if (b.count !== a.count) return b.count - a.count;
+        return a.order - b.order;
+      });
+    } else if (wordSortMode === 'frequency') {
+      return listWithTier.sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        if (a.tier !== b.tier) return a.tier - b.tier;
+        return a.order - b.order;
+      });
+    } else {
+      // 'quran'
+      return listWithTier.sort((a, b) => a.order - b.order);
+    }
+  }, [highlightedWordOccurrences, wordSortMode, queryWords, query, correctedQuery]);
 
   const handleCopyAll = () => {
     const textToCopy = formatResultsForExport(displayEditionData);
@@ -207,35 +245,39 @@ export const SearchView: React.FC<SearchViewProps> = ({
     });
   };
 
-    const handleCopyHighlightedWords = () => {
-    if (phraseFilters.length === 0) return;
+  const handleCopyHighlightedWords = () => {
+    if (sortedHighlightedWords.length === 0) return;
+
     let textToCopy = '';
     let toastMsg = '';
     let nextMode = 0;
 
+    const sortLabel = wordSortMode === 'match' ? 'الترتيب الذكي' : wordSortMode === 'frequency' ? 'الأكثر تكراراً' : 'ترتيب المصحف';
+
     if (copyHighlightedMode === 0) {
-        textToCopy = phraseFilters.map(w => w.phrase).join('، ');
-        toastMsg = 'تم النسخ: الكلمات فقط';
+        // Mode 0: Copy words only
+        textToCopy = sortedHighlightedWords.map(w => w.word).join('، ');
+        toastMsg = `تم النسخ: الكلمات فقط (${sortLabel})`;
         nextMode = 1;
     } else {
-        textToCopy = phraseFilters.map(w => {
+        // Mode 1: Copy words with repetition count
+        textToCopy = sortedHighlightedWords.map(w => {
             const timesStr = w.count === 1 ? 'مرة' : w.count === 2 ? 'مرتان' : w.count <= 10 ? 'مرات' : 'مرة';
-            return `${w.phrase} (${w.count} ${timesStr})`;
+            return `${w.word} (${w.count} ${timesStr})`;
         }).join('، ');
-        toastMsg = 'تم النسخ: الكلمات + عدد التكرار';
+        toastMsg = `تم النسخ: الكلمات + عدد التكرار (${sortLabel})`;
         nextMode = 0;
     }
 
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(textToCopy);
-    }
-    
-    setCopyHighlightedMode(nextMode);
-    setCopyHighlightedToast(toastMsg);
-    setIsHighlightedCopied(true);
-    setTimeout(() => {
-        setIsHighlightedCopied(false);
-    }, 2500);
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        setIsHighlightedCopied(true);
+        setCopyHighlightedToast(toastMsg);
+        setCopyHighlightedMode(nextMode);
+        setTimeout(() => {
+            setIsHighlightedCopied(false);
+            setCopyHighlightedToast('');
+        }, 2500);
+    });
   };
 
   const handleDownloadAll = () => {
