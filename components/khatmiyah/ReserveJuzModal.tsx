@@ -90,9 +90,9 @@ const ReserveJuzModal: React.FC<ReserveJuzModalProps> = ({ onClose, onReserve, j
               value={name}
               onChange={e => setName(e.target.value)}
               required
-              autoFocus
+              
               placeholder="اكتب اسمك أو كنيتك (سيظهر للجميع)"
-              className="w-full p-3 border rounded-xl bg-surface border-border-default text-text-primary text-base focus:border-primary outline-none transition-colors"
+              className="w-full p-3 border rounded-xl bg-surface select-auto touch-auto border-border-default text-text-primary text-base focus:border-primary outline-none transition-colors"
             />
             <p className="mt-1 text-xs text-text-muted">
               سيتم حجز الجزء باسمك فوراً ويظهر لجميع المشاركين في نفس اللحظة.

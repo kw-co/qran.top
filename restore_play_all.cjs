@@ -1,4 +1,12 @@
-import React from 'react';
+const fs = require('fs');
+let content = fs.readFileSync('components/search/SearchResultsToolbar.tsx', 'utf8');
+
+// The toolbar should have: Play All, Save Search, Copy All, Download All.
+// User wants Play All back, but simple, like a play button icon with text.
+// No reciter selector.
+// Make toolbar wider and simpler.
+
+content = `import React from 'react';
 import type { QuranEdition } from '../../types';
 import { BookmarkIcon, DocumentDuplicateIcon, DownloadIcon, CheckIcon, PlayIcon, SpinnerIcon } from '../icons';
 
@@ -59,3 +67,6 @@ const SearchResultsToolbar: React.FC<SearchResultsToolbarProps> = ({
 };
 
 export default React.memo(SearchResultsToolbar);
+`;
+
+fs.writeFileSync('components/search/SearchResultsToolbar.tsx', content);

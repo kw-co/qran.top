@@ -61,7 +61,7 @@ const JoinKhatmahModal: React.FC<JoinKhatmahModalProps> = ({ onClose, onJoin }) 
             onChange={e => setInputVal(e.target.value)}
             placeholder="مثال: KHT-2026"
             required
-            autoFocus
+            
             className="w-full p-3.5 text-lg sm:text-xl font-mono tracking-wider text-center border rounded-2xl bg-surface border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary"
           />
           <p className="text-xs text-text-muted text-center">
