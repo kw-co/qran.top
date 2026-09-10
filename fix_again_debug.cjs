@@ -1,0 +1,10 @@
+const fs = require('fs');
+console.log("Reading...");
+let imports = fs.readFileSync('components/SearchView.tsx.imports', 'utf8');
+let body = fs.readFileSync('components/SearchView.tsx.clean', 'utf8');
+console.log("Read sizes:", imports.length, body.length);
+imports = imports.replace(/^t\';/, "import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from 'react';\n");
+let newContent = imports + body;
+console.log("Combined size:", newContent.length);
+fs.writeFileSync('components/SearchView.tsx', newContent);
+console.log("Done");

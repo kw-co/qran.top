@@ -1,0 +1,448 @@
+import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from 'react';
+import type { Ayah, SurahData, SavedAyahItem, SavedSearchItem } from '../types';
+import { SearchIcon, ClearIcon, DocumentDuplicateIcon } from './icons';
+import { normalizeArabicText, formatSurahNameForDisplay, formatAyahForCopy, copyToClipboard } from '../utils/text';
+import { useSearchLogic } from '../hooks/useSearchLogic';
+import { useSettingsContext } from '../contexts/SettingsContext';
+import { ALL_AUDIO_EDITIONS } from '../data/audioEditions';
+
+import AyahActionPopover from './AyahActionPopover';
+import SearchResultItem from './SearchResultItem';
+import SearchResultsHeader from './search/SearchResultsHeader';
+import SearchResultsToolbar from './search/SearchResultsToolbar';
+import PhraseFilters from './search/PhraseFilters';
+import DiacriticFilters from './search/DiacriticFilters';
+import NeighboringWords from './search/NeighboringWords';
+
+
+interface SearchViewProps {
+  query: string;
+  results: Ayah[];
+  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number) => void;
+  onSearchByAyahNumber: (ayahNumber: number) => void;
+  onSearchComplete: () => void;
+  autoOpenDiscussion?: boolean;
+  displayEditionData: SurahData[];
+  searchEdition: string;
+  position?: { surah: number, ayah: number, wordIndex: number };
+  simpleCleanData: SurahData[];
+  onSaveAyah: (item: SavedAyahItem) => void;
+  onSaveSearch: (item: SavedSearchItem) => void;
+  searchType?: 'text' | 'number';
+  // --- Props for audio playback ---
+  currentlyPlayingAyahGlobalNumber: number | null;
+  isPlaybackLoading: boolean;
+  onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
+  correctedQuery?: string;
+  isRootSearch?: boolean;
+  targetSurahNumber?: number;
+  
+}
+
+export const SearchView: React.FC<SearchViewProps> = ({ 
+    query, results, onNewSearch, onSearchByAyahNumber, onSearchComplete, autoOpenDiscussion, 
+    displayEditionData, searchEdition, position, 
+    simpleCleanData, onSaveAyah, onSaveSearch, searchType = 'text',
+    currentlyPlayingAyahGlobalNumber, isPlaybackLoading, onStartPlayback,
+    correctedQuery, isRootSearch = false, targetSurahNumber
+}) => {
+  const [isEditableQuery, setIsEditableQuery] = useState(false);
+  const [editableQuery, setEditableQuery] = useState(query);
+  const [isAllCopied, setIsAllCopied] = useState(false);
+  const [isHighlightedCopied, setIsHighlightedCopied] = useState(false);
+  const [copyHighlightedMode, setCopyHighlightedMode] = useState<number>(0);
+  const [copyHighlightedToast, setCopyHighlightedToast] = useState<string>('');
+  
+  // Consume Settings from Context
+  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions, fontSize, copyTextFormat, copyCitationFormat, showMuqattaatInSearch } = useSettingsContext();
+
+  const itemRefs = useRef<React.RefObject<HTMLLIElement>[]>([]);
+  
+  const [wordPopoverState, setWordPopoverState] = useState<{
+    resultIndex: number;
+    simpleText: string;
+    triggerElement: HTMLElement;
+  } | null>(null);
+  const wordPopoverRef = useRef<HTMLDivElement>(null);
+
+  const [activePopover, setActivePopover] = useState<{ ayah: Ayah; triggerElement: HTMLElement } | null>(null);
+  const [copiedAyah, setCopiedAyah] = useState<number | null>(null);
+  const [cachedAnalysisExists, setCachedAnalysisExists] = useState(false);
+  const [pulsingWord, setPulsingWord] = useState<{ itemIndex: number; wordIndex: number } | null>(null);
+
+  // Pagination / Batching for super-fast DOM rendering on frequent queries (like "الله")
+  const INITIAL_BATCH_SIZE = 30;
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_BATCH_SIZE);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+
+  const {
+    exactMatch, setExactMatch,
+    visibleSuggestionsCount, handleShowMore,
+    activePhraseFilter, setActivePhraseFilter, activeMuqattaatFilter, setActiveMuqattaatFilter, activeDiacriticFilter, setActiveDiacriticFilter, diacriticVariants,
+    queryWords, isSingleWordSearch,
+    phraseFilters,
+    displayedResults,
+    occurrencesMap, totalOccurrences,
+    generalOccurrences, exactOccurrences,
+    neighboringWords,
+    formatResultsForExport,
+  } = useSearchLogic(query, correctedQuery, results, searchType as 'text' | 'number', simpleCleanData, isRootSearch, displayEditionData);
+
+  // Reset pagination whenever query, filters or sorting change
+  useEffect(() => {
+    setVisibleCount(INITIAL_BATCH_SIZE);
+  }, [query, correctedQuery, activePhraseFilter, exactMatch, searchType, isRootSearch]);
+
+  const paginatedResults = useMemo(() => {
+    return displayedResults.slice(0, visibleCount);
+  }, [displayedResults, visibleCount]);
+
+  // Infinite scroll trigger via IntersectionObserver
+  useEffect(() => {
+    if (visibleCount >= displayedResults.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => Math.min(prev + 40, displayedResults.length));
+        }
+      },
+      { rootMargin: '300px' }
+    );
+
+    const currentSentinel = loadMoreSentinelRef.current;
+    if (currentSentinel) observer.observe(currentSentinel);
+
+    return () => {
+      if (currentSentinel) observer.unobserve(currentSentinel);
+    };
+  }, [visibleCount, displayedResults.length]);
+
+  const normalizedQueryForDiscussion = useMemo(() => {
+    if (searchType === 'number') return `topic:ayah-number:${query}`;
+    return normalizeArabicText(correctedQuery || query);
+  }, [query, correctedQuery, searchType]);
+
+  useEffect(() => { setEditableQuery(query); }, [query]);
+  useEffect(() => { onSearchComplete(); }, [results, onSearchComplete]);
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (wordPopoverRef.current && !wordPopoverRef.current.contains(event.target as Node)) {
+            if (!(event.target as HTMLElement).closest('.word-trigger')) {
+                setWordPopoverState(null);
+            }
+        }
+        if (!(event.target as HTMLElement).closest('.popover-trigger, .popover-content')) {
+            setActivePopover(null);
+        }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    setCachedAnalysisExists(false);
+  }, [query, correctedQuery, searchType]);
+
+  itemRefs.current = displayedResults.map((_, i) => itemRefs.current[i] ?? React.createRef());
+
+  useEffect(() => {
+    if (currentlyPlayingAyahGlobalNumber) {
+        const playingIndex = displayedResults.findIndex(ayah => ayah.number === currentlyPlayingAyahGlobalNumber);
+        if (playingIndex !== -1) {
+            if (playingIndex >= visibleCount) {
+                setVisibleCount(playingIndex + 20);
+            }
+            setTimeout(() => {
+                if (itemRefs.current[playingIndex]?.current) {
+                    itemRefs.current[playingIndex].current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+    }
+  }, [currentlyPlayingAyahGlobalNumber, displayedResults, visibleCount]);
+
+  const handleJumpToOccurrence = (target: number) => {
+    const occurrence = occurrencesMap[target - 1];
+    if (occurrence) {
+        if (occurrence.itemIndex >= visibleCount) {
+            setVisibleCount(occurrence.itemIndex + 20);
+        }
+        setTimeout(() => {
+            if (itemRefs.current[occurrence.itemIndex]?.current) {
+                const element = itemRefs.current[occurrence.itemIndex].current;
+                element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setPulsingWord({ itemIndex: occurrence.itemIndex, wordIndex: occurrence.wordIndex });
+                setTimeout(() => setPulsingWord(null), 3000);
+            }
+        }, 100);
+    }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedQuery = editableQuery.trim();
+    if (trimmedQuery && trimmedQuery !== query) onNewSearch(trimmedQuery, undefined, undefined, isRootSearch);
+  };
+
+  const handleSaveSearch = () => {
+    const queryToSave = correctedQuery || query;
+    if (queryToSave) onSaveSearch({ type: 'search', id: queryToSave, query: queryToSave, createdAt: Date.now() });
+  };
+  
+  
+
+  const deferredResults = useDeferredValue(results);
+
+  
+
+  
+
+  const handleCopyAll = () => {
+    const textToCopy = formatResultsForExport(displayEditionData);
+    if (textToCopy) navigator.clipboard.writeText(textToCopy).then(() => {
+        setIsAllCopied(true);
+        setTimeout(() => setIsAllCopied(false), 2500);
+    });
+  };
+
+    const handleCopyHighlightedWords = () => {
+    if (phraseFilters.length === 0) return;
+    let textToCopy = '';
+    let toastMsg = '';
+    let nextMode = 0;
+
+    if (copyHighlightedMode === 0) {
+        textToCopy = phraseFilters.map(w => w.phrase).join('، ');
+        toastMsg = 'تم النسخ: الكلمات فقط';
+        nextMode = 1;
+    } else {
+        textToCopy = phraseFilters.map(w => {
+            const timesStr = w.count === 1 ? 'مرة' : w.count === 2 ? 'مرتان' : w.count <= 10 ? 'مرات' : 'مرة';
+            return `${w.phrase} (${w.count} ${timesStr})`;
+        }).join('، ');
+        toastMsg = 'تم النسخ: الكلمات + عدد التكرار';
+        nextMode = 0;
+    }
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(textToCopy);
+    }
+    
+    setCopyHighlightedMode(nextMode);
+    setCopyHighlightedToast(toastMsg);
+    setIsHighlightedCopied(true);
+    setTimeout(() => {
+        setIsHighlightedCopied(false);
+    }, 2500);
+  };
+
+  const handleDownloadAll = () => {
+    const textToDownload = formatResultsForExport(displayEditionData);
+    if (textToDownload) {
+        const blob = new Blob([textToDownload], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const safeQuery = (correctedQuery || query).replace(/[^a-zA-Z0-9-ء-ي ]/g, "").trim() || 'results';
+        link.download = `qran-top-search-${safeQuery}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    }
+  };
+  
+  const handlePlayAll = () => {
+    if (displayedResults.length > 0) onStartPlayback(displayedResults, selectedAudioEdition);
+  };
+
+  const handlePlaySingleAyah = useCallback((index: number) => {
+    if (displayedResults.length > 0) {
+      onStartPlayback(displayedResults, selectedAudioEdition, index);
+    }
+  }, [displayedResults, onStartPlayback, selectedAudioEdition]);
+
+  // --- Ayah Action Handlers ---
+  const handleUthmaniWordClick = useCallback((e: React.MouseEvent<HTMLButtonElement>, resultIndex: number, simpleAyahText: string) => {
+    setWordPopoverState(prev => prev?.resultIndex === resultIndex ? null : { resultIndex, simpleText: simpleAyahText, triggerElement: e.currentTarget });
+  }, []);
+
+  const handleSaveClick = useCallback((ayah: Ayah) => {
+    onSaveAyah({ type: 'ayah', id: `${ayah.surah!.number}:${ayah.numberInSurah}`, surah: ayah.surah!.number, ayah: ayah.numberInSurah, text: ayah.text || '', createdAt: Date.now() });
+    setActivePopover(null);
+  }, [onSaveAyah]);
+
+  const handleCopyAyah = useCallback((ayah: Ayah) => {
+    let ayahText = ayah.text || '';
+    const sNum = ayah.surah?.number;
+    const aNum = ayah.numberInSurah;
+
+    if (!ayahText && simpleCleanData && sNum) {
+        const foundSurah = simpleCleanData.find(s => s.number === sNum);
+        const foundAyah = foundSurah?.ayahs.find(a => a.numberInSurah === aNum);
+        if (foundAyah?.text) {
+            ayahText = foundAyah.text;
+        }
+    }
+
+    const surahName = ayah.surah?.name;
+    const textToCopy = formatAyahForCopy({
+        ayahText,
+        surahName,
+        surahNumber: sNum,
+        ayahNumber: aNum,
+        textFormat: copyTextFormat,
+        citationFormat: copyCitationFormat,
+        fontStyle
+    });
+
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        setCopiedAyah(ayah.number || aNum);
+        setTimeout(() => setCopiedAyah(null), 2000);
+        setActivePopover(null);
+    });
+  }, [copyTextFormat, copyCitationFormat, fontStyle, simpleCleanData]);
+  const handleSearchByAyahText = (ayah: Ayah) => {
+    const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah!.number);
+    const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
+    if (simpleAyah?.text) onNewSearch(simpleAyah.text, 'quran-simple-clean', { surah: ayah.surah!.number, ayah: ayah.numberInSurah, wordIndex: 0 });
+    else if (ayah.text) onNewSearch(ayah.text, displayEdition.identifier, { surah: ayah.surah!.number, ayah: ayah.numberInSurah, wordIndex: 0 });
+    setActivePopover(null);
+  };
+  const handlePlayFromAyah = (ayah: Ayah) => {
+    const listToPlay = displayedResults.length > 0 ? displayedResults : results;
+    let startIndex = listToPlay.findIndex(a => 
+      a.number === ayah.number || 
+      (a.surah?.number === ayah.surah?.number && a.numberInSurah === ayah.numberInSurah)
+    );
+    if (startIndex !== -1) {
+      onStartPlayback(listToPlay, selectedAudioEdition, startIndex);
+    } else {
+      onStartPlayback([ayah], selectedAudioEdition, 0);
+    }
+    setActivePopover(null);
+  };
+
+  return (
+    <div className="animate-fade-in w-full max-w-4xl mx-auto px-2 sm:px-4 overflow-x-hidden">
+      {searchType !== 'number' && (
+          <div className="mb-6 flex flex-col gap-3 max-w-full">
+              <NeighboringWords neighboringWords={neighboringWords} visibleSuggestionsCount={visibleSuggestionsCount} onNeighborClick={(word) => onNewSearch(`${editableQuery.trim()} ${word}`)} onShowMore={handleShowMore}/>
+          </div>
+      )}
+      
+      <main className="bg-surface p-3.5 sm:p-6 md:p-8 rounded-lg shadow-md transition-colors duration-300 w-full max-w-full overflow-hidden">
+        <DiacriticFilters variants={diacriticVariants} activeFilter={activeDiacriticFilter} setActiveFilter={setActiveDiacriticFilter} resultsCount={displayedResults.length} />
+        <PhraseFilters phraseFilters={phraseFilters} activePhraseFilter={activePhraseFilter} setActivePhraseFilter={setActivePhraseFilter} resultsCount={displayedResults.length}/>
+        <SearchResultsHeader 
+            searchType={searchType} query={query} correctedQuery={correctedQuery} targetSurahNumber={targetSurahNumber} activeMuqattaatFilter={activeMuqattaatFilter} setActiveMuqattaatFilter={setActiveMuqattaatFilter} showMuqattaatInSearch={showMuqattaatInSearch} baseResults={results}
+            displayedResultsCount={displayedResults.length} resultsCount={displayedResults.length}
+            isSingleWordSearch={isSingleWordSearch} generalOccurrences={generalOccurrences}
+            exactOccurrences={exactOccurrences} exactMatch={exactMatch} setExactMatch={setExactMatch}
+            totalOccurrences={totalOccurrences} onJumpToOccurrence={handleJumpToOccurrence}
+            cachedAnalysisExists={cachedAnalysisExists} onNewSearch={onNewSearch}
+            isRootSearch={isRootSearch}
+            onToggleRootSearch={(val) => onNewSearch(query, undefined, undefined, val)}
+            displayedResults={displayedResults}
+        />
+        
+        {results.length > 0 && (
+          <>
+            
+
+            <SearchResultsToolbar
+                isPlaybackLoading={isPlaybackLoading} allAudioEditions={ALL_AUDIO_EDITIONS}
+                onPlayAll={handlePlayAll} selectedAudioEdition={selectedAudioEdition}
+                onAudioEditionChange={setSelectedAudioEdition} searchType={searchType}
+                onSaveSearch={handleSaveSearch} onCopyAll={handleCopyAll}
+                isAllCopied={isAllCopied}
+                onCopyHighlightedWords={handleCopyHighlightedWords}
+                isHighlightedCopied={isHighlightedCopied}
+                copyHighlightedMode={copyHighlightedMode}
+                copyHighlightedToast={copyHighlightedToast}
+                highlightedWordsCount={phraseFilters.length}
+                onDownloadAll={handleDownloadAll}
+            />
+          </>
+        )}
+        
+        <div className="mt-6">
+            {displayedResults.length > 0 ? (
+                <>
+                    <ul className="space-y-4">
+                        {paginatedResults.map((ayah, index) => {
+                            const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah?.number);
+                            const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
+                            return (
+                                <SearchResultItem 
+                                    key={ayah.number} itemRef={itemRefs.current[index]} ayah={ayah} 
+                                    queryWords={searchType === 'number' ? [] : queryWords} currentQuery={query} onNewSearch={onNewSearch}
+                                    displayEdition={displayEdition} displayEditionData={displayEditionData} searchEdition={searchEdition}
+                                    fontSize={fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
+                                    isPlaybackLoading={isPlaybackLoading}
+                                    pulsingWordIndex={pulsingWord?.itemIndex === index ? pulsingWord.wordIndex : -1} resultIndex={index}
+                                    simpleAyahText={simpleAyah?.text || ''}
+                                    onUthmaniWordClick={handleUthmaniWordClick}
+                                    onSaveAyah={handleSaveClick}
+                                    onCopyAyah={handleCopyAyah}
+                                    onPlayAyah={handlePlaySingleAyah}
+                                    copiedAyah={copiedAyah}
+                                />
+                           );
+                        })}
+                    </ul>
+
+                    {displayedResults.length > visibleCount && (
+                        <div ref={loadMoreSentinelRef} className="mt-8 py-6 px-4 bg-surface-subtle border border-border-default rounded-2xl text-center space-y-3 shadow-xs">
+                            <div className="text-sm font-bold text-text-primary">
+                                تم عرض <span className="text-primary font-mono">{visibleCount}</span> من إجمالي <span className="text-primary font-mono">{displayedResults.length}</span> آية
+                            </div>
+                            <p className="text-xs text-text-muted">
+                                اسحب للأسفل لعرض المزيد تلقائياً، أو انقر أحد الخيارات التالية:
+                            </p>
+                            <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
+                                <button
+                                    onClick={() => setVisibleCount(prev => Math.min(prev + 50, displayedResults.length))}
+                                    className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                                >
+                                    <SearchIcon className="w-4 h-4" />
+                                    <span>عرض 50 آية إضافية</span>
+                                </button>
+                                <button
+                                    onClick={() => setVisibleCount(displayedResults.length)}
+                                    className="px-4 py-2.5 bg-surface text-text-primary border border-border-default hover:bg-surface-hover rounded-xl text-sm font-semibold active:scale-95 transition-all cursor-pointer shadow-2xs"
+                                >
+                                    عرض كل النتائج ({displayedResults.length})
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            ) : (<div className="text-center p-10 text-lg text-text-muted">لم يتم العثور على نتائج.</div>)}
+        </div>
+      </main>
+      
+       {wordPopoverState && (
+         <div ref={wordPopoverRef} className="absolute p-3 bg-surface rounded-lg shadow-lg border border-border-default flex items-center gap-2 z-20 animate-fade-in flex-wrap leading-loose"
+            style={(() => {
+                if (!wordPopoverState.triggerElement) return { opacity: 0, top: 0, left: 0 };
+                const rect = wordPopoverState.triggerElement.getBoundingClientRect();
+                return { top: `${rect.bottom + window.scrollY + 5}px`, left: `${rect.left + window.scrollX + rect.width / 2}px`, transform: 'translateX(-50%)' };
+            })()}
+        >
+            {wordPopoverState.simpleText.split(' ').map((word, wordIndex) => {
+                const originalAyah = displayedResults[wordPopoverState.resultIndex];
+                return (
+                    <button key={wordIndex} onClick={() => { onNewSearch(word, 'quran-simple-clean', { surah: originalAyah.surah!.number, ayah: originalAyah.numberInSurah, wordIndex: wordIndex }); setWordPopoverState(null); }} className="px-2 py-1 bg-surface-subtle rounded-md hover:bg-primary/20 transition-colors">
+                        {word}
+                    </button>
+                );
+            })}
+        </div>
+      )}
+
+       {activePopover && <AyahActionPopover activePopover={activePopover} onClose={() => setActivePopover(null)} onSave={handleSaveClick} onCopy={handleCopyAyah} onSearchText={handleSearchByAyahText} onSearchNumber={onSearchByAyahNumber} onPlayFrom={handlePlayFromAyah} copiedAyah={copiedAyah} />}
+    </div>
+  );
+};

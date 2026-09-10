@@ -1,0 +1,30 @@
+{
+  "short_name": "الباحث",
+  "name": "الباحث في المصحف الشريف",
+  "description": "الباحث في المصحف الشريف: رفيقك الأمثل لتدبر القرآن الكريم. ابحث بدقة، تصفح بالرسم العثماني، واكتشف المعاني والروابط القرآنية بكل سهولة.",
+  "icons": [
+    {
+      "src": "./thumbnail.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#166534",
+  "background_color": "#ffffff"
+}

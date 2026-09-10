@@ -1,0 +1,45 @@
+const fs = require('fs');
+let content = fs.readFileSync('components/SearchView.tsx', 'utf8');
+
+const lastExport = content.lastIndexOf('export const SearchView: React.FC<SearchViewProps> =');
+let body = content.substring(lastExport);
+
+const cleanImports = `import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from 'react';
+import type { Ayah, SurahData, SavedAyahItem, SavedSearchItem } from '../types';
+import { SearchIcon, ClearIcon, DocumentDuplicateIcon } from './icons';
+import { normalizeArabicText, formatSurahNameForDisplay, formatAyahForCopy, copyToClipboard } from '../utils/text';
+import { useSearchLogic } from '../hooks/useSearchLogic';
+import { useSettingsContext } from '../contexts/SettingsContext';
+import { ALL_AUDIO_EDITIONS } from '../data/audioEditions';
+import AyahActionPopover from './AyahActionPopover';
+import SearchResultItem from './SearchResultItem';
+import SearchResultsHeader from './search/SearchResultsHeader';
+import SearchResultsToolbar from './search/SearchResultsToolbar';
+import PhraseFilters from './search/PhraseFilters';
+import DiacriticFilters from './search/DiacriticFilters';
+import NeighboringWords from './search/NeighboringWords';
+
+interface SearchViewProps {
+  query: string;
+  results: Ayah[];
+  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number) => void;
+  onSearchByAyahNumber: (ayahNumber: number) => void;
+  onSearchComplete: () => void;
+  autoOpenDiscussion?: boolean;
+  displayEditionData: SurahData[];
+  searchEdition: string;
+  position?: { surah: number, ayah: number, wordIndex: number };
+  simpleCleanData: SurahData[];
+  onSaveAyah: (item: SavedAyahItem) => void;
+  onSaveSearch: (item: SavedSearchItem) => void;
+  searchType?: 'text' | 'number';
+  currentlyPlayingAyahGlobalNumber: number | null;
+  isPlaybackLoading: boolean;
+  onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
+  correctedQuery?: string;
+  isRootSearch?: boolean;
+  targetSurahNumber?: number;
+}
+`;
+
+fs.writeFileSync('components/SearchView.tsx', cleanImports + body);
