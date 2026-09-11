@@ -12,6 +12,7 @@ import AboutView from './AboutView';
 import HistoryView from './HistoryView';
 import GroupKhatmahView from './khatmiyah/GroupKhatmahView';
 import ResearchView from './ResearchView';
+import QuranStructureView from './QuranStructureView';
 import { MuqattaatView } from './MuqattaatView';
 import { HawameemSearchView } from './HawameemSearchView';
 
@@ -191,6 +192,7 @@ const isSearchPage = pathParts[0] === 'search';
         }
         if (pathParts[0] === 'privacy-policy') return <PrivacyPolicyView />;
         if (pathParts[0] === 'research') return <ResearchView />;
+        if (pathParts[0] === 'structure') return <QuranStructureView />;
         if (pathParts[0] === 'pairs' || pathParts[0] === 'surah-pairs') {
             const initialSurah = pathParts[1] ? parseInt(pathParts[1], 10) : 19;
             return (
