@@ -20,6 +20,8 @@ const getNormalizedText = (ayah: any): string => {
     return ayah._normalizedText;
 };
 
+export const HAWAMEEM_SURAH_NUMBERS = [40, 41, 42, 43, 44, 45, 46];
+
 export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) => {
     
     const surahNameMap = useMemo(() => {
@@ -77,7 +79,7 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         return null;
     }, [surahNameMap]);
 
-    const performSearch = useCallback((query: string, isRootSearch?: boolean, overrideTargetSurah?: number, targetMuqattaat?: string): { results: Ayah[], finalSearchEdition: string, correctedQuery?: string, targetSurahNumber?: number, targetMuqattaat?: string, parsedQuery?: string } => {
+    const performSearch = useCallback((query: string, isRootSearch?: boolean, overrideTargetSurah?: number, targetMuqattaat?: string, hawameemOnly?: boolean): { results: Ayah[], finalSearchEdition: string, correctedQuery?: string, targetSurahNumber?: number, targetMuqattaat?: string, parsedQuery?: string } => {
         if (!allQuranData) return { results: [], finalSearchEdition: 'quran-simple-clean', targetSurahNumber: undefined, targetMuqattaat: undefined, parsedQuery: undefined };
         
         let finalQuery = query;
@@ -156,6 +158,9 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
             let results = simpleSearchableAyahs.filter(ayah => matchingSet.has(ayah.number));
             if (targetSurahNumber) {
                 results = results.filter(ayah => ayah.surah.number === targetSurahNumber);
+            }
+            if (hawameemOnly) {
+                results = results.filter(ayah => HAWAMEEM_SURAH_NUMBERS.includes(ayah.surah.number));
             }
             return {
                 results,
@@ -244,11 +249,18 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
 
         let resultObj: { results: Ayah[], finalSearchEdition: string, correctedQuery?: string } = { results: [], finalSearchEdition: 'quran-simple-clean' };
         
-        if (!finalQuery.trim() && targetSurahNumber) {
-            resultObj = {
-                results: simpleSearchableAyahs.filter(ayah => ayah.surah.number === targetSurahNumber),
-                finalSearchEdition: 'quran-simple-clean'
-            };
+        if (!finalQuery.trim()) {
+            if (targetSurahNumber) {
+                resultObj = {
+                    results: simpleSearchableAyahs.filter(ayah => ayah.surah.number === targetSurahNumber),
+                    finalSearchEdition: 'quran-simple-clean'
+                };
+            } else if (hawameemOnly) {
+                resultObj = {
+                    results: simpleSearchableAyahs.filter(ayah => HAWAMEEM_SURAH_NUMBERS.includes(ayah.surah.number)),
+                    finalSearchEdition: 'quran-simple-clean'
+                };
+            }
         } else {
             resultObj = executeSearch(finalQuery);
             const normalizedQuery = normalizeArabicText(finalQuery);
@@ -271,6 +283,9 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         if (targetSurahNumber) {
             resultObj.results = resultObj.results.filter(ayah => ayah.surah.number === targetSurahNumber);
         }
+        if (hawameemOnly) {
+            resultObj.results = resultObj.results.filter(ayah => HAWAMEEM_SURAH_NUMBERS.includes(ayah.surah.number));
+        }
         if (targetSurahNumber || targetMuqattaat) {
             return { ...resultObj, targetSurahNumber: targetSurahNumber || undefined, targetMuqattaat: targetMuqattaat || undefined, parsedQuery: finalQuery };
         }
@@ -278,9 +293,12 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         return { ...resultObj, targetSurahNumber: undefined, targetMuqattaat: undefined, parsedQuery: finalQuery };
     }, [allQuranData, simpleSearchableAyahs, quranicWordList]);
 
-    const performSearchByAyahNumber = useCallback((ayahNumber: number): Ayah[] => {
+    const performSearchByAyahNumber = useCallback((ayahNumber: number, hawameemOnly?: boolean): Ayah[] => {
         if (!simpleSearchableAyahs) return [];
-        return simpleSearchableAyahs.filter(ayah => ayah.numberInSurah === ayahNumber);
+        return simpleSearchableAyahs.filter(ayah => 
+            ayah.numberInSurah === ayahNumber && 
+            (!hawameemOnly || HAWAMEEM_SURAH_NUMBERS.includes(ayah.surah.number))
+        );
     }, [simpleSearchableAyahs]);
 
     return {

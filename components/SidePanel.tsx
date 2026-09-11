@@ -155,6 +155,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             <NavLink href="#/saved" icon={<BookmarkIcon className="w-5 h-5" />} label="دفتر التدبر" onNavigate={onNavigate} isActive={currentPath.startsWith('#/saved')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />
                             <NavLink href="#/alm" icon={<LightBulbIcon className="w-5 h-5 text-purple-500" />} label="الم" onNavigate={onNavigate} isActive={currentPath.startsWith('#/alm') && !currentPath.includes('tab=pairing')} />
+                            <NavLink href="#/hm" icon={<span className="font-quran text-base font-bold text-amber-600 dark:text-amber-400 w-5 h-5 flex items-center justify-center">حم</span>} label="حم (بحث الحواميم)" onNavigate={onNavigate} isActive={currentPath.startsWith('#/hm') || currentPath.startsWith('#/hawameem')} />
                             <NavLink href="#/settings" icon={<CogIcon className="w-5 h-5" />} label="الإعدادات" onNavigate={onNavigate} isActive={currentPath.startsWith('#/settings')} />
                         </nav>
                     </div>

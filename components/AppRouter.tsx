@@ -13,6 +13,7 @@ import HistoryView from './HistoryView';
 import GroupKhatmahView from './khatmiyah/GroupKhatmahView';
 import ResearchView from './ResearchView';
 import { MuqattaatView } from './MuqattaatView';
+import { HawameemSearchView } from './HawameemSearchView';
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -40,8 +41,8 @@ interface AppRouterProps {
     handleStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
     hizbQuarterStartMap: Map<number, number>;
     setIsSearching: (isSearching: boolean) => void;
-    performSearchByAyahNumber: (num: number) => Ayah[];
-    performSearch: (query: string, isRootSearch?: boolean, overrideTargetSurah?: number, targetMuqattaat?: string) => { results: Ayah[], finalSearchEdition: string, correctedQuery?: string, targetSurahNumber?: number, parsedQuery?: string };
+    performSearchByAyahNumber: (num: number, hawameemOnly?: boolean) => Ayah[];
+    performSearch: (query: string, isRootSearch?: boolean, overrideTargetSurah?: number, targetMuqattaat?: string, hawameemOnly?: boolean) => { results: Ayah[], finalSearchEdition: string, correctedQuery?: string, targetSurahNumber?: number, parsedQuery?: string };
     setIsSidePanelOpen?: (open: boolean) => void;
 }
 
@@ -130,6 +131,26 @@ const isSearchPage = pathParts[0] === 'search';
         if (!isSearchPage || isSearchNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined, targetSurahNumber: undefined as number | undefined, parsedQuery: undefined as string | undefined };
         return performSearch(searchQueryVal, isRootSearchVal, targetSurahNumberVal);
     }, [performSearch, isSearchPage, isSearchNumber, searchQueryVal, isRootSearchVal, targetSurahNumberVal]);
+
+    // Hawameem ("حم") search route handling
+    const isHmPage = pathParts[0] === 'hm' || pathParts[0] === 'hawameem';
+    const isHmNumber = isHmPage && pathParts[1] === 'number' && !!pathParts[2];
+    const hmNumberVal = isHmNumber ? parseInt(pathParts[2], 10) : 0;
+    const hmQueryVal = isHmPage && !isHmNumber ? (pathParts[1] ? decodeURIComponent(pathParts[1]) : (queryParams.get('q') ? decodeURIComponent(queryParams.get('q')!) : '')) : '';
+    const isHmRootSearchVal = isHmPage && !isHmNumber && queryParams.get('mode') === 'root';
+    const targetHmSurahNumberVal = isHmPage && (queryParams.has('ts') || queryParams.has('surah')) 
+        ? parseInt(queryParams.get('ts') || queryParams.get('surah')!, 10) 
+        : undefined;
+
+    const hmNumberResults = React.useMemo(() => {
+        if (!isHmNumber) return [] as Ayah[];
+        return performSearchByAyahNumber(hmNumberVal, true);
+    }, [performSearchByAyahNumber, isHmNumber, hmNumberVal]);
+
+    const hmTextResult = React.useMemo(() => {
+        if (!isHmPage || isHmNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined, targetSurahNumber: undefined as number | undefined, parsedQuery: undefined as string | undefined };
+        return performSearch(hmQueryVal, isHmRootSearchVal, targetHmSurahNumberVal, undefined, true);
+    }, [performSearch, isHmPage, isHmNumber, hmQueryVal, isHmRootSearchVal, targetHmSurahNumberVal]);
 
     const renderRoute = () => {
         if (isInitialLoading) return null;
@@ -257,6 +278,56 @@ const isSearchPage = pathParts[0] === 'search';
                     continuousPlaylist={simpleSearchableAyahs}
                 />;
             }
+        }
+        if (pathParts[0] === 'hm' || pathParts[0] === 'hawameem') {
+            const commonProps = {
+                onSearchByAyahNumber: (num: number) => {
+                    setIsSearching(true);
+                    window.location.hash = `#/hm/number/${num}`;
+                },
+                onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRoot?: boolean, targetSurah?: number) => {
+                    setIsSearching(true);
+                    let url = `#/hm/${encodeURIComponent(word)}?search_edition=${sourceEdition || 'quran-simple-clean'}`;
+                    if (isRoot) url += '&mode=root';
+                    if (targetSurah) url += `&ts=${targetSurah}`;
+                    if (position) url += `&s=${position.surah}&a=${position.ayah}&w=${position.wordIndex}`;
+                    window.location.hash = url;
+                },
+                onSearchComplete: () => setIsSearching(false),
+                displayEditionData: quranData || [], 
+                simpleCleanData: allQuranData?.['quran-simple-clean'] || [],
+                onSaveAyah: handleSaveItem, 
+                onSaveSearch: handleSaveItem,
+                currentlyPlayingAyahGlobalNumber: currentlyPlayingAyahGlobalNumber, 
+                isPlaybackLoading: !!playbackInfo?.trigger,
+                onStartPlayback: handleStartPlayback,
+            };
+
+            const isNumberSearch = pathParts[1] === 'number' && !!pathParts[2];
+            const activeQuery = isNumberSearch ? pathParts[2] : (hmTextResult.parsedQuery || hmQueryVal);
+            const activeResults = isNumberSearch ? hmNumberResults : hmTextResult.results;
+            const activeEdition = isNumberSearch ? 'quran-simple-clean' : (hmTextResult.finalSearchEdition || 'quran-simple-clean');
+
+            return (
+                <HawameemSearchView 
+                    {...commonProps}
+                    query={activeQuery}
+                    results={activeResults}
+                    correctedQuery={hmTextResult.correctedQuery}
+                    searchEdition={activeEdition}
+                    searchType={isNumberSearch ? 'number' : 'text'}
+                    isRootSearch={isHmRootSearchVal}
+                    targetSurahNumber={targetHmSurahNumberVal}
+                    onSelectSurahFilter={(surahNum?: number) => {
+                        let url = activeQuery ? `#/hm/${encodeURIComponent(activeQuery)}` : `#/hm`;
+                        const params: string[] = [];
+                        if (isHmRootSearchVal) params.push('mode=root');
+                        if (surahNum) params.push(`ts=${surahNum}`);
+                        if (params.length > 0) url += `?${params.join('&')}`;
+                        window.location.hash = url;
+                    }}
+                />
+            );
         }
         if (pathParts[0] === 'search') {
             const commonProps = {
