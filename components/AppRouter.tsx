@@ -18,6 +18,7 @@ import { HawameemSearchView } from './HawameemSearchView';
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
+import { formatSurahNameForDisplay } from '../utils/text';
 import { useSettingsContext } from '../contexts/SettingsContext';
 
 interface AppRouterProps {
@@ -152,6 +153,52 @@ const isSearchPage = pathParts[0] === 'search';
         if (!isHmPage || isHmNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined, targetSurahNumber: undefined as number | undefined, parsedQuery: undefined as string | undefined };
         return performSearch(hmQueryVal, isHmRootSearchVal, targetHmSurahNumberVal, undefined, true);
     }, [performSearch, isHmPage, isHmNumber, hmQueryVal, isHmRootSearchVal, targetHmSurahNumberVal]);
+
+    // Dynamic Title Management
+    React.useEffect(() => {
+        let title = 'المصحف الشريف';
+        const route = pathParts[0] || '';
+
+        if (!route) {
+            title = '🏠 الفهرس';
+        } else if (route === 'surah' && pathParts[1]) {
+            const surahNum = parseInt(pathParts[1], 10);
+            const surah = QURAN_INDEX.find(s => s.number === surahNum);
+            if (surah) {
+                const cleanName = formatSurahNameForDisplay(surah.name);
+                const ayahFocus = queryParams.get('a');
+                title = ayahFocus ? `📖 ${cleanName} ${ayahFocus}` : `📖 ${cleanName}`;
+            }
+        } else if (route === 'page' && pathParts[1]) {
+            title = `📖 صفحة ${pathParts[1]}`;
+        } else if (route === 'search') {
+            title = searchQueryVal.trim() ? `🔍 ${searchQueryVal}` : '🔍 البحث';
+        } else if (route === 'hm' || route === 'hawameem') {
+            const query = isHmNumber ? hmNumberVal.toString() : hmQueryVal;
+            title = query.trim() ? `حم: ${query}` : 'حم البحث';
+        } else if (route === 'structure') {
+            title = '🏛️ بنية المصحف';
+        } else if (route === 'alm') {
+            title = queryParams.get('tab') === 'pairing' ? '✨ أزواج السور' : '💡 الم';
+        } else if (route === 'pairs' || route === 'surah-pairs') {
+            title = '✨ أزواج السور';
+        } else if (route === 'khatmah' || route === 'khatmiyah') {
+            title = '🤝 الختمة الجماعية';
+        } else if (route === 'saved') {
+            title = '📝 دفتر التدبر';
+        } else if (route === 'analysis') {
+            const query = pathParts[1] ? decodeURIComponent(pathParts[1]) : '';
+            title = query.trim() ? `📊 ${query}` : '📊 تحليل';
+        } else if (route === 'research') {
+            title = '📚 الكتب الإلهية';
+        } else if (route === 'settings') {
+            title = '⚙️ الإعدادات';
+        } else if (route === 'history') {
+            title = '🕒 السجل';
+        }
+
+        document.title = title;
+    }, [pathParts, queryParams, searchQueryVal, hmQueryVal, isHmNumber, hmNumberVal]);
 
     const renderRoute = () => {
         if (isInitialLoading) return null;
