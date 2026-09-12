@@ -1,6 +1,6 @@
 // service-worker.js
 
-const STATIC_CACHE_NAME = 'qran-top-static-v31'; // Version bump
+const STATIC_CACHE_NAME = 'qran-top-static-v32'; // Version bump for offline history & Android back navigation
 const DATA_CACHE_NAME = 'qran-top-data-v23';
 
 // Core data files that are essential for the app to work offline.

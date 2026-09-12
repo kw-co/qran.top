@@ -51,6 +51,8 @@ interface SettingsContextType {
     closeDownloadMushafModal: () => void;
     isResearchModeActive: boolean;
     setIsResearchModeActive: (active: boolean) => void;
+    highlightHaMeem: boolean;
+    setHighlightHaMeem: (enabled: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

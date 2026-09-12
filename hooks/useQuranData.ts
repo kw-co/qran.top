@@ -150,6 +150,7 @@ export const useQuranData = () => {
 
     return {
         allQuranData, isInitialLoading, isBackgroundLoading, loadingEditions, error,
+        clearError: () => setError(null),
         dataSourceStatus: 'primary' as const, availableEditions,
         fetchCustomEditionData, getEditionUrl,
     };

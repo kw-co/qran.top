@@ -6,6 +6,7 @@ import WordActionPopover from './WordActionPopover';
 import WordMorphologyModal from './WordMorphologyModal';
 import { useResearchData } from '../hooks/useResearchData';
 import { LightBulbIcon } from './icons';
+import { renderWordWithHaMeem, hasHaMeem } from '../utils/haMeemHighlight';
 
 interface AyahRendererProps {
     ayahsToRender: Ayah[];
@@ -79,7 +80,8 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
         enableWordAudio, 
         enableMorphology, 
         fontStyle, 
-        wordClickBehavior 
+        wordClickBehavior,
+        highlightHaMeem
     } = useSettingsContext();
     const researchData = useResearchData();
 
@@ -213,7 +215,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                                     onClick={(e) => handleWordClickInternal(e, plainWord, wIdx, ayah.numberInSurah)}
                                                     className={`word-trigger inline bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/20 rounded-md transition-colors px-0.5 ${
                                                         isWordPlaying ? 'bg-emerald-400/40 text-emerald-900 font-bold dark:bg-emerald-500/40 scale-105' : ''
-                                                    }`}
+                                                    } ${highlightHaMeem && hasHaMeem(plainWord) ? 'text-amber-600 dark:text-amber-400 font-bold' : ''}`}
                                                     dangerouslySetInnerHTML={{ __html: wordHtml }}
                                                     title={`خيارات الكلمة: ${plainWord}`}
                                                 />
@@ -236,7 +238,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                                 }`}
                                                 aria-label={`خيارات الكلمة: ${word}`}
                                             >
-                                                {word}
+                                                {renderWordWithHaMeem(word, highlightHaMeem)}
                                             </button>
                                             {wordIndex < arr.length - 1 && ' '}
                                         </React.Fragment>

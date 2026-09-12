@@ -17,7 +17,7 @@ import AudioPlayerBar from './components/AudioPlayerBar';
 import Toolbox from './components/Toolbox';
 import SaveItemModal from './components/SaveItemModal';
 
-import { ArrowUpIcon, RefreshIcon, WifiOffIcon } from './components/icons';
+import { ArrowUpIcon, RefreshIcon, WifiOffIcon, ArrowRightIcon, HomeIcon } from './components/icons';
 import Header from './components/Header';
 import ExternalLinkModal from './components/ExternalLinkModal';
 import DownloadMushafModal from './components/DownloadMushafModal';
@@ -27,7 +27,7 @@ const App: React.FC = () => {
     // --- State from Hooks ---
     const {
         allQuranData, isInitialLoading, isBackgroundLoading, loadingEditions,
-        fetchCustomEditionData, dataSourceStatus, error: dataError
+        fetchCustomEditionData, dataSourceStatus, error: dataError, clearError
     } = useQuranData();
 
     const { currentPath, pathParts, queryParams } = useRouting();
@@ -154,10 +154,14 @@ const App: React.FC = () => {
         window.location.reload();
     };
 
-    // --- Intercept Back Button for Active Overlays (SidePanel, Modals) ---
+    // --- Intercept Back Button for Active Overlays or Error State ---
     useEffect(() => {
         const handlePopState = () => {
-            if (settings.isDownloadMushafModalOpen) {
+            if (dataError && !isSearchDataReady) {
+                // If on error screen and user presses back, return to home and reset error
+                clearError();
+                window.location.hash = '#/';
+            } else if (settings.isDownloadMushafModalOpen) {
                 settings.closeDownloadMushafModal();
             } else if (isSidePanelOpen) {
                 setIsSidePanelOpen(false);
@@ -170,7 +174,12 @@ const App: React.FC = () => {
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [isSidePanelOpen, itemToSave, externalLinkUrl, settings.isDownloadMushafModalOpen, settings.closeDownloadMushafModal]);
+    }, [dataError, isSearchDataReady, clearError, isSidePanelOpen, itemToSave, externalLinkUrl, settings.isDownloadMushafModalOpen, settings.closeDownloadMushafModal]);
+
+    const handleReturnToHome = () => {
+        clearError();
+        window.location.hash = '#/';
+    };
 
     if (dataError && !isSearchDataReady) {
         return (
@@ -183,13 +192,22 @@ const App: React.FC = () => {
                     <p className="text-sm text-text-secondary mb-6 leading-relaxed">
                         يبدو أن هناك مشكلة في الاتصال بالإنترنت. يحتاج التطبيق للاتصال بالشبكة عند الفتح لأول مرة لتحميل البيانات.
                     </p>
-                    <button 
-                        onClick={handleRetryLoading}
-                        className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary-hover transition-colors shadow-md text-sm"
-                    >
-                        <RefreshIcon className="w-4 h-4" />
-                        <span>إعادة المحاولة</span>
-                    </button>
+                    <div className="w-full flex flex-col gap-2.5">
+                        <button 
+                            onClick={handleRetryLoading}
+                            className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-primary-hover transition-colors shadow-md text-sm cursor-pointer active:scale-95"
+                        >
+                            <RefreshIcon className="w-4 h-4" />
+                            <span>إعادة المحاولة</span>
+                        </button>
+                        <button 
+                            onClick={handleReturnToHome}
+                            className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-surface-subtle text-text-primary hover:text-primary font-semibold rounded-xl hover:bg-surface-hover transition-colors border border-border-default text-sm cursor-pointer active:scale-95"
+                        >
+                            <ArrowRightIcon className="w-4 h-4" />
+                            <span>العودة إلى الفهرس</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         );

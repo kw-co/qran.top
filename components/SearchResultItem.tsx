@@ -4,6 +4,7 @@ import { SparklesIcon, BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpinnerIcon,
 import { normalizeArabicText } from '../utils/text';
 import { getQuranTextStyle } from '../utils/font';
 import { useSettingsContext } from '../contexts/SettingsContext';
+import { renderWordWithHaMeem } from '../utils/haMeemHighlight';
 import { playSmartWordAudio } from '../services/quranApiV4';
 import WordActionPopover from './WordActionPopover';
 import WordMorphologyModal from './WordMorphologyModal';
@@ -74,7 +75,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
     fontSize, fontStyle, searchType, isCurrentlyPlaying, isPlaybackLoading, itemRef, pulsingWordIndex,
     resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah
 }) => {
-    const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch } = useSettingsContext();
+    const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch, highlightHaMeem } = useSettingsContext();
 
     const [activeWordPopover, setActiveWordPopover] = useState<{
         word: string;
@@ -179,7 +180,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                         className="word-trigger bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/10 rounded-md px-1 transition-colors"
                         aria-label={`إظهار خيارات البحث لكلمة: ${word}`}
                     >
-                        <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>{word}</span>
+                        <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>{renderWordWithHaMeem(word, highlightHaMeem)}</span>
                     </button>
                  );
             }
@@ -198,7 +199,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                     {isMatch ? (
                         <mark className={`bg-yellow-400/40 text-text-primary rounded-sm ${isPulsing ? 'animate-highlight-pulse' : ''}`}>{word}</mark>
                     ) : (
-                        <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>{word}</span>
+                        <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>{renderWordWithHaMeem(word, highlightHaMeem)}</span>
                     )}
                 </button>
             );

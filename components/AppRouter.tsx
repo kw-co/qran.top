@@ -4,13 +4,13 @@ import type { Ayah, SurahData, Collections, SavedItem } from '../types';
 import HomeView from './HomeView';
 import SurahDetailView from './SurahDetailView';
 import { SearchView } from './SearchView';
+import HistoryView from './HistoryView';
 
 const SettingsView = React.lazy(() => import('./SettingsView'));
 const SavedView = React.lazy(() => import('./SavedView'));
 const WordAnalysisView = React.lazy(() => import('./WordAnalysisView'));
 const PrivacyPolicyView = React.lazy(() => import('./PrivacyPolicyView'));
 const AboutView = React.lazy(() => import('./AboutView'));
-const HistoryView = React.lazy(() => import('./HistoryView'));
 const GroupKhatmahView = React.lazy(() => import('./khatmiyah/GroupKhatmahView'));
 const ResearchView = React.lazy(() => import('./ResearchView'));
 const QuranStructureView = React.lazy(() => import('./QuranStructureView'));

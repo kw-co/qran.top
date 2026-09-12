@@ -21,6 +21,7 @@ const SHOW_BOTTOM_NAV_BAR_KEY = 'qran_app_show_bottom_nav_bar';
 const SHOW_MUQATTAAT_IN_SEARCH_KEY = 'qran_app_show_muqattaat_in_search';
 const SHOW_IMLAEI_TASHKEEL_KEY = 'qran_app_show_imlaei_tashkeel';
 const RESEARCH_MODE_KEY = 'qran_app_research_mode_active';
+const HIGHLIGHT_HA_MEEM_KEY = 'qran_app_highlight_ha_meem';
 
 const DEFAULT_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
@@ -110,6 +111,9 @@ export const useSettings = () => {
     );
     const [isResearchModeActive, setIsResearchModeActive] = useState<boolean>(
         () => safeGetItem(RESEARCH_MODE_KEY, 'false') === 'true'
+    );
+    const [highlightHaMeem, setHighlightHaMeem] = useState<boolean>(
+        () => safeGetItem(HIGHLIGHT_HA_MEEM_KEY, 'false') === 'true'
     );
 
     // Madinah Font Download State
@@ -207,6 +211,7 @@ export const useSettings = () => {
     useEffect(() => { safeSetItem(SHOW_MUQATTAAT_IN_SEARCH_KEY, String(showMuqattaatInSearch)); }, [showMuqattaatInSearch]);
     useEffect(() => { safeSetItem(SHOW_IMLAEI_TASHKEEL_KEY, String(showImlaeiTashkeel)); }, [showImlaeiTashkeel]);
     useEffect(() => { safeSetItem(RESEARCH_MODE_KEY, String(isResearchModeActive)); }, [isResearchModeActive]);
+    useEffect(() => { safeSetItem(HIGHLIGHT_HA_MEEM_KEY, String(highlightHaMeem)); }, [highlightHaMeem]);
     useEffect(() => { safeSetItem(MUSHAF_FRAME_STYLE_KEY, mushafFrameStyle); }, [mushafFrameStyle]);
 
     const displayEdition = useMemo(() => {
@@ -254,6 +259,7 @@ export const useSettings = () => {
         cancelFontDownload, startFontDownload,
         isDownloadMushafModalOpen, setIsDownloadMushafModalOpen,
         openDownloadMushafModal, closeDownloadMushafModal,
-        isResearchModeActive, setIsResearchModeActive
+        isResearchModeActive, setIsResearchModeActive,
+        highlightHaMeem, setHighlightHaMeem
     };
 };

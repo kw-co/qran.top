@@ -19,6 +19,21 @@ class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
+  public componentDidMount() {
+    window.addEventListener('popstate', this.handlePopState);
+  }
+
+  public componentWillUnmount() {
+    window.removeEventListener('popstate', this.handlePopState);
+  }
+
+  private handlePopState = () => {
+    if (this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+      window.location.hash = '#/';
+    }
+  };
+
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     

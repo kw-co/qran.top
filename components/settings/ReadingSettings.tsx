@@ -30,6 +30,7 @@ const ReadingSettings: React.FC = () => {
         showBottomNavBar, setShowBottomNavBar,
         showMuqattaatInSearch, setShowMuqattaatInSearch,
         showImlaeiTashkeel, setShowImlaeiTashkeel,
+        highlightHaMeem, setHighlightHaMeem,
         fontDownloadProgress,
         isDownloadingFonts,
         isMushafDownloaded,
@@ -227,6 +228,31 @@ const ReadingSettings: React.FC = () => {
                             className="mt-1 h-5 w-5 accent-primary rounded cursor-pointer flex-shrink-0" 
                         />
                     </div>
+
+                    {/* Highlight Ha-Meem Toggle */}
+                    <div className={`p-4 rounded-xl border transition-all flex items-start justify-between cursor-pointer ${
+                        highlightHaMeem ? 'bg-surface border-amber-500 ring-2 ring-amber-500/20 shadow-xs' : 'bg-surface border-border-default'
+                    }`}
+                    onClick={() => setHighlightHaMeem(!highlightHaMeem)}
+                    >
+                        <div className="space-y-1">
+                            <div className="font-bold text-text-primary text-base flex items-center gap-2">
+                                <span className="text-amber-600 dark:text-amber-400 font-bold px-1.5 py-0.5 rounded bg-amber-100/50 dark:bg-amber-900/30 text-sm">حـم</span> <span>تلوين الحرفين (حم)</span>
+                            </div>
+                            <p className="text-xs text-text-muted leading-relaxed">
+                                تلوين الحرفين (حم) أينما التقيا معاً بلون مميز لسهولة التدبر والرصد (خيار اختياري).
+                            </p>
+                        </div>
+                        <input 
+                            id="highlight-ha-meem-checkbox"
+                            name="highlightHaMeem"
+                            type="checkbox" 
+                            checked={highlightHaMeem} 
+                            onChange={() => {}} 
+                            aria-label="تلوين الحرفين حم"
+                            className="mt-1 h-5 w-5 accent-amber-600 rounded cursor-pointer flex-shrink-0" 
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -237,6 +263,11 @@ const ReadingSettings: React.FC = () => {
                     <p className={`text-text-primary leading-loose ${fontStyle === 'uthmani' || fontStyle === 'mushaf' ? 'font-quran-title' : 'font-quran-simple'} transition-all duration-200 text-${fontSize}`}>
                         ﴿ أَلَمْ نَشْرَحْ لَكَ صَدْرَكَ ۝ وَوَضَعْنَا عَنكَ وِزْرَكَ ۝ الَّذِي أَنقَضَ ظَهْرَكَ ۝ وَرَفَعْنَا لَكَ ذِكْرَكَ ﴾
                     </p>
+                    {highlightHaMeem && (
+                        <p className={`mt-3 pt-3 border-t border-border-subtle text-text-primary leading-loose ${fontStyle === 'uthmani' || fontStyle === 'mushaf' ? 'font-quran-title' : 'font-quran-simple'} transition-all duration-200 text-${fontSize}`}>
+                            ﴿ <span className="text-amber-600 dark:text-amber-400 font-bold">حـٓمٓ</span> ۝ تَنزِيلُ ٱلۡكِتَٰبِ مِنَ ٱللَّهِ ٱلۡعَزِيزِ ٱلۡعَلِيمِ ﴾
+                        </p>
+                    )}
                 </div>
             </div>
 
