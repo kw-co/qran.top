@@ -4,17 +4,18 @@ import type { Ayah, SurahData, Collections, SavedItem } from '../types';
 import HomeView from './HomeView';
 import SurahDetailView from './SurahDetailView';
 import { SearchView } from './SearchView';
-import SettingsView from './SettingsView';
-import SavedView from './SavedView';
-import WordAnalysisView from './WordAnalysisView';
-import PrivacyPolicyView from './PrivacyPolicyView';
-import AboutView from './AboutView';
-import HistoryView from './HistoryView';
-import GroupKhatmahView from './khatmiyah/GroupKhatmahView';
-import ResearchView from './ResearchView';
-import QuranStructureView from './QuranStructureView';
-import { MuqattaatView } from './MuqattaatView';
-import { HawameemSearchView } from './HawameemSearchView';
+
+const SettingsView = React.lazy(() => import('./SettingsView'));
+const SavedView = React.lazy(() => import('./SavedView'));
+const WordAnalysisView = React.lazy(() => import('./WordAnalysisView'));
+const PrivacyPolicyView = React.lazy(() => import('./PrivacyPolicyView'));
+const AboutView = React.lazy(() => import('./AboutView'));
+const HistoryView = React.lazy(() => import('./HistoryView'));
+const GroupKhatmahView = React.lazy(() => import('./khatmiyah/GroupKhatmahView'));
+const ResearchView = React.lazy(() => import('./ResearchView'));
+const QuranStructureView = React.lazy(() => import('./QuranStructureView'));
+const MuqattaatView = React.lazy(() => import('./MuqattaatView'));
+const HawameemSearchView = React.lazy(() => import('./HawameemSearchView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -400,9 +401,14 @@ const isSearchPage = pathParts[0] === 'search';
     };
 
     return (
-        <>
+        <React.Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center animate-pulse">
+                <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
+                <p className="text-sm text-text-secondary font-medium">جاري التحميل...</p>
+            </div>
+        }>
             {renderRoute()}
-        </>
+        </React.Suspense>
     );
 };
 

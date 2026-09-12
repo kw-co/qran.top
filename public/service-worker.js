@@ -1,7 +1,7 @@
 // service-worker.js
 
-const STATIC_CACHE_NAME = 'qran-top-static-v30'; // Version bump
-const DATA_CACHE_NAME = 'qran-top-data-v22';
+const STATIC_CACHE_NAME = 'qran-top-static-v31'; // Version bump
+const DATA_CACHE_NAME = 'qran-top-data-v23';
 
 // Core data files that are essential for the app to work offline.
 const CORE_DATA_URLS = [
@@ -19,25 +19,41 @@ const STATIC_FILES_TO_CACHE = [
   './icon-512x512.png'
 ];
 
-// Install event: cache static assets and core data.
+// Helper to safely cache URLs individually so a single network glitch does NOT abort installation
+async function cacheUrlsResiliently(cacheName, urls) {
+  const cache = await caches.open(cacheName);
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      try {
+        const req = new Request(url, { cache: 'reload' });
+        const res = await fetch(req);
+        if (res && res.status === 200) {
+          await cache.put(req, res);
+          return url;
+        }
+        throw new Error(`Status ${res ? res.status : 'unknown'}`);
+      } catch (err) {
+        console.warn(`[Service Worker] Resilient cache fetch failed for ${url}:`, err);
+        throw err;
+      }
+    })
+  );
+  return results;
+}
+
+// Install event: cache static assets and core data safely without failing the entire SW
 self.addEventListener('install', event => {
   console.log('[Service Worker] Install');
   event.waitUntil(
-    Promise.all([
-      caches.open(STATIC_CACHE_NAME).then(cache => {
-        console.log('[Service Worker] Pre-caching static app shell');
-        const requests = STATIC_FILES_TO_CACHE.map(url => new Request(url, { cache: 'reload' }));
-        return cache.addAll(requests);
-      }),
-      caches.open(DATA_CACHE_NAME).then(cache => {
-        console.log('[Service Worker] Pre-caching core Quran data');
-        const requests = CORE_DATA_URLS.map(url => new Request(url, { cache: 'reload' }));
-        return cache.addAll(requests);
-      })
-    ]).then(() => {
-        console.log('[Service Worker] Installation complete. Activating immediately.');
-        return self.skipWaiting();
-    })
+    (async () => {
+      // Pre-cache static shell & core Quran data safely
+      await Promise.allSettled([
+        cacheUrlsResiliently(STATIC_CACHE_NAME, STATIC_FILES_TO_CACHE),
+        cacheUrlsResiliently(DATA_CACHE_NAME, CORE_DATA_URLS)
+      ]);
+      console.log('[Service Worker] Installation complete. Activating immediately.');
+      return self.skipWaiting();
+    })()
   );
 });
 

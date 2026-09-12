@@ -1562,3 +1562,5 @@ export const MuqattaatView: React.FC<MuqattaatViewProps> = ({
         </div>
     );
 };
+
+export default MuqattaatView;

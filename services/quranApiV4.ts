@@ -1,3 +1,5 @@
+import { idbGet, idbSet } from '../utils/idb';
+
 export interface QuranV4Word {
     id: number;
     position: number;
@@ -53,10 +55,19 @@ export async function fetchChapterVersesV4(chapterNumber: number): Promise<Quran
     }
 
     try {
+        // Check fast IndexedDB first
+        const dbCached = await idbGet<QuranV4Verse[]>(`${CACHE_KEY_PREFIX}${chapterNumber}`);
+        if (dbCached && Array.isArray(dbCached) && dbCached.length > 0) {
+            memoryCache.set(chapterNumber, dbCached);
+            return dbCached;
+        }
+
+        // Fallback check legacy localStorage if available
         const localCached = localStorage.getItem(`${CACHE_KEY_PREFIX}${chapterNumber}`);
         if (localCached) {
             const parsed = JSON.parse(localCached);
             memoryCache.set(chapterNumber, parsed);
+            idbSet(`${CACHE_KEY_PREFIX}${chapterNumber}`, parsed).catch(() => {});
             return parsed;
         }
 
@@ -70,11 +81,7 @@ export async function fetchChapterVersesV4(chapterNumber: number): Promise<Quran
         const data = await res.json();
         if (data.verses && data.verses.length > 0) {
             memoryCache.set(chapterNumber, data.verses);
-            try {
-                localStorage.setItem(`${CACHE_KEY_PREFIX}${chapterNumber}`, JSON.stringify(data.verses));
-            } catch (e) {
-                // Storage limit exceeded
-            }
+            idbSet(`${CACHE_KEY_PREFIX}${chapterNumber}`, data.verses).catch(() => {});
             return data.verses;
         }
         return [];
@@ -93,10 +100,19 @@ export async function fetchChapterTajweedVerses(chapterNumber: number): Promise<
     }
 
     try {
+        // Check fast IndexedDB first
+        const dbCached = await idbGet<QuranV4TajweedVerse[]>(`${TAJWEED_CACHE_PREFIX}${chapterNumber}`);
+        if (dbCached && Array.isArray(dbCached) && dbCached.length > 0) {
+            tajweedMemoryCache.set(chapterNumber, dbCached);
+            return dbCached;
+        }
+
+        // Fallback check legacy localStorage if available
         const localCached = localStorage.getItem(`${TAJWEED_CACHE_PREFIX}${chapterNumber}`);
         if (localCached) {
             const parsed = JSON.parse(localCached);
             tajweedMemoryCache.set(chapterNumber, parsed);
+            idbSet(`${TAJWEED_CACHE_PREFIX}${chapterNumber}`, parsed).catch(() => {});
             return parsed;
         }
 
@@ -121,11 +137,7 @@ export async function fetchChapterTajweedVerses(chapterNumber: number): Promise<
             });
 
             tajweedMemoryCache.set(chapterNumber, result);
-            try {
-                localStorage.setItem(`${TAJWEED_CACHE_PREFIX}${chapterNumber}`, JSON.stringify(result));
-            } catch (e) {
-                // Storage limit
-            }
+            idbSet(`${TAJWEED_CACHE_PREFIX}${chapterNumber}`, result).catch(() => {});
             return result;
         }
         return [];

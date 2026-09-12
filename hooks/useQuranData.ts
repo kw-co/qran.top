@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { SurahData, QuranEdition } from '../types';
 import { normalizeArabicText } from '../utils/text';
+import { idbGet, idbSet } from '../utils/idb';
 
 const CORE_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
@@ -75,6 +76,18 @@ export const useQuranData = () => {
         
         setLoadingEditions(prev => [...prev, editionIdentifier]);
         setError(null);
+
+        // Step 1: Check ultra-fast persistent IndexedDB first for instantaneous offline launch
+        try {
+            const cachedFromDb = await idbGet<SurahData[]>(`edition_${editionIdentifier}`);
+            if (cachedFromDb && Array.isArray(cachedFromDb) && cachedFromDb.length > 0) {
+                setAllQuranData(prev => ({ ...prev, [editionIdentifier]: cachedFromDb }));
+                setLoadingEditions(prev => prev.filter(id => id !== editionIdentifier));
+                return;
+            }
+        } catch {
+            // Proceed to network fetch if idb fails
+        }
         
         const editionToFetch = availableEditions.find(e => e.identifier === editionIdentifier);
         if (!editionToFetch) {
@@ -104,6 +117,8 @@ export const useQuranData = () => {
 
         if (successSurahs) {
             setAllQuranData(prev => ({ ...prev, [editionIdentifier]: successSurahs! }));
+            // Asynchronously persist into IndexedDB for zero-lag subsequent loads
+            idbSet(`edition_${editionIdentifier}`, successSurahs).catch(() => {});
         } else {
             console.error(`Failed all mirrors for edition ${editionIdentifier}:`, lastError);
             setError(`فشل تحميل بيانات المصحف الأساسية. تمت محاولة الاتصال بجميع الخوادم البديلة ولم تنجح. يُرجى التثبت من الاتصال بالشبكة.`);

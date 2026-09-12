@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { TrashIcon, RefreshIcon, CheckIcon } from '../icons';
+import { TrashIcon, RefreshIcon, CheckIcon, BookOpenIcon, DownloadIcon } from '../icons';
 import { useSettingsContext } from '../../contexts/SettingsContext';
+import { idbGet, idbSet } from '../../utils/idb';
 
 const DataAndStorageSettings: React.FC = () => {
     const {
@@ -15,6 +16,25 @@ const DataAndStorageSettings: React.FC = () => {
     const [storageInfo, setStorageInfo] = useState<{ keysCount: number; estimatedKb: string }>({ keysCount: 0, estimatedKb: '0' });
     const [isCleared, setIsCleared] = useState(false);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+    // Full offline Quran state
+    const [isTextDownloaded, setIsTextDownloaded] = useState<boolean>(false);
+    const [isDownloadingText, setIsDownloadingText] = useState<boolean>(false);
+    const [textDownloadProgress, setTextDownloadProgress] = useState<number>(0);
+
+    const checkOfflineTextStatus = async () => {
+        try {
+            const simple = await idbGet('edition_quran-simple-clean');
+            const uthmani = await idbGet('edition_quran-uthmani-quran-academy');
+            if (simple && uthmani && Array.isArray(simple) && Array.isArray(uthmani)) {
+                setIsTextDownloaded(true);
+            } else {
+                setIsTextDownloaded(false);
+            }
+        } catch {
+            setIsTextDownloaded(false);
+        }
+    };
 
     const calculateStorage = () => {
         try {
@@ -36,7 +56,39 @@ const DataAndStorageSettings: React.FC = () => {
 
     useEffect(() => {
         calculateStorage();
+        checkOfflineTextStatus();
     }, []);
+
+    const handleDownloadAllQuranText = async () => {
+        setIsDownloadingText(true);
+        setTextDownloadProgress(10);
+        try {
+            // Step 1: simple clean
+            setTextDownloadProgress(25);
+            const res1 = await fetch('https://api.alquran.cloud/v1/quran/quran-simple-clean');
+            const data1 = await res1.json();
+            if (data1?.data?.surahs) {
+                await idbSet('edition_quran-simple-clean', data1.data.surahs);
+            }
+            setTextDownloadProgress(65);
+
+            // Step 2: uthmani
+            const res2 = await fetch('https://api.alquran.cloud/v1/quran/quran-uthmani-quran-academy');
+            const data2 = await res2.json();
+            if (data2?.data?.surahs) {
+                await idbSet('edition_quran-uthmani-quran-academy', data2.data.surahs);
+            }
+            setTextDownloadProgress(100);
+
+            setIsTextDownloaded(true);
+            showNotification('تم حفظ نصوص المصحف الشريف كاملاً في الذاكرة بنجاح للقراءة بدون إنترنت');
+        } catch (err) {
+            console.error('Failed downloading quran text:', err);
+            showNotification('حدث خطأ أثناء تنزيل النصوص، يرجى التأكد من اتصال الإنترنت');
+        } finally {
+            setIsDownloadingText(false);
+        }
+    };
 
     const showNotification = (msg: string) => {
         setStatusMessage(msg);
@@ -142,7 +194,60 @@ const DataAndStorageSettings: React.FC = () => {
 
             {/* Actions */}
             <div className="p-6 bg-surface-subtle rounded-2xl border border-border-default space-y-4">
-                <h3 className="font-bold text-lg text-text-primary">أدوات تنظيف الذاكرة والضبط</h3>
+                <h3 className="font-bold text-lg text-text-primary">أدوات تنزيل المصحف والعمل بدون إنترنت (Offline Mode)</h3>
+
+                {/* Full Quran Texts Download Section */}
+                <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
+                    <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <BookOpenIcon className="w-5 h-5 text-primary" />
+                                <h4 className="font-bold text-text-primary text-sm">نصوص المصحف الشريف كاملاً (114 سورة)</h4>
+                            </div>
+                            <p className="text-xs text-text-muted max-w-md">
+                                حفظ النص الإملائي المبسط والرسم العثماني كاملاً في الذاكرة السريعة للعمل الفوري 100% بدون إنترنت.
+                            </p>
+                        </div>
+                        
+                        <div className="flex-shrink-0 min-w-[150px]">
+                            {isDownloadingText ? (
+                                <div className="space-y-2 w-full">
+                                    <div className="flex justify-between text-xs text-text-muted">
+                                        <span>جاري الحفظ...</span>
+                                        <span className="font-bold text-primary" dir="ltr">{textDownloadProgress}%</span>
+                                    </div>
+                                    <div className="w-full bg-border-subtle rounded-full h-2 overflow-hidden">
+                                        <div 
+                                            className="bg-primary h-2 transition-all duration-300 rounded-full" 
+                                            style={{ width: `${Math.max(0, textDownloadProgress)}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ) : isTextDownloaded ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                                        <CheckIcon className="w-4 h-4" /> مخزن بدون إنترنت
+                                    </span>
+                                </div>
+                            ) : (
+                                <button 
+                                    type="button"
+                                    onClick={handleDownloadAllQuranText}
+                                    className="w-full bg-primary text-white font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/90 active:scale-95 transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
+                                >
+                                    <DownloadIcon className="w-4 h-4" />
+                                    تنزيل نصوص المصحف
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    {isTextDownloaded && (
+                        <div className="px-4 py-2.5 bg-emerald-500/5 text-xs text-emerald-700 dark:text-emerald-300 border-t border-emerald-500/10 flex items-center gap-2">
+                            <CheckIcon className="w-4 h-4 flex-shrink-0" />
+                            <span>المصحف الشريف مخزن محلياً بالكامل. يمكنك تصفحه والبحث فيه حتى عند انقطاع الشبكة.</span>
+                        </div>
+                    )}
+                </div>
 
                 {/* Mushaf Fonts Download Section */}
                 <div className="bg-surface rounded-xl border border-border-default overflow-hidden">
