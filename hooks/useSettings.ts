@@ -77,7 +77,7 @@ export const useSettings = () => {
     );
 
     const [enableWordAudio, setEnableWordAudio] = useState<boolean>(
-        () => safeGetItem(WORD_AUDIO_KEY, 'true') === 'true'
+        () => safeGetItem(WORD_AUDIO_KEY, 'false') === 'true'
     );
 
     const [wordClickBehavior, setWordClickBehavior] = useState<WordClickBehavior>(
