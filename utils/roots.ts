@@ -7,7 +7,7 @@ const ROOT_SEARCH_CACHE = new Map<string, string[]>();
  * Extracts a candidate 3-letter root of an Arabic word by removing common prefixes,
  * suffixes, and applying standard morphological template rules.
  */
-const computeArabicRoot = (word: string): string => {
+export const computeArabicRoot = (word: string): string => {
     let w = normalizeArabicText(word).replace(/\s+/g, '');
     if (w.length <= 3) return w;
 

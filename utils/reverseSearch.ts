@@ -1,5 +1,6 @@
 import { Ayah, SurahData } from '../types';
 import { normalizeArabicText, stripDiacritics } from './text';
+import { computeArabicRoot } from './roots';
 
 export const MUQATTAAT_29_SURAHS = [
     2, 3, 7, 10, 11, 12, 13, 14, 15, 19, 20, 26, 27, 28, 29, 30, 31, 32, 36, 38, 40, 41, 42, 43, 44, 45, 46, 50, 68
@@ -16,9 +17,11 @@ export interface FingerprintMatch {
 
 // Global cache for fingerprint indices to avoid rebuilding on every click
 let cachedMuqattaatIndex: Record<string, FingerprintMatch[]> | null = null;
+let cachedMuqattaatRootIndex: Record<string, FingerprintMatch[]> | null = null;
 let cachedHawameemIndex: Record<string, FingerprintMatch[]> | null = null;
+let cachedHawameemRootIndex: Record<string, FingerprintMatch[]> | null = null;
 
-const buildIndex = (surahDataList: SurahData[], targetSurahs: number[]): Record<string, FingerprintMatch[]> => {
+const buildIndex = (surahDataList: SurahData[], targetSurahs: number[], isRoot: boolean = false): Record<string, FingerprintMatch[]> => {
     const wordToSurahs = new Map<string, Set<number>>();
     const wordCounts = new Map<string, number>();
 
@@ -33,7 +36,11 @@ const buildIndex = (surahDataList: SurahData[], targetSurahs: number[]): Record<
                 const stripped = stripDiacritics(rawWord);
                 if (!stripped) continue;
                 
-                const normalized = normalizeArabicText(stripped);
+                let normalized = normalizeArabicText(stripped);
+                if (isRoot) {
+                    normalized = computeArabicRoot(normalized);
+                }
+                if (!normalized) continue;
                 
                 if (!wordToSurahs.has(normalized)) {
                     wordToSurahs.set(normalized, new Set());
@@ -74,17 +81,32 @@ const buildIndex = (surahDataList: SurahData[], targetSurahs: number[]): Record<
 export const findWordsByFingerprint = (
     surahDataList: SurahData[],
     targetFingerprint: string,
-    isHawameem: boolean
+    isHawameem: boolean,
+    isRoot: boolean = false
 ): FingerprintMatch[] => {
     if (isHawameem) {
-        if (!cachedHawameemIndex) {
-            cachedHawameemIndex = buildIndex(surahDataList, HAWAMEEM_7_SURAHS);
+        if (isRoot) {
+            if (!cachedHawameemRootIndex) {
+                cachedHawameemRootIndex = buildIndex(surahDataList, HAWAMEEM_7_SURAHS, true);
+            }
+            return cachedHawameemRootIndex[targetFingerprint] || [];
+        } else {
+            if (!cachedHawameemIndex) {
+                cachedHawameemIndex = buildIndex(surahDataList, HAWAMEEM_7_SURAHS, false);
+            }
+            return cachedHawameemIndex[targetFingerprint] || [];
         }
-        return cachedHawameemIndex[targetFingerprint] || [];
     } else {
-        if (!cachedMuqattaatIndex) {
-            cachedMuqattaatIndex = buildIndex(surahDataList, MUQATTAAT_29_SURAHS);
+        if (isRoot) {
+            if (!cachedMuqattaatRootIndex) {
+                cachedMuqattaatRootIndex = buildIndex(surahDataList, MUQATTAAT_29_SURAHS, true);
+            }
+            return cachedMuqattaatRootIndex[targetFingerprint] || [];
+        } else {
+            if (!cachedMuqattaatIndex) {
+                cachedMuqattaatIndex = buildIndex(surahDataList, MUQATTAAT_29_SURAHS, false);
+            }
+            return cachedMuqattaatIndex[targetFingerprint] || [];
         }
-        return cachedMuqattaatIndex[targetFingerprint] || [];
     }
 };

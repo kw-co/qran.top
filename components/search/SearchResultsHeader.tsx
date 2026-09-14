@@ -1,10 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import type { Ayah } from '../../types';
-import { SparklesIcon, ChevronDownIcon, ChevronUpIcon } from '../icons';
+import { SparklesIcon } from '../icons';
 import { QURAN_INDEX } from '../../quranIndex';
-import { safeLocalStorage } from '../../utils/storage';
-import MuqattaatBinaryMatrix from './MuqattaatBinaryMatrix';
-import HawameemBinaryMatrix from './HawameemBinaryMatrix';
 
 // Complete list of all 14 unique Muqatta'at (fawatih) formulas across the 29 surahs in the Holy Quran
 const ALL_MUQATTAAT_CONFIG: { letters: string; allSurahs: number[] }[] = [
@@ -74,7 +71,7 @@ interface SearchResultsHeaderProps {
     totalOccurrences: number;
     onJumpToOccurrence: (target: number) => void;
     cachedAnalysisExists: boolean;
-    onNewSearch: (query: string) => void;
+    onNewSearch: (query: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number, exactMatch?: boolean) => void;
     isRootSearch?: boolean;
     onToggleRootSearch?: (value: boolean) => void;
     displayedResults?: Ayah[];
@@ -91,30 +88,6 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
 }) => {
     const finalQueryForChecks = correctedQuery || query;
     const shouldShowAnalysisButton = finalQueryForChecks.trim().split(/\s+/).filter(Boolean).length === 1 && searchType === 'text';
-
-    const [isBinaryPanelOpen, setIsBinaryPanelOpen] = useState<boolean>(() => {
-        return safeLocalStorage.getItem('qran_muqattaat_binary_panel_open') === 'true';
-    });
-
-    const [isHawameemPanelOpen, setIsHawameemPanelOpen] = useState<boolean>(() => {
-        return safeLocalStorage.getItem('qran_hawameem_panel_open') === 'true';
-    });
-
-    const toggleBinaryPanel = useCallback(() => {
-        setIsBinaryPanelOpen(prev => {
-            const next = !prev;
-            safeLocalStorage.setItem('qran_muqattaat_binary_panel_open', String(next));
-            return next;
-        });
-    }, []);
-
-    const toggleHawameemPanel = useCallback(() => {
-        setIsHawameemPanelOpen(prev => {
-            const next = !prev;
-            safeLocalStorage.setItem('qran_hawameem_panel_open', String(next));
-            return next;
-        });
-    }, []);
 
     const allMuqattaatStats = React.useMemo(() => {
         if (!displayedResults || displayedResults.length === 0) return [];
@@ -231,90 +204,8 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                         </div>
                     )}
                 </div>
-                {showMuqattaatInSearch && allMuqattaatStats.length > 0 && hasAnyMuqattaatInResults && (
-                    <div className="flex items-center justify-start sm:justify-end gap-2 flex-shrink-0 w-full sm:w-auto">
-                        {/* 1. Al-Basma (29 Surahs) Button */}
-                        <button
-                            type="button"
-                            onClick={toggleBinaryPanel}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer shadow-2xs select-none ${
-                                isBinaryPanelOpen 
-                                    ? 'bg-primary text-white border-primary shadow-xs ring-2 ring-primary/30' 
-                                    : 'bg-surface border-border-default hover:border-primary/60 hover:bg-surface-subtle text-text-secondary hover:text-text-primary'
-                            }`}
-                            title={isBinaryPanelOpen ? "إغلاق مصفوفة البصمة النورانية (29 سورة)" : "عرض مصفوفة البصمة النورانية (29 سورة) والمحولات العددية"}
-                            aria-expanded={isBinaryPanelOpen}
-                        >
-                            <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded font-bold tracking-wider ${
-                                isBinaryPanelOpen ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
-                            }`}>
-                                01
-                            </span>
-                            <span>البصمة</span>
-                            <span className="text-[10px] opacity-75 font-mono">(29)</span>
-                            {isBinaryPanelOpen ? (
-                                <ChevronUpIcon className="w-3.5 h-3.5" />
-                            ) : (
-                                <ChevronDownIcon className="w-3.5 h-3.5 text-text-muted" />
-                            )}
-                        </button>
-
-                        {/* 2. Hawameem (7 Surahs) Button - distinctly styled */}
-                        <button
-                            type="button"
-                            onClick={toggleHawameemPanel}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer shadow-2xs select-none ${
-                                isHawameemPanelOpen 
-                                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs ring-2 ring-amber-500/30' 
-                                    : 'bg-amber-500/10 border-amber-500/40 hover:bg-amber-500/20 text-amber-800 dark:text-amber-200'
-                            }`}
-                            title={isHawameemPanelOpen ? "إغلاق بصمة الحواميم (7 سور)" : "عرض بصمة سور آل حم السبعة ومحولات أنظمة العد الخاصة بها"}
-                            aria-expanded={isHawameemPanelOpen}
-                        >
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                isHawameemPanelOpen ? 'bg-white/20 text-white' : 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
-                            }`}>
-                                حم
-                            </span>
-                            <span>بصمة الحواميم</span>
-                            <span className="text-[10px] opacity-75 font-mono">(7)</span>
-                            {isHawameemPanelOpen ? (
-                                <ChevronUpIcon className="w-3.5 h-3.5" />
-                            ) : (
-                                <ChevronDownIcon className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                            )}
-                        </button>
-                    </div>
-                )}
             </div>
 
-            {/* Collapsible 29-Surah Binary Matrix & Radix Converters Panel */}
-            {showMuqattaatInSearch && isBinaryPanelOpen && hasAnyMuqattaatInResults && (
-                <MuqattaatBinaryMatrix
-                    query={finalQueryForChecks}
-                    baseResults={baseResults}
-                    displayedResults={displayedResults}
-                    activeMuqattaatFilter={activeMuqattaatFilter}
-                    setActiveMuqattaatFilter={setActiveMuqattaatFilter}
-                    onClose={toggleBinaryPanel}
-                    simpleCleanData={simpleCleanData}
-                    onNewSearch={onNewSearch}
-                />
-            )}
-
-            {/* Collapsible 7-Surah Hawameem Binary Matrix & Radix Converters Panel */}
-            {showMuqattaatInSearch && isHawameemPanelOpen && hasAnyMuqattaatInResults && (
-                <HawameemBinaryMatrix
-                    query={finalQueryForChecks}
-                    baseResults={baseResults}
-                    displayedResults={displayedResults}
-                    activeMuqattaatFilter={activeMuqattaatFilter}
-                    setActiveMuqattaatFilter={setActiveMuqattaatFilter}
-                    onClose={toggleHawameemPanel}
-                    simpleCleanData={simpleCleanData}
-                    onNewSearch={onNewSearch}
-                />
-            )}
             {cachedAnalysisExists && shouldShowAnalysisButton && (
                 <div className="mt-3 pt-3 border-t border-border-default">
                     <a href={`#/analysis/${encodeURIComponent(finalQueryForChecks)}`} onClick={(e) => { e.preventDefault(); window.location.hash = `#/analysis/${encodeURIComponent(finalQueryForChecks)}`; }} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold rounded-md hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors">

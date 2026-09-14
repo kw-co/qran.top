@@ -24,7 +24,7 @@ const HAWAMEEM_KEY_SUGGESTIONS = [
 interface HawameemSearchViewProps {
     query: string;
     results: Ayah[];
-    onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number) => void;
+    onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number, exactMatchOverride?: boolean) => void;
     onSearchByAyahNumber: (ayahNumber: number) => void;
     onSearchComplete: () => void;
     autoOpenDiscussion?: boolean;
@@ -457,8 +457,8 @@ export const HawameemSearchView: React.FC<HawameemSearchViewProps> = ({
                     <SearchView
                         query={query}
                         results={results}
-                        onNewSearch={(word, sourceEdition, pos, isRoot, targetSurah) => {
-                            onNewSearch(word, sourceEdition, pos, isRoot, targetSurah);
+                        onNewSearch={(word, sourceEdition, pos, isRoot, targetSurah, exactMatchOverride) => {
+                            onNewSearch(word, sourceEdition, pos, isRoot, targetSurah, exactMatchOverride);
                         }}
                         onSearchByAyahNumber={onSearchByAyahNumber}
                         onSearchComplete={onSearchComplete}

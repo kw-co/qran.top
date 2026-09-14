@@ -513,11 +513,12 @@ export const useSearchLogic = (
     
     // Reset filters when query or mode changes
     useEffect(() => {
-        setActivePhraseFilter('all');
-        setActiveDiacriticFilter('');
-        setExactMatch(false);
+        setActivePhraseFilter(initialFilters?.phrase || 'all');
+        setActiveDiacriticFilter(initialFilters?.diacritic || '');
+        setActiveMuqattaatFilter('');
+        setExactMatch(initialFilters?.exact || false);
         setVisibleSuggestionsCount(7);
-    }, [query, correctedQuery, isRootSearch]);
+    }, [query, correctedQuery, isRootSearch, initialFilters]);
 
     return {
         exactMatch, setExactMatch,

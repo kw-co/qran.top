@@ -35,6 +35,15 @@ const QuranStructureView: React.FC = () => {
             hoverBg: "hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
         },
         {
+            title: "البصمة النورانية للمفردات",
+            description: "أداة متقدمة لاستخراج البصمة النورانية لأي مفردة عبر السور الـ 29، بالإضافة للبحث العكسي.",
+            icon: <div className="font-mono text-xl font-bold text-indigo-500">01</div>,
+            href: "#/fingerprint",
+            bg: "bg-indigo-50 dark:bg-indigo-900/10",
+            borderColor: "border-indigo-200 dark:border-indigo-800",
+            hoverBg: "hover:bg-indigo-100 dark:hover:bg-indigo-900/20"
+        },
+        {
             title: "الكتب الإلهية والنسخ السبع",
             description: "دراسة وتأملات الأستاذ أنوار إسحاق حول الكتب الإلهية داخل المصحف الشريف والأنبياء المخاطبين بها.",
             icon: <BookOpenIcon className="w-8 h-8 text-blue-500" />,

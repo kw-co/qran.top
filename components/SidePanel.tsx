@@ -151,7 +151,6 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             )}
 
                             <NavLink href="#/khatmah" icon={<BookOpenIcon className="w-5 h-5 text-emerald-500" />} label="الختمة الجماعية" onNavigate={onNavigate} isActive={currentPath.startsWith('#/khatmah') || currentPath.startsWith('#/khatmiyah')} />
-                            <NavLink href="#/structure" icon={<BookOpenIcon className="w-5 h-5 text-blue-500" />} label="بنية المصحف" onNavigate={onNavigate} isActive={currentPath.startsWith('#/structure')} />
                             <NavLink href="#/saved" icon={<BookmarkIcon className="w-5 h-5" />} label="دفتر التدبر" onNavigate={onNavigate} isActive={currentPath.startsWith('#/saved')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />
                             <NavLink href="#/settings" icon={<CogIcon className="w-5 h-5" />} label="الإعدادات" onNavigate={onNavigate} isActive={currentPath.startsWith('#/settings')} />
@@ -181,8 +180,8 @@ const SidePanel: React.FC<SidePanelProps> = ({
                                 <ShieldCheckIcon className="w-6 h-6" />
                             </button>
                             <button
-                                onClick={() => { onClose(); onNavigate('#/research'); }}
-                                className={`p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/research') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
+                                onClick={() => { onClose(); onNavigate('#/structure'); }}
+                                className={`p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/structure') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
                                 aria-label="بنية المصحف الشريف"
                                 title="بنية المصحف الشريف"
                             >

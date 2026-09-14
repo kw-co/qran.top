@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Ayah, SurahData } from '../../types';
 import { copyToClipboard } from '../../utils/text';
 import { findWordsByFingerprint, FingerprintMatch } from '../../utils/reverseSearch';
@@ -50,7 +50,7 @@ interface HawameemBinaryMatrixProps {
     setActiveMuqattaatFilter?: (val: string) => void;
     onClose?: () => void;
     simpleCleanData?: SurahData[];
-    onNewSearch?: (word: string) => void;
+    onNewSearch?: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRoot?: boolean, targetSurahNumber?: number, exactMatch?: boolean) => void;
 }
 
 export const HawameemBinaryMatrix: React.FC<HawameemBinaryMatrixProps> = ({
@@ -67,6 +67,7 @@ export const HawameemBinaryMatrix: React.FC<HawameemBinaryMatrixProps> = ({
     const [isReportCopied, setIsReportCopied] = useState(false);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [reverseSearchResults, setReverseSearchResults] = useState<FingerprintMatch[] | null>(null);
+    const [isReverseSearchRoot, setIsReverseSearchRoot] = useState(false);
     const [isSearchingReverse, setIsSearchingReverse] = useState(false);
 
     // Set of surah numbers available in the unfiltered search results
@@ -211,6 +212,10 @@ ${breakdown}
     const activeFilterList = useMemo(() => {
         return activeMuqattaatFilter.split(',').map(f => f.trim()).filter(Boolean);
     }, [activeMuqattaatFilter]);
+
+    useEffect(() => {
+        setReverseSearchResults(null);
+    }, [binaryString]);
 
     const handleReverseSearch = useCallback(() => {
         if (!simpleCleanData) return;
@@ -497,7 +502,7 @@ ${breakdown}
                                         key={match.word}
                                         onClick={() => {
                                             if (onNewSearch) {
-                                                onNewSearch(match.word);
+                                                onNewSearch(match.word, 'quran-simple-clean', undefined, false, undefined, true);
                                             }
                                         }}
                                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-amber-500/30 hover:border-amber-500 hover:shadow-2xs transition-all text-xs text-text-primary cursor-pointer"

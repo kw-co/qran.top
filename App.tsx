@@ -98,7 +98,7 @@ const App: React.FC = () => {
     }, [isInitialLoading]);
 
     // --- Search Handlers ---
-    const handleSearch = (query: string, sourceEdition?: string, position?: { surah: number; ayah: number; wordIndex: number; }, isRootSearch?: boolean, targetSurahNumber?: number) => {
+    const handleSearch = (query: string, sourceEdition?: string, position?: { surah: number; ayah: number; wordIndex: number; }, isRootSearch?: boolean, targetSurahNumber?: number, exactMatchOverride?: boolean) => {
         const ayahRef = tryParseAyahReference(query);
         if (ayahRef && !position) {
             window.location.hash = `#/surah/${ayahRef.surah}?ayah=${ayahRef.ayah}`;
@@ -109,6 +109,7 @@ const App: React.FC = () => {
         if (isRootSearch) url += `&mode=root`;
         if (targetSurahNumber) url += `&ts=${targetSurahNumber}`;
         if (position) url += `&s=${position.surah}&a=${position.ayah}&w=${position.wordIndex}`;
+        if (exactMatchOverride) url += `&exact=1`;
         window.location.hash = url;
     };
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Ayah, SurahData } from '../../types';
 import { copyToClipboard } from '../../utils/text';
 import { findWordsByFingerprint, FingerprintMatch } from '../../utils/reverseSearch';
@@ -72,7 +72,7 @@ interface MuqattaatBinaryMatrixProps {
     setActiveMuqattaatFilter?: (val: string) => void;
     onClose?: () => void;
     simpleCleanData?: SurahData[];
-    onNewSearch?: (word: string) => void;
+    onNewSearch?: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRoot?: boolean, targetSurahNumber?: number, exactMatch?: boolean) => void;
 }
 
 export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
@@ -89,7 +89,11 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
     const [isReportCopied, setIsReportCopied] = useState(false);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [reverseSearchResults, setReverseSearchResults] = useState<FingerprintMatch[] | null>(null);
+    const [isReverseSearchRoot, setIsReverseSearchRoot] = useState(false);
     const [isSearchingReverse, setIsSearchingReverse] = useState(false);
+    const [isManualMode, setIsManualMode] = useState(false);
+    const [manualSurahs, setManualSurahs] = useState<Set<number>>(new Set());
+    const [layoutMode, setLayoutMode] = useState<'grid' | 'layers'>('grid');
 
     // Set of surah numbers available in the unfiltered search results (for interactivity)
     const availableSurahs = useMemo(() => {
@@ -129,10 +133,24 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
         return { binaryString: bits, items: list, presentCount: count };
     }, [presentSurahs, availableSurahs]);
 
-    // Split 29 surahs into 3 rows without any horizontal scrolling: 9 + 9 + 11 = 29
+    // Normal Grid Layout (3 rows: 9 + 9 + 11)
     const row1 = useMemo(() => items.slice(0, 9), [items]);
     const row2 = useMemo(() => items.slice(9, 18), [items]);
     const row3 = useMemo(() => items.slice(18, 29), [items]);
+
+    // Layered Layout (7 rows of 4 + 1 on top)
+    const layerGroups = useMemo(() => {
+        return [
+            [items[28]], // Top (N)
+            [items[27], items[26], items[25], items[24]],
+            [items[23], items[22], items[21], items[20]],
+            [items[19], items[18], items[17], items[16]],
+            [items[15], items[14], items[13], items[12]],
+            [items[11], items[10], items[9], items[8]],
+            [items[7], items[6], items[5], items[4]],
+            [items[3], items[2], items[1], items[0]],
+        ];
+    }, [items]);
 
     // Calculate conversions using BigInt for exact precision
     const {
@@ -168,6 +186,14 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
             };
         }
     }, [binaryString]);
+
+    // Toggle manual mode and initialize with current footprints if turning on
+    const handleToggleManualMode = useCallback(() => {
+        if (!isManualMode) {
+            setManualSurahs(new Set(presentSurahs));
+        }
+        setIsManualMode(!isManualMode);
+    }, [isManualMode, presentSurahs]);
 
     // Copy single binary string
     const handleCopyBinary = useCallback(() => {
@@ -291,6 +317,10 @@ ${breakdown}
             </button>
         );
     };
+
+    useEffect(() => {
+        setReverseSearchResults(null);
+    }, [binaryString]);
 
     const handleReverseSearch = useCallback(() => {
         if (!simpleCleanData) return;
@@ -547,7 +577,7 @@ ${breakdown}
                                 <span>الكلمات التي تمتلك نفس البصمة النورانية التامة (29-bit)</span>
                             </h4>
                             <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                                {reverseSearchResults.length} كلمة مطابقة
+                                {reverseSearchResults.length} كلمة (بصمة: {binaryString})
                             </span>
                         </div>
                         
@@ -560,11 +590,11 @@ ${breakdown}
                                         key={match.word}
                                         onClick={() => {
                                             if (onNewSearch) {
-                                                onNewSearch(match.word);
+                                                onNewSearch(match.word, 'quran-simple-clean', undefined, isReverseSearchRoot, undefined, true);
                                             }
                                         }}
                                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-primary/30 hover:border-primary hover:shadow-2xs transition-all text-xs text-text-primary cursor-pointer"
-                                        title={`الكلمة المجردة: ${match.word} - وردت ${match.count} مرة في القرآن`}
+                                        title={`${isReverseSearchRoot ? 'الجذر' : 'الكلمة المجردة'}: ${match.word} - ورد ${match.count} مرة في القرآن`}
                                     >
                                         <span className="font-semibold">{match.word}</span>
                                         <span className="text-[10px] text-primary bg-primary/10 px-1.5 rounded font-mono">

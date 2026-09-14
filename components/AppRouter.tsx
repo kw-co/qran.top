@@ -5,6 +5,7 @@ import HomeView from './HomeView';
 import SurahDetailView from './SurahDetailView';
 import { SearchView } from './SearchView';
 import HistoryView from './HistoryView';
+import FingerprintToolView from './FingerprintToolView';
 
 const SettingsView = React.lazy(() => import('./SettingsView'));
 const SavedView = React.lazy(() => import('./SavedView'));
@@ -205,6 +206,7 @@ const isSearchPage = pathParts[0] === 'search';
         if (isInitialLoading) return null;
         if (pathParts[0] === 'saved') return <SavedView collections={collections} collectionId={pathParts[1] || null} onDeleteCollection={handleDeleteCollection} onDeleteSavedItem={handleDeleteSavedItem} onUpdateNotes={updateItemNotes} />;
         if (pathParts[0] === 'history') return <HistoryView surahList={QURAN_INDEX} />;
+        if (pathParts[0] === 'fingerprint') return <FingerprintToolView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} onNewSearch={handleSearch} />;
         if (pathParts[0] === 'analysis') return <WordAnalysisView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} initialWord={pathParts[1] ? decodeURIComponent(pathParts[1]) : undefined} />;
         if (pathParts[0] === 'settings') return <SettingsView 
             onExportNotebook={handleExportNotebook} 
@@ -335,12 +337,13 @@ const isSearchPage = pathParts[0] === 'search';
                     setIsSearching(true);
                     window.location.hash = `#/hm/number/${num}`;
                 },
-                onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRoot?: boolean, targetSurah?: number) => {
+                onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRoot?: boolean, targetSurah?: number, exactMatchOverride?: boolean) => {
                     setIsSearching(true);
                     let url = `#/hm/${encodeURIComponent(word)}?search_edition=${sourceEdition || 'quran-simple-clean'}`;
                     if (isRoot) url += '&mode=root';
                     if (targetSurah) url += `&ts=${targetSurah}`;
                     if (position) url += `&s=${position.surah}&a=${position.ayah}&w=${position.wordIndex}`;
+                    if (exactMatchOverride) url += '&exact=1';
                     window.location.hash = url;
                 },
                 onSearchComplete: () => setIsSearching(false),
@@ -396,8 +399,9 @@ const isSearchPage = pathParts[0] === 'search';
             }
             const query = pathParts[1] ? decodeURIComponent(pathParts[1]) : "";
             const isRootSearch = queryParams.get('mode') === 'root';
+            const isExactMatch = queryParams.get('exact') === '1';
             const position = queryParams.get('s') ? { surah: parseInt(queryParams.get('s')!), ayah: parseInt(queryParams.get('a')!), wordIndex: parseInt(queryParams.get('w')!) } : undefined;
-            return <SearchView {...commonProps} query={searchTextResult.parsedQuery || query} results={searchTextResult.results} correctedQuery={searchTextResult.correctedQuery} autoOpenDiscussion={!!queryParams.get('from')} searchEdition={searchTextResult.finalSearchEdition} position={position} isRootSearch={isRootSearch} targetSurahNumber={searchTextResult.targetSurahNumber} />;
+            return <SearchView {...commonProps} query={searchTextResult.parsedQuery || query} results={searchTextResult.results} correctedQuery={searchTextResult.correctedQuery} autoOpenDiscussion={!!queryParams.get('from')} searchEdition={searchTextResult.finalSearchEdition} position={position} isRootSearch={isRootSearch} targetSurahNumber={searchTextResult.targetSurahNumber} initialFilters={{ exact: isExactMatch }} />;
         }
         return <HomeView surahList={QURAN_INDEX} juzList={JUZ_INDEX} hizbList={HIZB_INDEX} />;
     };
