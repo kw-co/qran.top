@@ -287,7 +287,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, ini
                                     💡 طريقة تفعيل إذن الميكروفون:
                                 </div>
                                 <ul className="list-disc list-inside space-y-1 pr-1 leading-normal">
-                                    <li><strong>في المتصفح:</strong> انقر على رمز القفل 🔒 أو إعدادات الشريط بجوار عنوان الموقع (qran.top) ➔ الأذونات ➔ الميكروفون ➔ <b>سماح</b>.</li>
+                                    <li><strong>في المتصفح:</strong> انقر على رمز القفل 🔒 أو إعدادات الشريط بجوار عنوان الموقع ➔ الأذونات ➔ الميكروفون ➔ <b>سماح</b>.</li>
                                     <li><strong>في تطبيق الهاتف:</strong> الإعدادات ➔ التطبيقات ➔ تطبيق القرآن ➔ الأذونات ➔ الميكروفون ➔ <b>سماح</b>.</li>
                                 </ul>
                             </div>

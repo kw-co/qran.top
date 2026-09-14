@@ -64,12 +64,21 @@ const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({ playlist, currentIndex,
     useEffect(() => {
         const audio = audioRef.current;
         if (audio) {
-            audio.addEventListener('ended', onEnded);
+            const handleEnded = () => {
+                const nextAyah = playlist[currentIndex + 1];
+                if (nextAyah?.audio) {
+                    // Synchronously set next source and play to keep background playback active on mobile
+                    audio.src = nextAyah.audio;
+                    audio.play().catch(e => console.error("Background play next failed:", e));
+                }
+                onEnded();
+            };
+            audio.addEventListener('ended', handleEnded);
             return () => {
-                audio.removeEventListener('ended', onEnded);
+                audio.removeEventListener('ended', handleEnded);
             };
         }
-    }, [onEnded]);
+    }, [onEnded, playlist, currentIndex]);
 
     useEffect(() => {
         if ('mediaSession' in navigator && currentAyah) {

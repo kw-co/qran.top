@@ -1,6 +1,6 @@
 {
-  "name": "Remix qran.top",
-  "description": "Imported from GitHub: kw-co/qran.top",
+  "name": "الباحث في المصحف الشريف",
+  "description": "تطبيق الباحث في المصحف الشريف: رفيقك الأمثل لتدبر القرآن الكريم",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

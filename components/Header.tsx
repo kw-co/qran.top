@@ -56,8 +56,8 @@ const Logo: React.FC<{ dataSourceStatus: 'primary' | 'fallback'; isHomePage: boo
             title="انقر للرئيسية - انقر مرتين لإعادة تحميل وتحديث التطبيق"
         >
             <LogoIcon className="w-7 h-7 text-primary flex-shrink-0" />
-            <span className="text-xl font-bold text-text-primary tracking-tighter">
-                الباحث
+            <span className="text-lg sm:text-xl font-bold text-text-primary tracking-tighter whitespace-nowrap">
+                الباحث في المصحف الشريف
             </span>
         </div>
     );
