@@ -10,8 +10,7 @@ import AyahActionPopover from './AyahActionPopover';
 import SearchResultItem from './SearchResultItem';
 import SearchResultsHeader from './search/SearchResultsHeader';
 import SearchResultsToolbar from './search/SearchResultsToolbar';
-import PhraseFilters from './search/PhraseFilters';
-import DiacriticFilters from './search/DiacriticFilters';
+import SearchFiltersDrawer from './search/SearchFiltersDrawer';
 import NeighboringWords from './search/NeighboringWords';
 
 
@@ -26,6 +25,7 @@ interface SearchViewProps {
   searchEdition: string;
   position?: { surah: number, ayah: number, wordIndex: number };
   simpleCleanData: SurahData[];
+  imlaeiSimpleData?: SurahData[];
   onSaveAyah: (item: SavedAyahItem) => void;
   onSaveSearch: (item: SavedSearchItem) => void;
   searchType?: 'text' | 'number';
@@ -36,15 +36,15 @@ interface SearchViewProps {
   correctedQuery?: string;
   isRootSearch?: boolean;
   targetSurahNumber?: number;
-  
+  queryParams?: URLSearchParams;
 }
 
 export const SearchView: React.FC<SearchViewProps> = ({ 
     query, results, onNewSearch, onSearchByAyahNumber, onSearchComplete, autoOpenDiscussion, 
     displayEditionData, searchEdition, position, 
-    simpleCleanData, onSaveAyah, onSaveSearch, searchType = 'text',
+    simpleCleanData, imlaeiSimpleData, onSaveAyah, onSaveSearch, searchType = 'text',
     currentlyPlayingAyahGlobalNumber, isPlaybackLoading, onStartPlayback,
-    correctedQuery, isRootSearch = false, targetSurahNumber
+    correctedQuery, isRootSearch = false, targetSurahNumber, queryParams
 }) => {
   const [isEditableQuery, setIsEditableQuery] = useState(false);
   const [editableQuery, setEditableQuery] = useState(query);
@@ -70,10 +70,37 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const [cachedAnalysisExists, setCachedAnalysisExists] = useState(false);
   const [pulsingWord, setPulsingWord] = useState<{ itemIndex: number; wordIndex: number } | null>(null);
 
+  // Parse initial filters from URL or props
+  const initialFilters = useMemo(() => {
+    try {
+      const hash = window.location.hash || '';
+      const qIndex = hash.indexOf('?');
+      const params = qIndex !== -1 ? new URLSearchParams(hash.substring(qIndex + 1)) : queryParams;
+      if (!params) return {};
+      return {
+        phrase: params.get('phrase') || params.get('p') || undefined,
+        diacritic: params.get('diacritic') || params.get('d') || undefined,
+        exact: (params.get('exact') === '1' || params.get('exact') === 'true') ? true : undefined,
+        sort: (params.get('sort') === 'freq' ? 'freq' : 'alpha') as 'alpha' | 'freq',
+        tab: (params.get('tab') === 'diacritics' ? 'diacritics' : 'phrases') as 'phrases' | 'diacritics',
+      };
+    } catch {
+      return {};
+    }
+  }, [queryParams]);
+
+  const [filterSortOrder, setFilterSortOrder] = useState<'alpha' | 'freq'>(initialFilters.sort || 'alpha');
+  const [filterActiveTab, setFilterActiveTab] = useState<'phrases' | 'diacritics'>(initialFilters.tab || 'phrases');
+  const [isShareCopied, setIsShareCopied] = useState(false);
+
   // Pagination / Batching for super-fast DOM rendering on frequent queries (like "الله")
   const INITIAL_BATCH_SIZE = 30;
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_BATCH_SIZE);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+
+  const effectiveEditionData = useMemo(() => {
+    return (imlaeiSimpleData && imlaeiSimpleData.length > 0) ? imlaeiSimpleData : displayEditionData;
+  }, [imlaeiSimpleData, displayEditionData]);
 
   const {
     exactMatch, setExactMatch,
@@ -86,7 +113,67 @@ export const SearchView: React.FC<SearchViewProps> = ({
     generalOccurrences, exactOccurrences,
     neighboringWords,
     formatResultsForExport,
-  } = useSearchLogic(query, correctedQuery, results, searchType as 'text' | 'number', simpleCleanData, isRootSearch, displayEditionData);
+  } = useSearchLogic(
+    query, correctedQuery, results, searchType as 'text' | 'number', simpleCleanData, isRootSearch, effectiveEditionData,
+    {
+      phrase: initialFilters.phrase,
+      diacritic: initialFilters.diacritic,
+      exact: initialFilters.exact,
+    }
+  );
+
+  // Sync URL hash with search query, filters and settings so sharing the link reproduces the exact state
+  useEffect(() => {
+    if (searchType === 'number') return;
+    try {
+      const currentHash = window.location.hash || '';
+      if (!currentHash.startsWith('#/search')) return;
+
+      const pathPart = currentHash.split('?')[0];
+      const params = new URLSearchParams();
+
+      if (isRootSearch) params.set('mode', 'root');
+      if (targetSurahNumber) params.set('ts', targetSurahNumber.toString());
+      if (position) {
+        params.set('s', position.surah.toString());
+        params.set('a', position.ayah.toString());
+        params.set('w', position.wordIndex.toString());
+      }
+      if (exactMatch) params.set('exact', '1');
+      if (activePhraseFilter && activePhraseFilter !== 'all') {
+        params.set('phrase', activePhraseFilter);
+      }
+      if (activeDiacriticFilter && activeDiacriticFilter.trim() !== '') {
+        params.set('diacritic', activeDiacriticFilter);
+      }
+      if (filterSortOrder && filterSortOrder !== 'alpha') {
+        params.set('sort', filterSortOrder);
+      }
+      if (filterActiveTab && filterActiveTab !== 'phrases') {
+        params.set('tab', filterActiveTab);
+      }
+
+      const queryString = params.toString();
+      const newHash = queryString ? `${pathPart}?${queryString}` : pathPart;
+
+      if (window.location.hash !== newHash) {
+        window.history.replaceState(null, '', newHash);
+      }
+    } catch {
+      // ignore
+    }
+  }, [
+    searchType, isRootSearch, targetSurahNumber, position,
+    exactMatch, activePhraseFilter, activeDiacriticFilter,
+    filterSortOrder, filterActiveTab
+  ]);
+
+  const handleShareSearch = useCallback(() => {
+    const fullUrl = window.location.href;
+    copyToClipboard(fullUrl);
+    setIsShareCopied(true);
+    setTimeout(() => setIsShareCopied(false), 2500);
+  }, []);
 
   // Reset pagination whenever query, filters or sorting change
   useEffect(() => {
@@ -333,8 +420,21 @@ export const SearchView: React.FC<SearchViewProps> = ({
       )}
       
       <main className="bg-surface p-3.5 sm:p-6 md:p-8 rounded-lg shadow-md transition-colors duration-300 w-full max-w-full overflow-hidden">
-        <DiacriticFilters variants={diacriticVariants} activeFilter={activeDiacriticFilter} setActiveFilter={setActiveDiacriticFilter} resultsCount={displayedResults.length} />
-        <PhraseFilters phraseFilters={phraseFilters} activePhraseFilter={activePhraseFilter} setActivePhraseFilter={setActivePhraseFilter} resultsCount={displayedResults.length}/>
+        {searchType === 'text' && (
+          <SearchFiltersDrawer 
+            phraseFilters={phraseFilters}
+            activePhraseFilter={activePhraseFilter}
+            setActivePhraseFilter={setActivePhraseFilter}
+            diacriticVariants={diacriticVariants}
+            activeDiacriticFilter={activeDiacriticFilter}
+            setActiveDiacriticFilter={setActiveDiacriticFilter}
+            resultsCount={displayedResults.length}
+            activeTab={filterActiveTab}
+            onTabChange={setFilterActiveTab}
+            sortOrder={filterSortOrder}
+            onSortOrderChange={setFilterSortOrder}
+          />
+        )}
         <SearchResultsHeader 
             searchType={searchType} query={query} correctedQuery={correctedQuery} targetSurahNumber={targetSurahNumber} activeMuqattaatFilter={activeMuqattaatFilter} setActiveMuqattaatFilter={setActiveMuqattaatFilter} showMuqattaatInSearch={showMuqattaatInSearch} baseResults={results}
             displayedResultsCount={displayedResults.length} resultsCount={displayedResults.length}
@@ -357,6 +457,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
                 onAudioEditionChange={setSelectedAudioEdition} searchType={searchType}
                 onSaveSearch={handleSaveSearch} onCopyAll={handleCopyAll}
                 isAllCopied={isAllCopied}
+                onShareSearch={handleShareSearch}
+                isShareCopied={isShareCopied}
                 onCopyHighlightedWords={handleCopyHighlightedWords}
                 isHighlightedCopied={isHighlightedCopied}
                 copyHighlightedMode={copyHighlightedMode}
@@ -379,6 +481,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                                     key={ayah.number} itemRef={itemRefs.current[index]} ayah={ayah} 
                                     queryWords={searchType === 'number' ? [] : queryWords} currentQuery={query} onNewSearch={onNewSearch}
                                     displayEdition={displayEdition} displayEditionData={displayEditionData} searchEdition={searchEdition}
+                                    imlaeiSimpleData={imlaeiSimpleData}
                                     fontSize={fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
                                     isPlaybackLoading={isPlaybackLoading}
                                     pulsingWordIndex={pulsingWord?.itemIndex === index ? pulsingWord.wordIndex : -1} resultIndex={index}

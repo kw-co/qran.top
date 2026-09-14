@@ -1,6 +1,6 @@
 import React from 'react';
 import type { QuranEdition } from '../../types';
-import { BookmarkIcon, DocumentDuplicateIcon, DownloadIcon, CheckIcon, PlayIcon, SpinnerIcon } from '../icons';
+import { BookmarkIcon, DocumentDuplicateIcon, DownloadIcon, CheckIcon, PlayIcon, SpinnerIcon, ShareIcon } from '../icons';
 
 interface SearchResultsToolbarProps {
     isPlaybackLoading: boolean;
@@ -12,6 +12,8 @@ interface SearchResultsToolbarProps {
     onSaveSearch: () => void;
     onCopyAll: () => void;
     isAllCopied: boolean;
+    onShareSearch?: () => void;
+    isShareCopied?: boolean;
     onCopyHighlightedWords?: () => void;
     isHighlightedCopied?: boolean;
     copyHighlightedMode?: number;
@@ -22,7 +24,7 @@ interface SearchResultsToolbarProps {
 
 const SearchResultsToolbar: React.FC<SearchResultsToolbarProps> = ({
     isPlaybackLoading, allAudioEditions, onPlayAll, searchType, onSaveSearch, onCopyAll, isAllCopied,
-    onDownloadAll
+    onShareSearch, isShareCopied, onDownloadAll
 }) => {
     return (
         <div className="flex items-center flex-wrap gap-3 my-6 p-4 bg-surface-subtle rounded-xl border border-border-default w-full">
@@ -37,6 +39,18 @@ const SearchResultsToolbar: React.FC<SearchResultsToolbarProps> = ({
                 {isPlaybackLoading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : <PlayIcon className="w-5 h-5"/>}
                 <span>{isPlaybackLoading ? 'تحضير...' : 'تشغيل الكل'}</span>
             </button>
+
+            {onShareSearch && (
+                <button
+                    type="button"
+                    onClick={onShareSearch}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-primary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors cursor-pointer"
+                    title="مشاركة رابط البحث الحالي مع الفلاتر النشطة"
+                >
+                    {isShareCopied ? <CheckIcon className="w-4 h-4 text-emerald-500" /> : <ShareIcon className="w-4 h-4 text-primary" />}
+                    <span>{isShareCopied ? 'تم نسخ الرابط!' : 'مشاركة البحث'}</span>
+                </button>
+            )}
 
             {searchType === 'text' && (
                 <button onClick={onSaveSearch} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors">

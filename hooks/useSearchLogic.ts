@@ -120,13 +120,36 @@ export const useSearchLogic = (
     searchType: 'text' | 'number',
     simpleCleanData: any[],
     isRootSearch?: boolean,
-    displayEditionData?: any[]
+    displayEditionData?: any[],
+    initialFilters?: {
+        phrase?: string;
+        diacritic?: string;
+        exact?: boolean;
+    }
 ) => {
-    const [exactMatch, setExactMatch] = useState(false);
+    const [exactMatch, setExactMatch] = useState(initialFilters?.exact || false);
     const [visibleSuggestionsCount, setVisibleSuggestionsCount] = useState(7);
-    const [activePhraseFilter, setActivePhraseFilter] = useState('all');
+    const [activePhraseFilter, setActivePhraseFilter] = useState(initialFilters?.phrase || 'all');
     const [activeMuqattaatFilter, setActiveMuqattaatFilter] = useState('');
-    const [activeDiacriticFilter, setActiveDiacriticFilter] = useState('');
+    const [activeDiacriticFilter, setActiveDiacriticFilter] = useState(initialFilters?.diacritic || '');
+
+    useEffect(() => {
+        if (initialFilters?.phrase !== undefined) {
+            setActivePhraseFilter(initialFilters.phrase || 'all');
+        }
+    }, [initialFilters?.phrase]);
+
+    useEffect(() => {
+        if (initialFilters?.diacritic !== undefined) {
+            setActiveDiacriticFilter(initialFilters.diacritic || '');
+        }
+    }, [initialFilters?.diacritic]);
+
+    useEffect(() => {
+        if (initialFilters?.exact !== undefined) {
+            setExactMatch(initialFilters.exact);
+        }
+    }, [initialFilters?.exact]);
 
     const queryWords = useMemo(() => {
         const finalQuery = correctedQuery || query;

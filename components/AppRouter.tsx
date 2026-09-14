@@ -385,9 +385,11 @@ const isSearchPage = pathParts[0] === 'search';
                 onSearchComplete: () => setIsSearching(false),
                 displayEditionData: quranData || [], 
                 simpleCleanData: allQuranData?.['quran-simple-clean'] || [],
+                imlaeiSimpleData: allQuranData?.['quran-simple'] || [],
                 onSaveAyah: handleSaveItem, onSaveSearch: handleSaveItem,
                 currentlyPlayingAyahGlobalNumber: currentlyPlayingAyahGlobalNumber, isPlaybackLoading: !!playbackInfo?.trigger,
                 onStartPlayback: handleStartPlayback,
+                queryParams: queryParams,
             };
             if (pathParts[1] === 'number' && pathParts[2]) {
                 return <SearchView {...commonProps} query={pathParts[2]} results={searchNumberResults} searchEdition={'quran-simple-clean'} searchType="number" />;

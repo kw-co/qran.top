@@ -5,6 +5,7 @@ import { idbGet, idbSet } from '../utils/idb';
 
 const CORE_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
+    { identifier: "quran-simple", language: "ar", name: "الرسم الإملائي (مُشكل)", englishName: "Simple", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
     { identifier: "quran-uthmani-quran-academy", language: "ar", name: "الرسم العثماني", englishName: "Uthmani (Quran Academy)", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" }
 ];
 
@@ -141,6 +142,7 @@ export const useQuranData = () => {
             setIsBackgroundLoading(true);
             await Promise.all([
                 fetchCustomEditionDataRef.current('quran-simple-clean'),
+                fetchCustomEditionDataRef.current('quran-simple'),
                 fetchCustomEditionDataRef.current('quran-uthmani-quran-academy'),
             ]);
             setIsBackgroundLoading(false);

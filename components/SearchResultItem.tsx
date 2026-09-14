@@ -31,6 +31,7 @@ interface SearchResultItemProps {
   onCopyAyah?: (ayah: Ayah) => void;
   onPlayAyah?: (resultIndex: number) => void;
   copiedAyah?: number | null;
+  imlaeiSimpleData?: SurahData[];
 }
 
 const SURAH_MUQATTAAT_MAP: Record<number, string> = {
@@ -73,7 +74,8 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
     const SearchResultItem: React.FC<SearchResultItemProps> = ({ 
     ayah, queryWords, currentQuery, onNewSearch, displayEdition, displayEditionData, searchEdition,
     fontSize, fontStyle, searchType, isCurrentlyPlaying, isPlaybackLoading, itemRef, pulsingWordIndex,
-    resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah
+    resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah,
+    imlaeiSimpleData
 }) => {
     const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch, highlightHaMeem } = useSettingsContext();
 
@@ -93,8 +95,25 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
         ayahNumberInSurah: number;
     } | null>(null);
 
+    // Search results are ALWAYS displayed in standard Imlaei with tashkeel (الرسم الإملائي المشكل)
     const displayAyah = useMemo(() => {
-        if (displayEditionData?.length > 0 && ayah.surah) {
+        if (imlaeiSimpleData && imlaeiSimpleData.length > 0 && ayah.surah) {
+            const imlaeiSurah = imlaeiSimpleData.find(s => s.number === ayah.surah!.number);
+            const imlaeiAyahData = imlaeiSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
+            if (imlaeiAyahData && imlaeiSurah) {
+                return { 
+                    ...imlaeiAyahData,
+                    surah: {
+                        number: imlaeiSurah.number,
+                        name: imlaeiSurah.name,
+                        englishName: imlaeiSurah.englishName,
+                        englishNameTranslation: imlaeiSurah.englishNameTranslation,
+                        revelationType: imlaeiSurah.revelationType,
+                    }
+                };
+            }
+        }
+        if (displayEditionData && displayEditionData.length > 0 && ayah.surah) {
             const displaySurah = displayEditionData.find(s => s.number === ayah.surah!.number);
             const displayAyahData = displaySurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
             if (displayAyahData && displaySurah) {
@@ -111,9 +130,10 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
             }
         }
         return ayah;
-    }, [ayah, displayEditionData]);
+    }, [ayah, imlaeiSimpleData, displayEditionData]);
 
-    const { className: quranTextClass } = getQuranTextStyle(fontStyle, fontSize);
+    // Always use Imlai font for search results regardless of reading mode font setting
+    const { className: quranTextClass } = getQuranTextStyle('imlai_1', fontSize);
 
     const playWordAudio = (surahNum: number, ayahNum: number, wordIdxOneBased: number, clickedWordText?: string) => {
         playSmartWordAudio(surahNum, ayahNum, wordIdxOneBased, clickedWordText);
@@ -128,7 +148,8 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
 
         if (!displayAyah.surah) return;
 
-        const isImlaei = fontStyle === 'imlai_1' || displayEdition.identifier.includes('simple-clean');
+        // Search results are always in Imlaei mode
+        const isImlaei = true;
         const shouldSearchDirectly = 
             wordClickBehavior === 'direct_search' || 
             (wordClickBehavior === 'auto' && isImlaei);
@@ -197,7 +218,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                     aria-label={`إظهار خيارات البحث لكلمة: ${word}`}
                 >
                     {isMatch ? (
-                        <mark className={`bg-yellow-400/40 text-text-primary rounded-sm ${isPulsing ? 'animate-highlight-pulse' : ''}`}>{word}</mark>
+                        <mark className={`bg-amber-400/30 dark:bg-amber-400/25 text-text-primary font-bold px-1 py-0.5 rounded-md ring-1 ring-amber-500/30 dark:ring-amber-400/30 ${isPulsing ? 'animate-highlight-pulse' : ''}`}>{word}</mark>
                     ) : (
                         <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>{renderWordWithHaMeem(word, highlightHaMeem)}</span>
                     )}
