@@ -201,7 +201,8 @@ export const useSearchLogic = (
             if (mFilters.length > 0) {
                 filtered = filtered.filter(ayah => {
                     const ayahMuqattaat = SURAH_MUQATTAAT_MAP[ayah.surah?.number || 0];
-                    return mFilters.includes(ayahMuqattaat);
+                    const surahKey = `s:${ayah.surah?.number || 0}`;
+                    return mFilters.includes(ayahMuqattaat) || mFilters.includes(surahKey);
                 });
             }
         }

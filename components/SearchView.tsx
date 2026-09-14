@@ -445,6 +445,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             isRootSearch={isRootSearch}
             onToggleRootSearch={(val) => onNewSearch(query, undefined, undefined, val)}
             displayedResults={displayedResults}
+            simpleCleanData={simpleCleanData}
         />
         
         {results.length > 0 && (
