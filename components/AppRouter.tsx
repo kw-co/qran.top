@@ -206,7 +206,7 @@ const isSearchPage = pathParts[0] === 'search';
         if (isInitialLoading) return null;
         if (pathParts[0] === 'saved') return <SavedView collections={collections} collectionId={pathParts[1] || null} onDeleteCollection={handleDeleteCollection} onDeleteSavedItem={handleDeleteSavedItem} onUpdateNotes={updateItemNotes} />;
         if (pathParts[0] === 'history') return <HistoryView surahList={QURAN_INDEX} />;
-        if (pathParts[0] === 'fingerprint') return <FingerprintToolView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} onNewSearch={handleSearch} />;
+        if (pathParts[0] === 'fingerprint') return <FingerprintToolView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} displayEditionData={quranData || []} allQuranData={allQuranData} onNewSearch={handleSearch} />;
         if (pathParts[0] === 'analysis') return <WordAnalysisView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} initialWord={pathParts[1] ? decodeURIComponent(pathParts[1]) : undefined} />;
         if (pathParts[0] === 'settings') return <SettingsView 
             onExportNotebook={handleExportNotebook} 

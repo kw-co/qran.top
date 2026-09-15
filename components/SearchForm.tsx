@@ -5,6 +5,8 @@ interface SearchFormProps {
     onSearch: (query: string) => void;
     disabled?: boolean;
     initialQuery?: string;
+    placeholder?: string;
+    buttonText?: string;
 }
 
 interface PermissionModalState {
@@ -14,7 +16,7 @@ interface PermissionModalState {
     message: string;
 }
 
-const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, initialQuery = '' }) => {
+const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, initialQuery = '', placeholder = 'ابحث في القرآن الكريم... (مثال: الصلاة، الزكاة)', buttonText = 'بحث' }) => {
         const [query, setQuery] = useState(initialQuery);
     const [isListening, setIsListening] = useState(false);
     const [modalState, setModalState] = useState<PermissionModalState>({ show: false, type: 'request', title: '', message: '' });
@@ -219,7 +221,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, ini
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onFocus={() => setShowDropdown(true)}
-                        placeholder={disabled ? "جاري تحميل بيانات البحث..." : "ابحث عن كلمة، أو أدخل مرجعاً مثل (البقرة ٢٥٥)..."}
+                        placeholder={disabled ? "جاري تحميل بيانات البحث..." : placeholder}
                         className="w-full text-base h-10 pl-14 pr-4 bg-surface border-2 border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                         aria-label="بحث في المصحف الشريف"
                         disabled={disabled}

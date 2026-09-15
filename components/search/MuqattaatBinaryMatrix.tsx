@@ -116,7 +116,7 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
 
     // Construct the 29-bit binary string (1 for present, 0 for absent)
     const { binaryString, items, presentCount } = useMemo(() => {
-        const list = MUQATTAAT_29_SURAHS.map(s => {
+        const list = [...MUQATTAAT_29_SURAHS].reverse().map(s => {
             const isPresent = presentSurahs.has(s.surahNumber);
             const isAvailable = availableSurahs.has(s.surahNumber);
             return {
@@ -139,16 +139,19 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
     const row3 = useMemo(() => items.slice(18, 29), [items]);
 
     // Layered Layout (7 rows of 4 + 1 on top)
+    // Order from items array (already reversed from MUQATTAAT_29_SURAHS)
+    // items[0] is N (68)
+    // items[1..4] is Q (50) to Dukhan (44)
     const layerGroups = useMemo(() => {
         return [
-            [items[28]], // Top (N)
-            [items[27], items[26], items[25], items[24]],
-            [items[23], items[22], items[21], items[20]],
-            [items[19], items[18], items[17], items[16]],
-            [items[15], items[14], items[13], items[12]],
-            [items[11], items[10], items[9], items[8]],
-            [items[7], items[6], items[5], items[4]],
-            [items[3], items[2], items[1], items[0]],
+            [items[0]], // Top (N)
+            [items[1], items[2], items[3], items[4]],
+            [items[5], items[6], items[7], items[8]],
+            [items[9], items[10], items[11], items[12]],
+            [items[13], items[14], items[15], items[16]],
+            [items[17], items[18], items[19], items[20]],
+            [items[21], items[22], items[23], items[24]],
+            [items[25], items[26], items[27], items[28]],
         ];
     }, [items]);
 
@@ -156,6 +159,8 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
     const {
         decimalVal,
         hexVal,
+        base6Val,
+        base7Val,
         base12Val,
         base19Val,
         isDivisibleBy19,
@@ -168,6 +173,8 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
             return {
                 decimalVal: val.toString(10),
                 hexVal: '0x' + val.toString(16).toUpperCase(),
+                base6Val: bigIntToRadix(val, 6),
+                base7Val: bigIntToRadix(val, 7),
                 base12Val: bigIntToRadix(val, 12),
                 base19Val: bigIntToRadix(val, 19),
                 isDivisibleBy19: isDiv,
@@ -178,6 +185,8 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
             return {
                 decimalVal: '0',
                 hexVal: '0x0',
+                base6Val: '0',
+                base7Val: '0',
                 base12Val: '0',
                 base19Val: '0',
                 isDivisibleBy19: false,
@@ -245,7 +254,7 @@ ${breakdown}
         copyToClipboard(report);
         setIsReportCopied(true);
         setTimeout(() => setIsReportCopied(false), 2500);
-    }, [items, query, presentCount, binaryString, decimalVal, hexVal, base12Val, base19Val, isDivisibleBy19, quotient19, remainder19]);
+    }, [items, query, presentCount, binaryString, decimalVal, hexVal, base6Val, base7Val, base12Val, base19Val, isDivisibleBy19, quotient19, remainder19]);
 
     // Handle surah filter toggle on clicking cell
     const handleSurahClick = useCallback((surahNumber: number) => {
@@ -276,7 +285,7 @@ ${breakdown}
             <button
                 key={s.surahNumber}
                 type="button"
-                className={`flex flex-col items-center justify-between border rounded-lg transition-all text-center select-none py-1 px-0.5 min-w-0 ${
+                className={`w-full flex flex-col items-center justify-between border rounded-lg transition-all text-center select-none py-1 px-0.5 min-w-0 ${
                     isCellActive
                         ? 'border-primary ring-2 ring-primary/40 bg-primary/10 shadow-xs'
                         : s.isAvailable
@@ -399,58 +408,51 @@ ${breakdown}
                 </div>
             </div>
 
-            {/* 1. Matrix without horizontal scroll: 3 rows (9 + 9 + 11 = 29 surahs) */}
-            <div className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] text-text-muted">
-                    <span className="font-semibold text-text-secondary">
-                        مصفوفة السور الـ 29 بترتيب المصحف (1 = وردت، 0 = لم ترد):
-                    </span>
-                    <span className="text-[10px] hidden sm:inline text-text-muted/80">
-                        انقر على أي سورة ذات قيمة (1) لتصفية النتائج، وانقر على أي رقم لنسخه
-                    </span>
-                </div>
-
-                {/* Row 1: First 9 surahs (2 to 15) */}
-                <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-text-muted px-0.5">
-                        <span className="font-medium">القسم الأول (1 إلى 9): البقرة — الحجر</span>
-                        <span className="font-mono text-[9px] opacity-70">9 سور</span>
-                    </div>
-                    <div className="grid grid-cols-9 gap-1 sm:gap-1.5 w-full">
-                        {row1.map(renderCell)}
-                    </div>
-                </div>
-
-                {/* Row 2: Middle 9 surahs (19 to 32) */}
-                <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-text-muted px-0.5">
-                        <span className="font-medium">القسم الثاني (10 إلى 18): مريم — السجدة</span>
-                        <span className="font-mono text-[9px] opacity-70">9 سور</span>
-                    </div>
-                    <div className="grid grid-cols-9 gap-1 sm:gap-1.5 w-full">
-                        {row2.map(renderCell)}
+            {/* 1. Visual Matrix */}
+            <div className="bg-surface-subtle border border-border-default rounded-xl p-3 relative space-y-4">
+                <div className="flex items-center justify-between text-xs text-text-secondary mb-1">
+                    <span>انقر على أي سورة ذات قيمة (1) لتصفية النتائج، وانقر على أي رقم لنسخه</span>
+                    <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors">
+                            <input 
+                                type="checkbox" 
+                                checked={isManualMode}
+                                onChange={handleToggleManualMode}
+                                className="rounded text-primary focus:ring-primary w-3.5 h-3.5"
+                            />
+                            <span className="font-medium text-[10px] sm:text-xs">الوضع اليدوي (تجريبي)</span>
+                        </label>
+                        {isManualMode && (
+                            <button 
+                                onClick={() => setManualSurahs(new Set())}
+                                className="text-[10px] sm:text-xs text-red-500 hover:text-red-600 bg-red-500/10 px-2 py-0.5 rounded transition-colors"
+                            >
+                                تصفير
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* Row 3: Final 11 surahs (36 to 68) */}
-                <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-text-muted px-0.5">
-                        <span className="font-medium">القسم الثالث (19 إلى 29): يس — القلم</span>
-                        <span className="font-mono text-[9px] opacity-70">11 سورة</span>
-                    </div>
-                    <div className="grid grid-cols-11 gap-1 sm:gap-1.5 w-full">
-                        {row3.map(renderCell)}
-                    </div>
+                <div className="flex flex-col gap-1.5 items-center">
+                    {layerGroups.map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex gap-1.5 justify-center w-full">
+                            {row.map((item) => (
+                                <div key={item.surahNumber} className="w-[14%] max-w-[55px] min-w-[40px]">
+                                    {renderCell(item)}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
                 </div>
             </div>
-
+            
             {/* 2. Radix converters cards */}
             <div className="pt-2 border-t border-border-default/60">
                 <div className="text-[11px] font-semibold text-text-secondary mb-2 flex items-center justify-between">
                     <span>المحولات العددية الذكية للبصمة (29-bit) — انقر على أي رقم للنسخ المباشر:</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
                     {/* Base 2 */}
                     <div 
                         onClick={() => handleCopyVal(binaryString, 'base2')}
@@ -469,6 +471,44 @@ ${breakdown}
                         </div>
                         <div className="font-mono text-[11px] text-text-primary font-bold mt-1 break-all group-hover:text-primary transition-colors">
                             {binaryString}
+                        </div>
+                    </div>
+
+                    {/* Base 6 */}
+                    <div 
+                        onClick={() => handleCopyVal(base6Val, 'base6')}
+                        className="p-2.5 rounded-lg bg-surface-subtle/60 border border-border-default hover:border-primary/50 flex flex-col justify-between cursor-pointer transition-all hover:bg-surface-subtle shadow-2xs group"
+                        title="انقر للنسخ"
+                    >
+                        <div className="text-[10px] text-text-muted font-medium flex items-center justify-between">
+                            <span>النظام السداسي (Base 6)</span>
+                            {copiedKey === 'base6' && (
+                                <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
+                                    <CheckIcon className="w-3 h-3" /> تم النسخ
+                                </span>
+                            )}
+                        </div>
+                        <div className="font-mono text-[13px] text-text-primary font-bold mt-1 break-all group-hover:text-primary transition-colors">
+                            {base6Val}
+                        </div>
+                    </div>
+
+                    {/* Base 7 */}
+                    <div 
+                        onClick={() => handleCopyVal(base7Val, 'base7')}
+                        className="p-2.5 rounded-lg bg-surface-subtle/60 border border-border-default hover:border-primary/50 flex flex-col justify-between cursor-pointer transition-all hover:bg-surface-subtle shadow-2xs group"
+                        title="انقر للنسخ"
+                    >
+                        <div className="text-[10px] text-text-muted font-medium flex items-center justify-between">
+                            <span>النظام السباعي (Base 7)</span>
+                            {copiedKey === 'base7' && (
+                                <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
+                                    <CheckIcon className="w-3 h-3" /> تم النسخ
+                                </span>
+                            )}
+                        </div>
+                        <div className="font-mono text-[13px] text-text-primary font-bold mt-1 break-all group-hover:text-primary transition-colors">
+                            {base7Val}
                         </div>
                     </div>
 

@@ -518,7 +518,7 @@ export const useSearchLogic = (
         setActiveMuqattaatFilter('');
         setExactMatch(initialFilters?.exact || false);
         setVisibleSuggestionsCount(7);
-    }, [query, correctedQuery, isRootSearch, initialFilters]);
+    }, [query, correctedQuery, isRootSearch]);
 
     return {
         exactMatch, setExactMatch,
