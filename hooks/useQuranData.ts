@@ -98,22 +98,22 @@ export const useQuranData = () => {
         }
         
         const urls = getEditionFallbackUrls(editionToFetch);
-        let successSurahs: SurahData[] | null = null;
-        let lastError: any = null;
+        let successSurahs = null;
+        let lastError = null;
 
-        for (const url of urls) {
-            try {
+        try {
+            // Fetch from all mirrors concurrently, taking the first valid response
+            successSurahs = await Promise.any(urls.map(async (url) => {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`Network response error ${response.status}`);
+                if (!response.ok) throw new Error(`Network error ${response.status}`);
                 const apiData = await response.json();
-                successSurahs = processApiData(apiData);
-                if (successSurahs && successSurahs.length > 0) {
-                    break;
-                }
-            } catch (err) {
-                console.warn(`Failed fetching edition from mirror: ${url}`, err);
-                lastError = err;
-            }
+                const surahs = processApiData(apiData);
+                if (surahs && surahs.length > 0) return surahs;
+                throw new Error("Invalid data");
+            }));
+        } catch (err) {
+            console.warn(`All mirrors failed for edition ${editionIdentifier}`, err);
+            lastError = err;
         }
 
         if (successSurahs) {

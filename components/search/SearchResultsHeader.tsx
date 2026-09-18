@@ -91,44 +91,37 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
 
     const allMuqattaatStats = React.useMemo(() => {
         if (!displayedResults || displayedResults.length === 0) return [];
-        const surahNumbers = Array.from(new Set(displayedResults.map(a => a.surah?.number).filter((n): n is number => !!n)));
-        
-        // Group surah names by their unique muqatta'at letters in CURRENT results
-        const presentGroups: Record<string, string[]> = {};
-        for (const num of surahNumbers) {
-            const letters = SURAH_MUQATTAAT_MAP[num];
-            if (letters) {
-                const ayah = displayedResults.find(a => a.surah?.number === num);
-                const surahName = ayah?.surah?.name || `سورة ${num}`;
-                if (!presentGroups[letters]) {
-                    presentGroups[letters] = [];
-                }
-                if (!presentGroups[letters].includes(surahName)) {
-                    presentGroups[letters].push(surahName);
-                }
-            }
-        }
-        
-        // Build the complete list of 14 items, ordered logically, marking each as mentioned or not
-        return ALL_MUQATTAAT_CONFIG.map(({ letters, allSurahs }) => {
-            const mentionedSurahs = presentGroups[letters] || [];
-            const isMentioned = mentionedSurahs.length > 0;
-            const allSurahNames = allSurahs.map(num => QURAN_INDEX[num - 1]?.name || `سورة ${num}`).join('، ');
+        const surahNumbers = new Set(displayedResults.map(a => a.surah?.number).filter((n): n is number => !!n));
 
-            return {
-                letters,
-                isMentioned,
-                count: mentionedSurahs.length,
-                surahs: mentionedSurahs,
-                tooltip: isMentioned 
-                    ? `وردت في نتائج البحث (${mentionedSurahs.length} سور): ${mentionedSurahs.join('، ')}`
-                    : `لم ترد في نتائج البحث (تبدأ بها في القرآن: ${allSurahNames})`
-            };
-        });
+        const FULL_29_MUQATTAAT = [
+            { surah: 2, letters: "الم" }, { surah: 3, letters: "الم" }, { surah: 7, letters: "المص" }, { surah: 10, letters: "الر" },
+            { surah: 11, letters: "الر" }, { surah: 12, letters: "الر" }, { surah: 13, letters: "المر" }, { surah: 14, letters: "الر" },
+            { surah: 15, letters: "الر" }, { surah: 19, letters: "كهيعص" }, { surah: 20, letters: "طه" }, { surah: 26, letters: "طسم" },
+            { surah: 27, letters: "طس" }, { surah: 28, letters: "طسم" }, { surah: 29, letters: "الم" }, { surah: 30, letters: "الم" },
+            { surah: 31, letters: "الم" }, { surah: 32, letters: "الم" }, { surah: 36, letters: "يس" }, { surah: 38, letters: "ص" },
+            { surah: 40, letters: "حم" }, { surah: 41, letters: "حم" }, { surah: 42, letters: "حم عسق" }, { surah: 43, letters: "حم" },
+            { surah: 44, letters: "حم" }, { surah: 45, letters: "حم" }, { surah: 46, letters: "حم" }, { surah: 50, letters: "ق" },
+            { surah: 68, letters: "ن" }
+        ];
+
+        return FULL_29_MUQATTAAT.map(({ surah, letters }) => ({
+            surah,
+            letters,
+            isMentioned: surahNumbers.has(surah)
+        }));
     }, [displayedResults]);
 
-    // Check if at least one muqatta'at surah is involved or search results exist
     const hasAnyMuqattaatInResults = allMuqattaatStats.some(item => item.isMentioned);
+
+    const [isMuqattaatOpen, setIsMuqattaatOpen] = useState(() => {
+        try { return localStorage.getItem("qran_muqattaat_open") === "true"; } catch { return false; }
+    });
+
+    const toggleMuqattaat = () => {
+        const newState = !isMuqattaatOpen;
+        setIsMuqattaatOpen(newState);
+        try { localStorage.setItem("qran_muqattaat_open", String(newState)); } catch {}
+    };
 
     return (
         <div className="mb-4 p-3 sm:p-4 bg-surface-subtle rounded-lg border border-border-default w-full max-w-full overflow-hidden">
@@ -145,7 +138,7 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                     {searchType === 'text' ? (
                         <h3 className="text-lg font-semibold text-text-secondary flex items-center gap-2 flex-wrap">
                             <span>{isRootSearch ? 'نتائج البحث عن جذر الكلمة: ' : 'نتائج البحث عن الكلمات: '}</span>
-                            <span className="font-bold text-primary-text-strong">{query.replace(/"/g, '')}</span>
+                            <span className="font-bold text-primary-text-strong">{String(query).replace(/"/g, '')}</span>
                             {targetSurahNumber && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">
                                     في {QURAN_INDEX[targetSurahNumber - 1]?.name}
@@ -212,6 +205,34 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                         <SparklesIcon className="w-5 h-5" />
                         <span>عرض التحليل المحفوظ لهذه الكلمة</span>
                     </a>
+                </div>
+            )}
+
+            {allMuqattaatStats && allMuqattaatStats.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-border-default flex gap-2">
+                    <button 
+                        onClick={toggleMuqattaat}
+                        className={`p-1.5 rounded self-start transition-colors flex items-center justify-center shrink-0 ${isMuqattaatOpen ? 'bg-primary text-white' : 'bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary'}`}
+                        title="عرض/إخفاء"
+                    >
+                        <SparklesIcon className="w-4 h-4" />
+                    </button>
+                    {isMuqattaatOpen && (
+                        <div className="grid grid-cols-4 gap-[1px] bg-border-default border border-border-default rounded shrink-0 self-start w-max">
+                            {allMuqattaatStats.map((item, index) => (
+                                <span 
+                                    key={index}
+                                    className={`flex items-center justify-center px-1.5 py-1 text-[9px] leading-none font-amiri transition-colors ${
+                                        item.isMentioned 
+                                            ? 'text-green-600 bg-green-500/10 font-bold' 
+                                            : 'text-gray-400 bg-surface opacity-60'
+                                    } ${index === 28 ? 'col-span-4' : ''}`}
+                                >
+                                    {item.letters}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

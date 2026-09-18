@@ -26,7 +26,7 @@ export const getAudioUrl = (ayah: Ayah, audioEditionDetails: QuranEdition): stri
     }
     case 'islamic-network':
     case 'alquran.cloud': {
-      if (ayah.audio) return ayah.audio.replace('http://', 'https://');
+      if (ayah.audio) return String(ayah.audio).replace('http://', 'https://');
       const globalNum = ayah.number || getGlobalAyahNumber(surahNum, ayah.numberInSurah);
       return `https://cdn.islamic.network/quran/audio/128/${identifier}/${globalNum}.mp3`;
     }

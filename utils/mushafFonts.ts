@@ -111,7 +111,7 @@ export async function downloadAllMushafFonts(
     }
     
     // 2. Download missing pages in parallel pool (batch size 20)
-    const BATCH_SIZE = 20;
+    const BATCH_SIZE = 50;
     for (let i = 0; i < missingPages.length; i += BATCH_SIZE) {
         if (signal?.aborted) {
             throw new Error('Download cancelled');
@@ -159,15 +159,8 @@ export async function downloadAllMushafFonts(
 export async function checkMushafFontsDownloaded(): Promise<boolean> {
     try {
         const cache = await caches.open(CACHE_NAME);
-        const samplePages = [1, 50, 150, 300, 450, 604];
-        
-        for (const page of samplePages) {
-            const res = await cache.match(getPrimaryFontUrl(page)) ||
-                        await cache.match(`https://fonts.quran.com/quran/hafs/v1/woff2/p${page}.woff2`) ||
-                        await cache.match(`https://verses.quran.foundation/fonts/quran/hafs/v1/woff2/p${page}.woff2`);
-            if (!res) return false;
-        }
-        return true;
+        const keys = await cache.keys();
+        return keys.length >= 580;
     } catch {
         return false;
     }

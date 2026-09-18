@@ -52,7 +52,7 @@ const CloudflareSetupModal: React.FC<CloudflareSetupModalProps> = ({ isOpen, onC
     setIsTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch(`${workerUrl.replace(/\/$/, '')}/api/khatmahs`, {
+      const res = await fetch(`${String(workerUrl).replace(/\/$/, '')}/api/khatmahs`, {
         headers: { Accept: 'application/json' },
       });
       if (res.ok) {

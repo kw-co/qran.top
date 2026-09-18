@@ -13,7 +13,6 @@ const FONT_SIZES: { id: FontSize; label: string; px: string }[] = [
 ];
 
 const FONT_STYLES: { id: FontStyleType; name: string; desc: string; requiresDownload?: boolean }[] = [
-    { id: 'imlai_1', name: 'الخط الإملائي القياسي', desc: 'سريع وواضح ومناسب لجميع الشاشات' },
     { id: 'uthmani', name: 'الرسم العثماني القياسي', desc: 'بالتشكيل وعلامات الوقف والضبط' },
     { id: 'mushaf', name: 'مصحف المدينة (604 صفحة)', desc: 'مطابق لصفحات المصحف الورقي المطبوع', requiresDownload: true },
 ];
@@ -143,11 +142,7 @@ const ReadingSettings: React.FC = () => {
                                 onClick={() => {
                                     if (isDownloading) return;
                                     setFontStyle(style.id);
-                                    if (style.id === 'mushaf' || style.id === 'uthmani') {
-                                        setSelectedEdition('quran-uthmani-quran-academy');
-                                    } else {
-                                        setSelectedEdition('quran-simple-clean');
-                                    }
+                                    setSelectedEdition('quran-uthmani-quran-academy');
                                 }}
                                 className={`p-3.5 rounded-xl border text-right transition-all select-none flex flex-col justify-between ${
                                     isDownloading ? 'cursor-default opacity-80' : 'cursor-pointer'
@@ -292,63 +287,7 @@ const ReadingSettings: React.FC = () => {
                 </div>
             </div>
 
-            {/* 4. Text Edition (Uthmani vs Simple) */}
-            <div className="space-y-2.5">
-                <label className="text-xs font-bold text-text-muted uppercase tracking-wider block">
-                    نص المصحف
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button
-                        type="button"
-                        onClick={() => setSelectedEdition('quran-uthmani-quran-academy')}
-                        className={`p-3 rounded-xl border text-right transition-all flex items-center justify-between cursor-pointer ${
-                            selectedEdition.includes('uthmani')
-                                ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
-                                : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
-                        }`}
-                    >
-                        <div>
-                            <div className="font-bold text-sm text-text-primary">الرسم العثماني</div>
-                            <div className="text-xs text-text-muted mt-0.5">المعتمد لمصحف المدينة بعلامات الضبط</div>
-                        </div>
-                        {selectedEdition.includes('uthmani') && <CheckIcon className="w-4 h-4 text-primary shrink-0" />}
-                    </button>
-
-                    <div
-                        className={`p-3 rounded-xl border text-right transition-all flex items-center justify-between ${
-                            selectedEdition.includes('simple')
-                                ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
-                                : 'bg-surface border-border-default'
-                        }`}
-                    >
-                        <button
-                            type="button"
-                            onClick={() => setSelectedEdition(showImlaeiTashkeel ? 'quran-simple' : 'quran-simple-clean')}
-                            className="text-right cursor-pointer flex-1"
-                        >
-                            <div className="font-bold text-sm text-text-primary">الرسم الإملائي</div>
-                            <div className="text-xs text-text-muted mt-0.5">مبسط وسريع البحث</div>
-                        </button>
-                        {selectedEdition.includes('simple') && (
-                            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer shrink-0 mr-2 bg-surface-subtle px-2 py-1 rounded-lg border border-border-subtle">
-                                <input
-                                    type="checkbox"
-                                    checked={showImlaeiTashkeel}
-                                    onChange={(e) => {
-                                        const checked = e.target.checked;
-                                        setShowImlaeiTashkeel(checked);
-                                        setSelectedEdition(checked ? 'quran-simple' : 'quran-simple-clean');
-                                    }}
-                                    className="h-3.5 w-3.5 accent-primary rounded cursor-pointer"
-                                />
-                                <span>التشكيل</span>
-                            </label>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* 5. Additional Reading Features & Quick Toggles */}
+            {/* 4. Additional Reading Features & Quick Toggles */}
             <div className="space-y-2.5">
                 <label className="text-xs font-bold text-text-muted uppercase tracking-wider block">
                     ميزات وتفضيلات إضافية

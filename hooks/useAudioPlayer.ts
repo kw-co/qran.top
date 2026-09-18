@@ -86,7 +86,7 @@ console.log('[AudioPlayer] Starting playback. ayahsForPlaylist length:', ayahsFo
                     const audioSurah = audioData?.find(s => s.number === ayah.surah?.number);
                     const audioAyah = audioSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
                     if (audioAyah?.audio) {
-                        audioUrl = audioAyah.audio.replace('http://', 'https://');
+                        audioUrl = String(audioAyah.audio).replace('http://', 'https://');
                     }
                 }
 

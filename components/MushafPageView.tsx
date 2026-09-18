@@ -167,7 +167,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   if (firstVerse) {
     const sId = parseInt(firstVerse.verse_key.split(':')[0], 10);
     const surahInfo = QURAN_INDEX.find(s => s.number === sId);
-    if (surahInfo) surahName = surahInfo.name.replace(/^سُورَةُ\s*/, '').trim();
+    if (surahInfo) surahName = String(surahInfo.name).replace(/^سُورَةُ\s*/, '').trim();
     if (firstVerse.juz_number) juzNumber = firstVerse.juz_number;
   }
 

@@ -17,7 +17,7 @@ import NeighboringWords from './search/NeighboringWords';
 interface SearchViewProps {
   query: string;
   results: Ayah[];
-  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number) => void;
+  onNewSearch: (word: string, sourceEdition?: string, position?: { surah: number, ayah: number, wordIndex: number }, isRootSearch?: boolean, targetSurahNumber?: number, exactMatchOverride?: boolean) => void;
   onSearchByAyahNumber: (ayahNumber: number) => void;
   onSearchComplete: () => void;
   autoOpenDiscussion?: boolean;
@@ -37,6 +37,7 @@ interface SearchViewProps {
   isRootSearch?: boolean;
   targetSurahNumber?: number;
   queryParams?: URLSearchParams;
+  initialFilters?: { exact?: boolean; phrase?: string; diacritic?: string; };
 }
 
 export const SearchView: React.FC<SearchViewProps> = ({ 
@@ -191,7 +192,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setVisibleCount(prev => Math.min(prev + 40, displayedResults.length));
+          requestAnimationFrame(() => {
+            setVisibleCount(prev => Math.min(prev + 40, displayedResults.length));
+          });
         }
       },
       { rootMargin: '300px' }
@@ -331,7 +334,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         const blob = new Blob([textToDownload], { type: 'text/plain;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        const safeQuery = (correctedQuery || query).replace(/[^a-zA-Z0-9-ء-ي ]/g, "").trim() || 'results';
+        const safeQuery = String(correctedQuery || query || '').replace(/[^a-zA-Z0-9-ء-ي ]/g, "").trim() || 'results';
         link.download = `qran-top-search-${safeQuery}.txt`;
         document.body.appendChild(link);
         link.click();

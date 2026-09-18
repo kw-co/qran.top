@@ -109,7 +109,7 @@ const FingerprintToolView: React.FC<FingerprintToolViewProps> = ({ simpleCleanDa
         phraseFilters,
         displayedResults,
     } = useSearchLogic(
-        query, searchResult.correctedQuery, searchResult.results, 'text', simpleCleanData, isRootSearch, displayEditionData, useMemo(() => ({ exact: true }), [])
+        query, ("correctedQuery" in searchResult ? searchResult.correctedQuery : undefined), searchResult.results, 'text', simpleCleanData, isRootSearch, displayEditionData, useMemo(() => ({ exact: true }), [])
     );
 
     const hasAnyMuqattaatInResults = useMemo(() => {

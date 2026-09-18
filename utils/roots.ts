@@ -8,7 +8,7 @@ const ROOT_SEARCH_CACHE = new Map<string, string[]>();
  * suffixes, and applying standard morphological template rules.
  */
 export const computeArabicRoot = (word: string): string => {
-    let w = normalizeArabicText(word).replace(/\s+/g, '');
+    let w = normalizeArabicText(String(word)).replace(/\s+/g, '');
     if (w.length <= 3) return w;
 
     // 1. Remove common prefixes
@@ -119,8 +119,8 @@ export const getArabicRoot = (word: string): string => {
  * Compares two roots allowing for weak letter substitution and gemination.
  */
 export const compareRoots = (root1: string, root2: string): boolean => {
-    let r1 = normalizeArabicText(root1).replace(/\s+/g, '');
-    let r2 = normalizeArabicText(root2).replace(/\s+/g, '');
+    let r1 = normalizeArabicText(String(root1)).replace(/\s+/g, '');
+    let r2 = normalizeArabicText(String(root2)).replace(/\s+/g, '');
 
     if (!r1 || !r2) return false;
 
@@ -168,7 +168,7 @@ const ROOT_DICTIONARY_OVERRIDE: { [root: string]: string[] } = {
  * matching the root of the input query.
  */
 export const findWordsByRoot = (query: string, quranWords: Set<string> | string[]): string[] => {
-    const cleanQuery = normalizeArabicText(query).replace(/\s+/g, '');
+    const cleanQuery = normalizeArabicText(String(query)).replace(/\s+/g, '');
     if (!cleanQuery) return [];
 
     const cached = ROOT_SEARCH_CACHE.get(cleanQuery);

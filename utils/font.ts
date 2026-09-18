@@ -1,12 +1,9 @@
 import type { FontStyleType, FontSize } from '../types';
 
 export const getQuranTextStyle = (fontStyle: FontStyleType, fontSize: FontSize) => {
-    let fontClass = 'imlai-font'; // Default to Imlai
+    // Default to Uthmani since Imlai is removed
+    let fontClass = 'uthmani-font';
 
-    if (fontStyle === 'uthmani' || fontStyle === 'mushaf') {
-        fontClass = 'uthmani-font';
-    }
-    
     return {
         className: `${fontClass} quran-text-${fontSize}`,
     };

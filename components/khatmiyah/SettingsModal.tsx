@@ -51,10 +51,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, fontSize, onFont
 
                         <div>
                             <h3 className="text-md font-semibold text-text-secondary mb-2 flex items-center gap-2"><BookOpenIcon className="w-5 h-5"/> نمط العرض</h3>
-                             <div className="grid grid-cols-3 gap-2">
-                                <button onClick={() => onFontStyleChange('imlai_1')} className={`p-3 rounded-lg text-center font-semibold cursor-pointer ${fontStyle === 'imlai_1' ? 'bg-surface-active ring-2 ring-primary' : 'bg-surface-subtle hover:bg-surface-hover'}`}>
-                                    <span className="text-xs sm:text-sm">إملائي</span>
-                                </button>
+                             <div className="grid grid-cols-2 gap-2">
                                 <button onClick={() => onFontStyleChange('uthmani')} className={`p-3 rounded-lg text-center font-semibold cursor-pointer ${fontStyle === 'uthmani' ? 'bg-surface-active ring-2 ring-primary' : 'bg-surface-subtle hover:bg-surface-hover'}`}>
                                     <span className="text-xs sm:text-sm">عثماني</span>
                                 </button>

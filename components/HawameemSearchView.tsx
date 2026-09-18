@@ -150,7 +150,7 @@ export const HawameemSearchView: React.FC<HawameemSearchViewProps> = ({
 
             recognition.onstart = () => setIsListening(true);
             recognition.onresult = (event: any) => {
-                let transcript = event.results[0][0].transcript;
+                let transcript = String(event.results[0][0].transcript);
                 transcript = transcript.replace(/[.?!؟,]/g, '').trim();
                 setInputValue(transcript);
                 onNewSearch(transcript, searchEdition, undefined, isRootSearch, targetSurahNumber);

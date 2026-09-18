@@ -448,10 +448,10 @@ const WordAnalysisView: React.FC<WordAnalysisViewProps> = ({ simpleCleanData, in
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {displayedExamples.length > 0 ? (
                                                         displayedExamples.map((item, idx) => (
-                                                            <span key={idx} className="inline-flex items-center gap-1 text-sm bg-surface-subtle border border-border-subtle text-text-secondary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title={`${item.count} مرات`}>
+                                                            <a href={`#/search/${item.word}`} key={idx} className="inline-flex items-center gap-1 text-sm bg-surface-subtle border border-border-subtle text-text-secondary px-2 py-1 rounded hover:bg-primary/10 transition-colors" title={`${item.count} مرات`}>
                                                                 <span>{item.word}</span>
                                                                 <span className="text-[10px] font-bold bg-surface-active px-1.5 rounded-full text-text-muted">{item.count}</span>
-                                                            </span>
+                                                            </a>
                                                         ))
                                                     ) : (
                                                         <span className="text-sm text-text-muted italic">لا توجد نتائج</span>

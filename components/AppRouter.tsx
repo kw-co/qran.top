@@ -17,6 +17,7 @@ const ResearchView = React.lazy(() => import('./ResearchView'));
 const QuranStructureView = React.lazy(() => import('./QuranStructureView'));
 const MuqattaatView = React.lazy(() => import('./MuqattaatView'));
 const HawameemSearchView = React.lazy(() => import('./HawameemSearchView'));
+const AlphabetScannerView = React.lazy(() => import('./AlphabetScannerView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -207,6 +208,7 @@ const isSearchPage = pathParts[0] === 'search';
         if (pathParts[0] === 'saved') return <SavedView collections={collections} collectionId={pathParts[1] || null} onDeleteCollection={handleDeleteCollection} onDeleteSavedItem={handleDeleteSavedItem} onUpdateNotes={updateItemNotes} />;
         if (pathParts[0] === 'history') return <HistoryView surahList={QURAN_INDEX} />;
         if (pathParts[0] === 'fingerprint') return <FingerprintToolView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} displayEditionData={quranData || []} allQuranData={allQuranData} onNewSearch={handleSearch} />;
+        if (pathParts[0] === 'alphabet-scanner') return <AlphabetScannerView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} />;
         if (pathParts[0] === 'analysis') return <WordAnalysisView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} initialWord={pathParts[1] ? decodeURIComponent(pathParts[1]) : undefined} />;
         if (pathParts[0] === 'settings') return <SettingsView 
             onExportNotebook={handleExportNotebook} 
@@ -264,7 +266,12 @@ const isSearchPage = pathParts[0] === 'search';
         // Handle Page Route
         if (pathParts[0] === 'page' && pathParts[1]) {
             if (isInitialLoading || !quranData) {
-                return null;
+                return (
+                    <div className="flex flex-col justify-center items-center h-[60vh] gap-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                        <p className="text-text-secondary font-medium animate-pulse">جاري تحميل بيانات المصحف...</p>
+                    </div>
+                );
             }
             const pageNumber = parseInt(pathParts[1], 10);
             
@@ -305,7 +312,12 @@ const isSearchPage = pathParts[0] === 'search';
 
         if (pathParts[0] === 'surah' && pathParts[1]) {
             if (isInitialLoading || !quranData) {
-                return null;
+                return (
+                    <div className="flex flex-col justify-center items-center h-[60vh] gap-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                        <p className="text-text-secondary font-medium animate-pulse">جاري تحميل بيانات المصحف...</p>
+                    </div>
+                );
             }
             const surahNumber = parseInt(pathParts[1], 10);
             const queryAyah = queryParams.get('ayah') ? parseInt(queryParams.get('ayah')!, 10) : null;

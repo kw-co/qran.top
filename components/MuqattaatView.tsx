@@ -43,10 +43,10 @@ const STOP_WORDS = new Set([
 // Helper to strip "سورة" and diacritics to get pure compact surah names
 export const getCleanSurahName = (name: string): string => {
     if (!name) return '';
-    let clean = name.replace(/^سُورَةُ\s*/, '').replace(/^سورة\s*/, '').trim();
+    let clean = String(name).replace(/^سُورَةُ\s*/, '').replace(/^سورة\s*/, '').trim();
     clean = clean.replace(/\u0627\u0653/g, 'آ');
     clean = clean.replace(/[\u064B-\u0652\u0654-\u065F\u0670\u06D6-\u06ED]/g, '').trim();
-    return clean || name;
+    return clean || String(name);
 };
 
 // Quick predefined Quranic groups for instant multi-filtering

@@ -152,8 +152,8 @@ export const useSearchLogic = (
     }, [initialFilters?.exact]);
 
     const queryWords = useMemo(() => {
-        const finalQuery = correctedQuery || query;
-        return finalQuery.trim().replace(/"/g, '').split(/\s+/).filter(Boolean).map(normalizeArabicText);
+        const finalQuery = correctedQuery || query || '';
+        return String(finalQuery).trim().replace(/"/g, '').split(/\s+/).filter(Boolean).map(normalizeArabicText);
     }, [query, correctedQuery]);
 
     const isSingleWordSearch = queryWords.length === 1;
@@ -185,7 +185,7 @@ export const useSearchLogic = (
                 filtered = filtered.filter(ayah => {
                     const displaySurah = displayEditionData?.find((s: any) => s.number === ayah.surah?.number);
                     const displayAyah = displaySurah?.ayahs.find((a: any) => a.numberInSurah === ayah.numberInSurah);
-                    const targetText = displayAyah?.text || ayah.text;
+                    const targetText = String(displayAyah?.text || ayah.text || '');
                     const cleanAyahText = targetText.replace(/[\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ');
                     return dFilters.some(df => {
                         const regex = new RegExp(`(^|\\s)${df}(\\s|$)`);
@@ -217,10 +217,10 @@ export const useSearchLogic = (
                         return filters.some(f => ayahWords.includes(f));
                     });
                 } else if (isSingleWordSearch) {
-                    // For single word non-root search, the phrase filter might be a substring match (like highlighted words)
+                    // For single word non-root search, the filter is an exact word extracted from the ayah
                     filtered = filtered.filter(ayah => {
                         const ayahWords = getNormalizedWords(ayah);
-                        return filters.some(f => ayahWords.some(w => w.includes(f) || f.includes(w)));
+                        return filters.some(f => ayahWords.includes(f));
                     });
                 } else {
                     filtered = filtered.filter(ayah => {
@@ -312,7 +312,7 @@ export const useSearchLogic = (
     }, [deferredResults, queryWords, searchType, isRootSearch, activeDiacriticFilter, activeMuqattaatFilter, exactMatch]);
 
         const displayedResults = useMemo(() => {
-        let filtered = applyFilters(activeResults);
+        let filtered = [...applyFilters(activeResults)];
         
         if (searchType === 'text' && queryWords.length > 0) {
             filtered.sort((a, b) => {
@@ -343,7 +343,7 @@ export const useSearchLogic = (
                 for (const rawWord of rawWords) {
                     const normWord = normalizeArabicText(rawWord);
                     if (queryWordsSet.has(normWord)) {
-                        const voweledWord = rawWord.replace(/[\u06D6-\u06ED]/g, '');
+                        const voweledWord = String(rawWord).replace(/[\u06D6-\u06ED]/g, '');
                         variantsMap.set(voweledWord, (variantsMap.get(voweledWord) || 0) + 1);
                     }
                 }
@@ -375,7 +375,7 @@ export const useSearchLogic = (
                         }
                     }
                     if (match) {
-                        const voweledPhrase = rawWords.slice(i, i + numQueryWords).map(w => w.replace(/[\u06D6-\u06ED]/g, '')).join(' ');
+                        const voweledPhrase = rawWords.slice(i, i + numQueryWords).map(w => String(w).replace(/[\u06D6-\u06ED]/g, '')).join(' ');
                         variantsMap.set(voweledPhrase, (variantsMap.get(voweledPhrase) || 0) + 1);
                     }
                 }
@@ -390,7 +390,7 @@ export const useSearchLogic = (
     const occurrencesMap = useMemo(() => {
         if (searchType === 'number' || !query) return [];
         
-        const transformedQuery = normalizeArabicText(correctedQuery || query).replace(/"/g, '');
+        const transformedQuery = normalizeArabicText(String(correctedQuery || query)).replace(/"/g, '');
         if (!transformedQuery) return [];
 
         const occurrences: { itemIndex: number; wordIndex: number; }[] = [];
@@ -422,7 +422,7 @@ export const useSearchLogic = (
                 let idx = ayahText.indexOf(word);
                 while (idx !== -1) {
                     count++;
-                    idx = ayahText.indexOf(word, idx + word.length);
+                    idx = ayahText.indexOf(word, idx + Math.max(1, word.length));
                 }
             }
         }
@@ -505,7 +505,7 @@ export const useSearchLogic = (
                 return itemString;
             }).join('');
             
-            template = template.replace(resultsRegex, allResultsString);
+            template = String(template).replace(resultsRegex, allResultsString);
         }
 
         return template.trim();

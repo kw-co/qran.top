@@ -44,6 +44,15 @@ const QuranStructureView: React.FC = () => {
             hoverBg: "hover:bg-indigo-100 dark:hover:bg-indigo-900/20"
         },
         {
+            title: "ماسح الحروف الأبجدية",
+            description: "تحديد أصغر مساحة نصية حول كلمة معينة تكتمل فيها الحروف الأبجدية الثمانية والعشرون.",
+            icon: <SparklesIcon className="w-8 h-8 text-rose-500" />,
+            href: "#/alphabet-scanner",
+            bg: "bg-rose-50 dark:bg-rose-900/10",
+            borderColor: "border-rose-200 dark:border-rose-800",
+            hoverBg: "hover:bg-rose-100 dark:hover:bg-rose-900/20"
+        },
+        {
             title: "الكتب الإلهية والنسخ السبع",
             description: "دراسة وتأملات الأستاذ أنوار إسحاق حول الكتب الإلهية داخل المصحف الشريف والأنبياء المخاطبين بها.",
             icon: <BookOpenIcon className="w-8 h-8 text-blue-500" />,

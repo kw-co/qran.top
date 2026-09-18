@@ -15,7 +15,7 @@ const JoinKhatmahModal: React.FC<JoinKhatmahModalProps> = ({ onClose, onJoin }) 
       const parts = clean.split('/khatmah/');
       clean = parts[1] || clean;
     }
-    return clean.replace(/^#\/?/, '').toUpperCase();
+    return String(clean).replace(/^#\/?/, '').toUpperCase();
   };
 
   const handleSubmit = (e: React.FormEvent) => {

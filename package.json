@@ -1,7 +1,7 @@
 {
   "name": "v106-qran-top",
   "private": true,
-  "version": "1.0.10",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
+    "axios": "^1.20.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "react": "^19.1.0",

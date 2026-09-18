@@ -27,8 +27,8 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
     const surahNameMap = useMemo(() => {
         const map = new Map<string, number>();
         QURAN_INDEX.forEach(surah => {
-            map.set(normalizeArabicText(surah.name.replace(/^سُورَةُ\s*/, '')), surah.number);
-            map.set(normalizeArabicText(surah.name.replace(/^سُورَةُ\s*ال/, '')), surah.number);
+            map.set(normalizeArabicText(String(surah.name).replace(/^سُورَةُ\s*/, '')), surah.number);
+            map.set(normalizeArabicText(String(surah.name).replace(/^سُورَةُ\s*ال/, '')), surah.number);
         });
         return map;
     }, []);
@@ -63,7 +63,7 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
     }, [simpleSearchableAyahs]);
 
     const tryParseAyahReference = useCallback((query: string): { surah: number; ayah: number } | null => {
-        const cleanedQuery = query.trim().replace(/[أإآ]/g, 'ا').replace(/[آا]ية/g, '').replace(/سورة/g, '');
+        const cleanedQuery = String(query).trim().replace(/[أإآ]/g, 'ا').replace(/[آا]ية/g, '').replace(/سورة/g, '');
         const nameMatch = cleanedQuery.match(/^\s*([^\d\s:]+(?:\s+[^\d\s:]+)*)\s*[:\s]\s*(\d+)\s*$/);
         if (nameMatch) {
             const surahName = normalizeArabicText(nameMatch[1].trim());

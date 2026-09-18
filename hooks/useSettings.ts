@@ -46,11 +46,11 @@ export const useSettings = () => {
 
     const [fontSize, setFontSize] = useState<FontSize>(() => safeGetItem(FONT_SIZE_KEY, 'md') as FontSize);
     
-    // Default to 'imlai_1' (Standard font) or 'mushaf'. If user had 'imlai_2' or 'uthmani', migrate to 'imlai_1' or 'mushaf'
+    // Default to 'uthmani' or 'mushaf'
     const [fontStyle, setFontStyle] = useState<FontStyleType>(() => {
-        const stored = safeGetItem(FONT_STYLE_KEY, 'imlai_1');
+        const stored = safeGetItem(FONT_STYLE_KEY, 'uthmani');
         if (stored === 'mushaf') return 'mushaf';
-        return 'imlai_1';
+        return 'uthmani';
     });
 
     // Mushaf Type (only madinah)
@@ -63,7 +63,7 @@ export const useSettings = () => {
 
     // Default to 'quran-simple-clean' which is loaded instantly
     const [selectedEdition, setSelectedEdition] = useState<string>(
-        () => safeGetItem(QURAN_EDITION_KEY, 'quran-simple-clean')
+        () => safeGetItem(QURAN_EDITION_KEY, 'quran-uthmani-quran-academy')
     );
 
     const activeEditions = DEFAULT_EDITIONS;
@@ -217,7 +217,7 @@ export const useSettings = () => {
     const displayEdition = useMemo(() => {
         const found = activeEditions.find(e => e.identifier === selectedEdition) || DEFAULT_EDITIONS[0];
         if (found.name.includes('القرآن الكريم')) {
-            return { ...found, name: found.name.replace(/القرآن الكريم/g, 'المصحف الشريف') };
+            return { ...found, name: String(found.name).replace(/القرآن الكريم/g, 'المصحف الشريف') };
         }
         return found;
     }, [activeEditions, selectedEdition]);

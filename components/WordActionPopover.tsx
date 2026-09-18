@@ -34,7 +34,7 @@ const WordActionPopover: React.FC<WordActionPopoverProps> = ({
     const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0, pointerEvents: 'none' });
 
     // Clean word for search
-    const cleanWordForSearch = word
+    const cleanWordForSearch = String(word)
         .replace(/<[^>]*>/g, '')
         .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
         .trim();

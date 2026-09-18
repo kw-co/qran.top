@@ -1,7 +1,7 @@
 import { MushafPageView } from "./MushafPageView";
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { SurahData, SavedAyahItem, Ayah } from '../types';
-import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, SparklesIcon } from './icons';
+import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, SparklesIcon, ShareIcon, DocumentDuplicateIcon, DownloadIcon, ArrowUpTrayIcon } from './icons';
 import { safeLocalStorage } from '../utils/storage';
 import AyahActionPopover from './AyahActionPopover';
 import AyahRenderer from './AyahRenderer';
@@ -149,6 +149,8 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   const [activePopover, setActivePopover] = useState<{ ayah: Ayah; triggerElement: HTMLElement } | null>(null);
   const [copiedAyah, setCopiedAyah] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [copiedWholeSurah, setCopiedWholeSurah] = useState(false);
+
   
   const [selectedAyahs, setSelectedAyahs] = useState<{surahNum: number, ayahNum: number, text: string, surahName: string}[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -173,6 +175,47 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
               return [...prev, {surahNum, ayahNum, text, surahName}];
           }
       });
+  };
+
+  const handleCopyWholeSurah = () => {
+      const fullText = surah.ayahs.map(a => `${a.text} ﴿${a.numberInSurah}﴾`).join(" ");
+      navigator.clipboard.writeText(`سورة ${surah.name}
+
+${fullText}`).then(() => {
+          setCopiedWholeSurah(true);
+          setTimeout(() => setCopiedWholeSurah(false), 2000);
+      });
+  };
+
+  const handleDownloadWholeSurah = () => {
+      const fullText = surah.ayahs.map(a => `${a.text} ﴿${a.numberInSurah}﴾`).join(" ");
+      const content = `سورة ${surah.name}
+
+${fullText}`;
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `سورة_${surah.name.replace(/\s+/g, "_")}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+  };
+
+  const handleShareWholeSurah = async () => {
+      const fullText = surah.ayahs.map(a => `${a.text} ﴿${a.numberInSurah}﴾`).join(" ");
+      const content = `سورة ${surah.name}
+
+${fullText}`;
+      if (navigator.share) {
+          try {
+              await navigator.share({
+                  title: `سورة ${surah.name}`,
+                  text: content
+              });
+          } catch (e) { console.error("Share failed", e); }
+      } else {
+          handleCopyWholeSurah();
+      }
   };
 
   const handleCopyMultiple = () => {
@@ -368,7 +411,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
     const firstAyah = firstSurah.ayahs[0];
     
     // Display name of the first surah on page
-    let surahName = firstSurah.name;
+    let surahName = String(firstSurah.name || '');
     surahName = surahName.replace(/^سُورَةُ\s*/, '').trim();
 
     const juzNumber = firstAyah.juz;
@@ -759,11 +802,33 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
 
                                     {/* Surah Header if start of surah */}
                                     {isStartOfSurah && (
+                                        <>
                                         <SurahHeaderStrip 
                                             surahNumber={surahSegment.number} 
                                             surahName={surahSegment.name} 
                                             researchInfo={researchData ? researchData[surahSegment.number] : null}
                                         />
+                                            <div className="flex justify-center items-center gap-2 mb-6 bg-surface/50 py-2 rounded-lg border border-border-default">
+                                                <button onClick={handleCopyWholeSurah} title="نسخ السورة كاملة" className="p-2 text-text-muted hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1.5 text-sm">
+                                                    {copiedWholeSurah ? <CheckIcon className="w-4 h-4 text-emerald-500" /> : <CopyIcon className="w-4 h-4" />}
+                                                    <span className="font-medium hidden sm:inline">{copiedWholeSurah ? "تم النسخ" : "نسخ السورة"}</span>
+                                                </button>
+                                                <div className="w-px h-4 bg-border-default"></div>
+                                                <button onClick={handleDownloadWholeSurah} title="تحميل السورة" className="p-2 text-text-muted hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1.5 text-sm">
+                                                    <ArrowUpTrayIcon className="w-4 h-4" />
+                                                    <span className="font-medium hidden sm:inline">تحميل كملف</span>
+                                                </button>
+                                                {navigator.share && (
+                                                    <>
+                                                        <div className="w-px h-4 bg-border-default"></div>
+                                                        <button onClick={handleShareWholeSurah} title="مشاركة السورة" className="p-2 text-text-muted hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1.5 text-sm">
+                                                            <ShareIcon className="w-4 h-4" />
+                                                            <span className="font-medium hidden sm:inline">مشاركة</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </>
                                     )}
 
                                     {/* Bismillah */}

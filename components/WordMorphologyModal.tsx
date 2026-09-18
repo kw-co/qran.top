@@ -18,7 +18,7 @@ interface MorphologyData {
 }
 
 function extractArabicRoot(word: string): string {
-    let clean = word
+    let clean = String(word)
         .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
         .replace(/[\u0622\u0623\u0625\u0671]/g, 'ا')
         .replace(/\u0649/g, 'ي')
@@ -105,7 +105,7 @@ const WordMorphologyModal: React.FC<WordMorphologyModalProps> = ({
     const [activeTab, setActiveTab] = useState<'irab' | 'tafsir'>('irab');
     const [morphology, setMorphology] = useState<MorphologyData | null>(null);
 
-    const cleanWord = word
+    const cleanWord = String(word)
         .replace(/<[^>]*>/g, '')
         .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
         .trim();

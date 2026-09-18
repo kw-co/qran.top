@@ -126,7 +126,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, ini
         };
 
         recognition.onresult = (event: any) => {
-            let transcript = event.results[0][0].transcript;
+            let transcript = String(event.results[0][0].transcript);
             transcript = transcript.replace(/[.?!؟,]/g, '').trim();
             setQuery(transcript);
             onSearch(transcript);

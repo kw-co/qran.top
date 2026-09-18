@@ -33,40 +33,35 @@ const SearchResultsToolbar: React.FC<SearchResultsToolbarProps> = ({
             <button 
                 onClick={onPlayAll} 
                 disabled={isPlaybackLoading || allAudioEditions.length === 0} 
-                className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
-                title="تشغيل النتائج متتالية"
+                className="flex items-center justify-center p-2 rounded-xl text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                title="تشغيل متتالي للنتائج"
             >
                 {isPlaybackLoading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : <PlayIcon className="w-5 h-5"/>}
-                <span>{isPlaybackLoading ? 'تحضير...' : 'تشغيل الكل'}</span>
             </button>
 
             {onShareSearch && (
                 <button
                     type="button"
                     onClick={onShareSearch}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-primary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors cursor-pointer"
+                    className="flex items-center justify-center p-2 rounded-xl text-text-primary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors cursor-pointer"
                     title="مشاركة رابط البحث الحالي مع الفلاتر النشطة"
                 >
-                    {isShareCopied ? <CheckIcon className="w-4 h-4 text-emerald-500" /> : <ShareIcon className="w-4 h-4 text-primary" />}
-                    <span>{isShareCopied ? 'تم نسخ الرابط!' : 'مشاركة البحث'}</span>
+                    {isShareCopied ? <CheckIcon className="w-5 h-5 text-emerald-500" /> : <ShareIcon className="w-5 h-5 text-primary" />}
                 </button>
             )}
 
             {searchType === 'text' && (
-                <button onClick={onSaveSearch} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors">
-                    <BookmarkIcon className="w-4 h-4"/>
-                    <span>حفظ البحث</span>
+                <button onClick={onSaveSearch} title="حفظ البحث" className="flex items-center justify-center p-2 rounded-xl text-text-secondary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors cursor-pointer">
+                    <BookmarkIcon className="w-5 h-5"/>
                 </button>
             )}
 
-            <button onClick={onCopyAll} disabled={isAllCopied} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors disabled:opacity-70">
-                {isAllCopied ? <CheckIcon className="w-4 h-4 text-green-500"/> : <DocumentDuplicateIcon className="w-4 h-4"/>}
-                <span>{isAllCopied ? 'تم النسخ!' : 'نسخ النتائج'}</span>
+            <button onClick={onCopyAll} disabled={isAllCopied} title="نسخ النتائج" className="flex items-center justify-center p-2 rounded-xl text-text-secondary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors disabled:opacity-70 cursor-pointer">
+                {isAllCopied ? <CheckIcon className="w-5 h-5 text-green-500"/> : <DocumentDuplicateIcon className="w-5 h-5"/>}
             </button>
 
-            <button onClick={onDownloadAll} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-secondary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors">
-                <DownloadIcon className="w-4 h-4"/>
-                <span>تحميل (txt)</span>
+            <button onClick={onDownloadAll} title="تحميل (txt)" className="flex items-center justify-center p-2 rounded-xl text-text-secondary bg-surface hover:bg-surface-hover border border-border-default shadow-sm transition-colors cursor-pointer">
+                <DownloadIcon className="w-5 h-5"/>
             </button>
         </div>
     );

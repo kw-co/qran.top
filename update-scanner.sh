@@ -1,0 +1,1 @@
+sed -i 's/import { PlayIcon, SpinnerIcon, CheckIcon, BookOpenIcon, InformationCircleIcon, ArrowRightIcon, SparklesIcon } from '\''\.\/icons'\'';/import { PlayIcon, SpinnerIcon, CheckIcon, BookOpenIcon, InformationCircleIcon, ArrowRightIcon, SparklesIcon, CopyIcon, DocumentDuplicateIcon } from '\''\.\/icons'\'';/g' components/AlphabetScannerView.tsx

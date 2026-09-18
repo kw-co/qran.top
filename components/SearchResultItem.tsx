@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { Ayah, SurahData, QuranEdition, FontSize, FontStyleType } from '../types';
 import { SparklesIcon, BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpinnerIcon, SpeakerWaveIcon } from './icons';
 import { normalizeArabicText } from '../utils/text';
+import * as textUtils from '../utils/text';
 import { getQuranTextStyle } from '../utils/font';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { renderWordWithHaMeem } from '../utils/haMeemHighlight';
@@ -132,8 +133,8 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
         return ayah;
     }, [ayah, imlaeiSimpleData, displayEditionData]);
 
-    // Always use Imlai font for search results regardless of reading mode font setting
-    const { className: quranTextClass } = getQuranTextStyle('imlai_1', fontSize);
+    // Always use Uthmani font for search results
+    const { className: quranTextClass } = getQuranTextStyle('uthmani', fontSize);
 
     const playWordAudio = (surahNum: number, ayahNum: number, wordIdxOneBased: number, clickedWordText?: string) => {
         playSmartWordAudio(surahNum, ayahNum, wordIdxOneBased, clickedWordText);
@@ -141,7 +142,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
 
     const handleWordClick = (e: React.MouseEvent<HTMLButtonElement>, rawWord: string, wordIndex: number) => {
         e.stopPropagation();
-        const cleanWord = rawWord
+        const cleanWord = String(rawWord)
             .replace(/<[^>]*>/g, '')
             .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
             .trim();
@@ -180,24 +181,30 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
             return '';
         }
         
-        const isImlaei = fontStyle === 'imlai_1';
-        let textToRender = displayAyah.text;
+        let textToRender = String(displayAyah.text || '');
 
-        if (isImlaei) {
-            // This regex removes Quranic annotation marks like waqf signs (salli, qali, jeem, etc.)
-            const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
-            textToRender = textToRender.replace(marksToRemoveRegex, '');
-        }
-        
-        const wordElements = textToRender.split(' ').map((word, index) => {
+        const uthmaniRawWords = textToRender.split(' ');
+        const alignmentInfo = textUtils.getUthmaniToImlaeiMap(uthmaniRawWords, simpleAyahText);
+        const isImlaeiSearch = searchEdition === 'quran-simple-clean';
+
+        const wordElements = uthmaniRawWords.map((word, index) => {
             const isPulsing = index === pulsingWordIndex;
+
+            // Use mapped click info to search the exact original Imlaei word, improving search reliability
+            const handleUthmaniClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+                if (searchType === 'number' || !alignmentInfo[index] || alignmentInfo[index].imlaeiIndex === -1) {
+                    handleWordClick(e, word, index);
+                } else {
+                    handleWordClick(e, alignmentInfo[index].imlaeiWord, alignmentInfo[index].imlaeiIndex);
+                }
+            };
 
             if (searchType === 'number') { // No highlighting for number search
                  return (
                     <button 
                         type="button" 
                         key={index} 
-                        onClick={(e) => handleWordClick(e, word, index)} 
+                        onClick={handleUthmaniClick} 
                         className="word-trigger bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/10 rounded-md px-1 transition-colors"
                         aria-label={`إظهار خيارات البحث لكلمة: ${word}`}
                     >
@@ -206,14 +213,25 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                  );
             }
 
-            const normalizedWord = normalizeArabicText(word);
-            const isMatch = queryWords.some(queryWord => normalizedWord.includes(queryWord));
+            let isMatch = false;
+            if (searchType === 'text') {
+                if (isImlaeiSearch) {
+                    const iWord = alignmentInfo[index]?.imlaeiWord;
+                    if (iWord) {
+                        const iNorm = normalizeArabicText(iWord);
+                        isMatch = queryWords.some(q => iNorm.includes(normalizeArabicText(q)));
+                    }
+                } else {
+                    const uNorm = normalizeArabicText(word);
+                    isMatch = queryWords.some(q => uNorm.includes(normalizeArabicText(q)));
+                }
+            }
 
             return (
                 <button
                     type="button"
                     key={index}
-                    onClick={(e) => handleWordClick(e, word, index)}
+                    onClick={handleUthmaniClick}
                     className="word-trigger bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/10 rounded-md px-1 transition-colors"
                     aria-label={`إظهار خيارات البحث لكلمة: ${word}`}
                 >

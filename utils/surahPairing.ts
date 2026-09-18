@@ -179,7 +179,7 @@ export const tokenizeAyah = (ayahText: string): WordToken[] => {
     const rawWords = ayahText.trim().split(/\s+/);
     
     return rawWords.map(raw => {
-        const clean = normalizeArabicText(stripDiacritics(raw)).replace(/[^\u0621-\u064A]/g, '');
+        const clean = normalizeArabicText(stripDiacritics(String(raw))).replace(/[^\u0621-\u064A]/g, '');
         const isStopWord = ARABIC_STOP_WORDS.has(clean) || clean.length <= 1;
         const root = clean.length > 1 ? getArabicRoot(clean) : clean;
         return {

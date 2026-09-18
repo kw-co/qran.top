@@ -57,7 +57,7 @@ const Logo: React.FC<{ dataSourceStatus: 'primary' | 'fallback'; isHomePage: boo
         >
             <LogoIcon className="w-7 h-7 text-primary flex-shrink-0" />
             <span className="text-lg sm:text-xl font-bold text-text-primary tracking-tighter whitespace-nowrap">
-                الباحث في المصحف الشريف
+                الباحث
             </span>
         </div>
     );
@@ -192,11 +192,7 @@ const Header: React.FC<HeaderProps> = ({
     }, [loadingEditions]);
 
     const handleStyleToggle = useCallback(() => {
-        if (fontStyle === 'imlai_1') {
-            // Next: uthmani
-            setFontStyle('uthmani');
-            setSelectedEdition('quran-uthmani-quran-academy');
-        } else if (fontStyle === 'uthmani') {
+        if (fontStyle === 'uthmani' || fontStyle === 'imlai_1') {
             // Next: mushaf
             if (!isMushafDownloaded) {
                 const hasSeenPrompt = localStorage.getItem('qran_mushaf_download_prompt_seen');
@@ -205,26 +201,25 @@ const Header: React.FC<HeaderProps> = ({
                     openDownloadMushafModal();
                     return;
                 }
-                // If user has already seen the modal once, cycle directly back to imlai_1
-                setFontStyle('imlai_1');
-                setSelectedEdition('quran-simple-clean');
+                // If user has already seen the modal once, cycle directly back to uthmani
+                setFontStyle('uthmani');
+                setSelectedEdition('quran-uthmani-quran-academy');
                 return;
             }
             setFontStyle('mushaf');
             setSelectedEdition('quran-uthmani-quran-academy');
         } else {
-            // From mushaf -> imlai_1
-            setFontStyle('imlai_1');
-            setSelectedEdition('quran-simple-clean');
+            // From mushaf -> uthmani
+            setFontStyle('uthmani');
+            setSelectedEdition('quran-uthmani-quran-academy');
         }
     }, [fontStyle, isMushafDownloaded, setFontStyle, setSelectedEdition, openDownloadMushafModal]);
 
     const getToggleLabel = () => {
         switch (fontStyle) {
-            case 'imlai_1': return 'إملائي';
             case 'uthmani': return 'عثماني';
             case 'mushaf': return 'المصحف';
-            default: return 'إملائي';
+            default: return 'عثماني';
         }
     };
 

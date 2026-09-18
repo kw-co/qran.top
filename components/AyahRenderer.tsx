@@ -7,6 +7,7 @@ import WordMorphologyModal from './WordMorphologyModal';
 import { useResearchData } from '../hooks/useResearchData';
 import { LightBulbIcon } from './icons';
 import { renderWordWithHaMeem, hasHaMeem } from '../utils/haMeemHighlight';
+import * as textUtils from '../utils/text';
 
 interface AyahRendererProps {
     ayahsToRender: Ayah[];
@@ -85,8 +86,6 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
     } = useSettingsContext();
     const researchData = useResearchData();
 
-    const isImlaei1 = fontStyle === 'imlai_1' || displayEdition.identifier.includes('simple-clean') || displayEdition.identifier === 'quran-simple';
-
     const [v4TajweedData, setV4TajweedData] = useState<QuranV4TajweedVerse[]>([]);
     const [playingWordKey, setPlayingWordKey] = useState<string | null>(null);
 
@@ -131,43 +130,49 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
         }
     };
 
-    const cleanImlaiText = (text: string | undefined): string | undefined => {
-        if (!text) return text;
-        const marksToRemoveRegex = /[\u06D6-\u06ED]/g;
-        return text.replace(marksToRemoveRegex, '');
-    };
-
-    const handleWordClickInternal = (event: React.MouseEvent<HTMLButtonElement>, word: string, wordIndex: number, ayahNumInSurah: number) => {
+    const handleWordClickInternal = (event: React.MouseEvent<HTMLButtonElement>, word: string, wordIndex: number, ayahNumInSurah: number, baseText: string) => {
         if (isSelectionMode || event.ctrlKey || event.metaKey) {
             if (onAyahClick) {
-                const baseText = (ayahNumInSurah === 1 && firstAyahInfo) ? firstAyahInfo.restOfAyah : ayahsToRender.find(a => a.numberInSurah === ayahNumInSurah)?.text || '';
                 onAyahClick(event, surah.number, ayahNumInSurah, baseText, surah.name);
             }
             return;
         }
 
-        const cleanWord = word
-            .replace(/<[^>]*>/g, '')
-            .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
-            .trim();
+        let searchWord = String(word).replace(/<[^>]*>/g, '').replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '').trim();
+        let targetEdition = displayEdition.identifier;
+        let targetIndex = wordIndex;
+        
+        if (simpleCleanData && simpleCleanData[surah.number - 1]) {
+            const simpleAyah = simpleCleanData[surah.number - 1].ayahs[ayahNumInSurah - 1];
+            if (simpleAyah && baseText) {
+                // We need the raw words array from baseText
+                const uthmaniRawWords = String(baseText).replace(/<[^>]*>/g, '').split(' ');
+                const mapping = textUtils.getUthmaniToImlaeiMap(uthmaniRawWords, simpleAyah.text);
+                const mapped = mapping[wordIndex];
+                if (mapped && mapped.imlaeiIndex !== -1) {
+                    searchWord = mapped.imlaeiWord;
+                    targetEdition = 'quran-simple-clean';
+                    targetIndex = mapped.imlaeiIndex;
+                }
+            }
+        }
 
-        const shouldSearchDirectly = 
-            wordClickBehavior === 'direct_search' || 
-            (wordClickBehavior === 'auto' && isImlaei1);
+        const cleanWordDisplay = String(word).replace(/<[^>]*>/g, '').replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '').trim();
+
+        const shouldSearchDirectly = wordClickBehavior === 'direct_search';
 
         if (shouldSearchDirectly) {
             if (enableWordAudio) {
-                playWordAudio(surah.number, ayahNumInSurah, wordIndex + 1, cleanWord);
+                playWordAudio(surah.number, ayahNumInSurah, wordIndex + 1, cleanWordDisplay);
             }
-            onWordClick(cleanWord, displayEdition.identifier, { surah: surah.number, ayah: ayahNumInSurah, wordIndex });
+            onWordClick(searchWord, targetEdition, { surah: surah.number, ayah: ayahNumInSurah, wordIndex: targetIndex });
         } else {
-            // Open Word Action Popover
             setActiveWordPopover({
-                word: cleanWord,
+                word: searchWord, 
                 surahNumber: surah.number,
                 surahName: surah.name,
                 ayahNumberInSurah: ayahNumInSurah,
-                wordIndex,
+                wordIndex: targetIndex,
                 triggerElement: event.currentTarget
             });
         }
@@ -180,7 +185,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                 const isPlaying = ayah.number === currentlyPlayingAyahGlobalNumber;
 
                 const baseText = (index === 0 && firstAyahInfo) ? firstAyahInfo.restOfAyah : ayah.text;
-                const textToDisplay = isImlaei1 ? cleanImlaiText(baseText) : baseText;
+                const textToDisplay = baseText;
 
                 // Research Data Check
                 const ayahKey = `${surah.number}:${ayah.numberInSurah}`;
@@ -212,7 +217,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                         return (
                                             <React.Fragment key={wIdx}>
                                                 <button
-                                                    onClick={(e) => handleWordClickInternal(e, plainWord, wIdx, ayah.numberInSurah)}
+                                                    onClick={(e) => handleWordClickInternal(e, plainWord, wIdx, ayah.numberInSurah, ayah.text || "")}
                                                     className={`word-trigger inline bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/20 rounded-md transition-colors px-0.5 ${
                                                         isWordPlaying ? 'bg-emerald-400/40 text-emerald-900 font-bold dark:bg-emerald-500/40 scale-105' : ''
                                                     } ${highlightHaMeem && hasHaMeem(plainWord) ? 'text-amber-600 dark:text-amber-400 font-bold' : ''}`}
@@ -232,7 +237,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                     return (
                                         <React.Fragment key={wordIndex}>
                                             <button
-                                                onClick={(e) => handleWordClickInternal(e, word, wordIndex, ayah.numberInSurah)}
+                                                onClick={(e) => handleWordClickInternal(e, word, wordIndex, ayah.numberInSurah, ayah.text || "")}
                                                 className={`word-trigger inline bg-transparent border-none p-0 font-inherit text-inherit leading-inherit cursor-pointer hover:bg-primary/10 rounded-md transition-all ${
                                                     isWordPlaying ? 'bg-emerald-400/40 text-emerald-900 dark:bg-emerald-500/40 font-bold scale-105' : ''
                                                 }`}
