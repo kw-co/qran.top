@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, UserCircleIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, CheckIcon, LightBulbIcon, SparklesIcon } from './icons';
 import { openExternalLink } from '../utils/navigation';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -100,6 +101,7 @@ const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
 const SidePanel: React.FC<SidePanelProps> = ({
     isOpen, onClose, currentPath, onNavigate
 }) => {
+    const { promptInstall } = usePWAInstall();
     const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
     const { 
         openDownloadMushafModal, 
@@ -154,6 +156,28 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             <NavLink href="#/saved" icon={<BookmarkIcon className="w-5 h-5" />} label="دفتر التدبر" onNavigate={onNavigate} isActive={currentPath.startsWith('#/saved')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />
                             <NavLink href="#/settings" icon={<CogIcon className="w-5 h-5" />} label="الإعدادات" onNavigate={onNavigate} isActive={currentPath.startsWith('#/settings')} />
+
+                            {/* PWA Install Button */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (promptInstall) {
+                                        promptInstall();
+                                    } else {
+                                        alert('لتثبيت التطبيق من المتصفح: \nفي هواتف أندرويد (Chrome): اضغط على القائمة (ثلاث نقاط) ثم "تثبيت التطبيق" أو "إضافة للشاشة الرئيسية".\nفي هواتف آيفون (Safari): اضغط على زر المشاركة ثم "إضافة إلى الصفحة الرئيسية".');
+                                    }
+                                    onClose();
+                                }}
+                                className="w-full flex items-center justify-between p-2.5 rounded-lg text-base transition-colors text-text-secondary hover:bg-surface-hover hover:text-primary cursor-pointer text-right group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    <span className="whitespace-nowrap font-medium text-text-primary">إضافة للشاشة الرئيسية (بدون متجر)</span>
+                                </div>
+                            </button>
+
                         </nav>
                     </div>
                     
@@ -204,7 +228,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
                                 className="text-xs font-mono text-text-muted hover:text-primary transition-colors cursor-pointer select-none flex items-center gap-2 focus:outline-none active:scale-95 p-1"
                                 title="انقر هنا لإعادة تحميل التطبيق وتحديث الإصدار"
                             >
-                                <span>v1.0.10</span>
+                                <span>v1.0.12</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>

@@ -117,6 +117,19 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
         try { return localStorage.getItem("qran_muqattaat_open") === "true"; } catch { return false; }
     });
 
+    
+    const handleFormulaClick = (formula: string) => {
+        if (!setActiveMuqattaatFilter) return;
+        const currentFilters = (activeMuqattaatFilter || '').split(',').map(f => f.trim()).filter(Boolean);
+        let nextFilters: string[];
+        if (currentFilters.includes(formula)) {
+            nextFilters = currentFilters.filter(f => f !== formula);
+        } else {
+            nextFilters = [...currentFilters, formula];
+        }
+        setActiveMuqattaatFilter(nextFilters.join(','));
+    };
+
     const toggleMuqattaat = () => {
         const newState = !isMuqattaatOpen;
         setIsMuqattaatOpen(newState);
@@ -220,16 +233,22 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                     {isMuqattaatOpen && (
                         <div className="grid grid-cols-4 gap-[1px] bg-border-default border border-border-default rounded shrink-0 self-start w-max">
                             {allMuqattaatStats.map((item, index) => (
-                                <span 
+                                <button 
                                     key={index}
-                                    className={`flex items-center justify-center px-1.5 py-1 text-[9px] leading-none font-amiri transition-colors ${
+                                    onClick={() => handleFormulaClick(item.letters)}
+                                    className={`flex items-center justify-center px-1.5 py-1 text-[9px] leading-none font-amiri transition-all cursor-pointer ${
                                         item.isMentioned 
-                                            ? 'text-green-600 bg-green-500/10 font-bold' 
-                                            : 'text-gray-400 bg-surface opacity-60'
+                                            ? 'text-green-600 bg-green-500/10 hover:bg-green-500/20 font-bold' 
+                                            : 'text-gray-400 bg-surface opacity-60 hover:opacity-100 hover:bg-surface-hover'
+                                    } ${
+                                        (activeMuqattaatFilter || '').split(',').map(f=>f.trim()).includes(item.letters)
+                                            ? 'ring-1 ring-inset ring-green-500 bg-green-500/30 text-green-800 dark:text-green-200'
+                                            : ''
                                     } ${index === 28 ? 'col-span-4' : ''}`}
+                                    title={`تصفية سورة/سور ${item.letters}`}
                                 >
                                     {item.letters}
-                                </span>
+                                </button>
                             ))}
                         </div>
                     )}

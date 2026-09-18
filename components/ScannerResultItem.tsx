@@ -8,21 +8,37 @@ export const ScannerResultItem = ({ res, idx, flatWords }: { res: any, idx: numb
     const [isReversed, setIsReversed] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
 
-    const letterSequence = useMemo(() => {
+        const letterSequence = useMemo(() => {
         const seq: string[] = [];
         const seen = new Set<string>();
         
-        for (let i = res.L; i <= res.R; i++) {
-            const word = flatWords[i].normalized;
-            for (const char of word) {
-                if (ARABIC_LETTERS.includes(char) && !seen.has(char)) {
-                    seq.push(char);
-                    seen.add(char);
-                    if (seq.length === 28) break;
+        if (res.scanMode === 'backward') {
+            for (let i = res.R; i >= res.L; i--) {
+                const word = flatWords[i].normalized;
+                for (let j = word.length - 1; j >= 0; j--) {
+                    const char = word[j];
+                    if (ARABIC_LETTERS.includes(char) && !seen.has(char)) {
+                        seq.push(char);
+                        seen.add(char);
+                        if (seq.length === 28) break;
+                    }
                 }
+                if (seq.length === 28) break;
             }
-            if (seq.length === 28) break;
+        } else {
+            for (let i = res.L; i <= res.R; i++) {
+                const word = flatWords[i].normalized;
+                for (const char of word) {
+                    if (ARABIC_LETTERS.includes(char) && !seen.has(char)) {
+                        seq.push(char);
+                        seen.add(char);
+                        if (seq.length === 28) break;
+                    }
+                }
+                if (seq.length === 28) break;
+            }
         }
+        
         return seq;
     }, [res, flatWords]);
 
@@ -39,11 +55,11 @@ export const ScannerResultItem = ({ res, idx, flatWords }: { res: any, idx: numb
     return (
         <div className="bg-surface border border-border-default rounded-xl overflow-hidden hover:shadow-md transition-shadow">
             <div className="bg-surface-subtle px-4 py-3 border-b border-border-default flex flex-wrap gap-x-6 gap-y-2 items-center text-sm">
-                <div className="flex items-center gap-2 font-bold text-primary">
+                                <div className="flex items-center gap-2 font-bold text-primary">
                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
                         {idx + 1}
                     </div>
-                    طول النافذة: {res.length} كلمة
+                    {res.scanMode === 'backward' ? 'مسح تراجعي' : res.scanMode === 'forward' ? 'مسح تقدمي' : 'أقصر نافذة'} ({res.length} كلمة)
                 </div>
                 <div className="text-text-secondary flex items-center gap-1.5">
                     <BookOpenIcon className="w-4 h-4" />

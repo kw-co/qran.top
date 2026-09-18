@@ -21,6 +21,7 @@ interface ScanResult {
     R: number;
     length: number;
     targetIndex: number;
+    scanMode: 'shortest' | 'forward' | 'backward';
 }
 
 const ARABIC_LETTERS = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي";
@@ -42,10 +43,12 @@ import { ScannerResultItem } from "./ScannerResultItem";
 
 const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanData }) => {
     const [targetWord, setTargetWord] = useState('');
+    const [scanMode, setScanMode] = useState<'shortest' | 'forward' | 'backward'>('shortest');
     const [isScanning, setIsScanning] = useState(false);
     const [progress, setProgress] = useState(0);
     const [results, setResults] = useState<ScanResult[]>([]);
     const [statusText, setStatusText] = useState('');
+    const [selectedLetters, setSelectedLetters] = useState<string[]>([]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -116,32 +119,71 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
 
             const chunk = chunks[currentChunk];
             for (const idx of chunk) {
-                let bestLen = Infinity;
-                let bestL = -1;
-                let bestR = -1;
-
-                for (let L = idx; L >= 0; L--) {
-                    if (idx - L >= bestLen) break;
+                if (scanMode === 'shortest') {
+                    let bestLen = Infinity;
+                    let bestL = -1;
+                    let bestR = -1;
+                    for (let L = idx; L >= 0; L--) {
+                        if (idx - L >= bestLen) break;
+                        let mask = 0;
+                        for (let R = L; R < flatWords.length; R++) {
+                            if (R - L + 1 >= bestLen) break;
+                            mask |= flatWords[R].mask;
+                            if (mask === ALL_LETTERS_MASK && R >= idx) {
+                                bestLen = R - L + 1;
+                                bestL = L;
+                                bestR = R;
+                                break;
+                            }
+                        }
+                    }
+                    if (bestL !== -1) {
+                        foundResults.push({
+                            L: bestL,
+                            R: bestR,
+                            length: bestLen,
+                            targetIndex: idx,
+                            scanMode: 'shortest'
+                        });
+                    }
+                } else if (scanMode === 'forward') {
                     let mask = 0;
-                    for (let R = L; R < flatWords.length; R++) {
-                        if (R - L + 1 >= bestLen) break;
+                    let foundR = -1;
+                    for (let R = idx; R < flatWords.length; R++) {
                         mask |= flatWords[R].mask;
-                        if (mask === ALL_LETTERS_MASK && R >= idx) {
-                            bestLen = R - L + 1;
-                            bestL = L;
-                            bestR = R;
+                        if (mask === ALL_LETTERS_MASK) {
+                            foundR = R;
                             break;
                         }
                     }
-                }
-
-                if (bestL !== -1) {
-                    foundResults.push({
-                        L: bestL,
-                        R: bestR,
-                        length: bestLen,
-                        targetIndex: idx
-                    });
+                    if (foundR !== -1) {
+                        foundResults.push({
+                            L: idx,
+                            R: foundR,
+                            length: foundR - idx + 1,
+                            targetIndex: idx,
+                            scanMode: 'forward'
+                        });
+                    }
+                } else if (scanMode === 'backward') {
+                    let mask = 0;
+                    let foundL = -1;
+                    for (let L = idx; L >= 0; L--) {
+                        mask |= flatWords[L].mask;
+                        if (mask === ALL_LETTERS_MASK) {
+                            foundL = L;
+                            break;
+                        }
+                    }
+                    if (foundL !== -1) {
+                        foundResults.push({
+                            L: foundL,
+                            R: idx,
+                            length: idx - foundL + 1,
+                            targetIndex: idx,
+                            scanMode: 'backward'
+                        });
+                    }
                 }
             }
 
@@ -157,7 +199,42 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
         setTimeout(processChunk, 50);
     };
 
-    const displayedResults = results.slice(0, 30);
+    
+    const filteredResults = useMemo(() => {
+        if (selectedLetters.length === 0) return results;
+        return results.filter(res => {
+            const seen = new Set<string>();
+            let firstLetter = '';
+            
+            if (res.scanMode === 'backward') {
+                for (let j = res.R; j >= res.L; j--) {
+                    const word = flatWords[j].normalized;
+                    for (let k = word.length - 1; k >= 0; k--) {
+                        const char = word[k];
+                        if (ARABIC_LETTERS.includes(char) && !seen.has(char)) {
+                            firstLetter = char;
+                            break;
+                        }
+                    }
+                    if (firstLetter) break;
+                }
+            } else {
+                for (let j = res.L; j <= res.R; j++) {
+                    const word = flatWords[j].normalized;
+                    for (const char of word) {
+                        if (ARABIC_LETTERS.includes(char) && !seen.has(char)) {
+                            firstLetter = char;
+                            break;
+                        }
+                    }
+                    if (firstLetter) break;
+                }
+            }
+            return selectedLetters.includes(firstLetter);
+        });
+    }, [results, selectedLetters, flatWords]);
+    
+    const displayedResults = filteredResults.slice(0, 30);
 
     return (
         <div className="animate-fade-in w-full max-w-4xl mx-auto px-4 pb-20">
@@ -171,11 +248,28 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                     ماسح الحروف الأبجدية
                 </h1>
                 <p className="text-text-secondary mt-2 text-sm sm:text-base leading-relaxed">
-                    تقوم هذه الأداة بالبحث عن الكلمة التي تختارها في القرآن الكريم، ثم تبحث في الآيات السابقة واللاحقة لها لتجد <strong>أصغر نافذة نصية (أقرب مسافة)</strong> تحتوي على جميع الحروف الأبجدية العربية (28 حرفاً).
+                    تقوم هذه الأداة بالبحث عن الكلمة المطلوبة في القرآن الكريم، وتمسح النصوص القرآنية بناءً على <strong>اتجاه المسح</strong> الذي تحدده (تقدمي أو تراجعي أو محيطي) لتستخرج ترتيب الحروف الأبجدية الـ 28 كما وردت في الآيات.
                 </p>
             </div>
 
             <div className="bg-surface p-6 rounded-xl shadow-sm border border-border-default mb-8">
+                <div className="flex flex-col gap-4 mb-4">
+                    <label className="text-sm font-bold text-text-primary">اتجاه محرك المسح:</label>
+                    <div className="flex flex-wrap gap-4 bg-surface-subtle p-3 rounded-lg border border-border-default">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                            <input type="radio" checked={scanMode === 'shortest'} onChange={() => setScanMode('shortest')} className="text-primary focus:ring-primary w-4 h-4 cursor-pointer" />
+                            <span className="text-text-secondary group-hover:text-primary transition-colors text-sm font-semibold">أقصر نافذة محيطة (متشعب)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                            <input type="radio" checked={scanMode === 'forward'} onChange={() => setScanMode('forward')} className="text-primary focus:ring-primary w-4 h-4 cursor-pointer" />
+                            <span className="text-text-secondary group-hover:text-primary transition-colors text-sm font-semibold">مسح تقدمي (من الكلمة للأمام)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                            <input type="radio" checked={scanMode === 'backward'} onChange={() => setScanMode('backward')} className="text-primary focus:ring-primary w-4 h-4 cursor-pointer" />
+                            <span className="text-text-secondary group-hover:text-primary transition-colors text-sm font-semibold">مسح تراجعي (من الكلمة للخلف)</span>
+                        </label>
+                    </div>
+                </div>
                 <div className="flex flex-col sm:flex-row gap-4">
                     <input
                         type="text"
@@ -224,15 +318,54 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
             </div>
 
             {results.length > 0 && (
+                
                 <div className="space-y-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
                         <h2 className="text-xl font-bold text-primary-text">
-                            النتائج ({results.length} موضع)
+                            النتائج ({filteredResults.length} موضع)
                         </h2>
-                        <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full font-bold">
-                            مرتبة من الأقصر إلى الأطول
-                        </span>
+                        
+                        <div className="flex items-center gap-2">
+                            {selectedLetters.length > 0 && (
+                                <button 
+                                    onClick={() => setSelectedLetters([])}
+                                    className="px-3 py-1.5 text-xs bg-red-500/10 text-red-600 hover:bg-red-500/20 rounded-lg font-bold transition-colors cursor-pointer"
+                                >
+                                    إلغاء تصفية الحروف ✕
+                                </button>
+                            )}
+                            <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full font-bold">
+                                {scanMode === 'shortest' ? 'مرتبة من الأقصر إلى الأطول' : 'مرتبة حسب موضع الكلمة'}
+                            </span>
+                        </div>
                     </div>
+                    
+                    <div className="bg-surface-subtle p-4 rounded-xl border border-border-default">
+                        <h3 className="text-sm font-bold text-text-primary mb-3">تصفية حسب أول حرف مكتشف:</h3>
+                        <div className="flex flex-wrap gap-1.5" dir="rtl">
+                            {ARABIC_LETTERS.split('').map(letter => {
+                                const isSelected = selectedLetters.includes(letter);
+                                return (
+                                    <button
+                                        key={letter}
+                                        onClick={() => {
+                                            setSelectedLetters(prev => 
+                                                prev.includes(letter) ? prev.filter(l => l !== letter) : [...prev, letter]
+                                            );
+                                        }}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-lg border font-bold text-sm transition-all ${
+                                            isSelected 
+                                                ? 'bg-primary text-white border-primary shadow-md scale-110' 
+                                                : 'bg-surface border-border-default text-text-secondary hover:border-primary/50 hover:text-primary'
+                                        }`}
+                                    >
+                                        {letter}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
 
                                         <div className="grid grid-cols-1 gap-4">
                         {displayedResults.map((res, idx) => (
@@ -241,7 +374,7 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                     </div>
                     {results.length > 30 && (
                         <p className="text-center text-text-muted mt-6 text-sm">
-                            تم عرض أفضل 30 نتيجة من أصل {results.length}.
+                            تم عرض أفضل 30 نتيجة من أصل {filteredResults.length}.
                         </p>
                     )}
                 </div>

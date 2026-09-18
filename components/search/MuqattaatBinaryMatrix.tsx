@@ -257,15 +257,15 @@ ${breakdown}
     }, [items, query, presentCount, binaryString, decimalVal, hexVal, base6Val, base7Val, base12Val, base19Val, isDivisibleBy19, quotient19, remainder19]);
 
     // Handle surah filter toggle on clicking cell
-    const handleSurahClick = useCallback((surahNumber: number) => {
+    const handleFormulaClick = useCallback((formula: string) => {
         if (!setActiveMuqattaatFilter) return;
         const currentFilters = activeMuqattaatFilter.split(',').map(f => f.trim()).filter(Boolean);
-        const surahKey = `s:${surahNumber}`;
+        // We no longer use s:surahNumber, we just use the formula directly
         let nextFilters: string[];
-        if (currentFilters.includes(surahKey)) {
-            nextFilters = currentFilters.filter(f => f !== surahKey);
+        if (currentFilters.includes(formula)) {
+            nextFilters = currentFilters.filter(f => f !== formula);
         } else {
-            nextFilters = [...currentFilters, surahKey];
+            nextFilters = [...currentFilters, formula];
         }
         setActiveMuqattaatFilter(nextFilters.join(','));
     }, [activeMuqattaatFilter, setActiveMuqattaatFilter]);
@@ -299,7 +299,7 @@ ${breakdown}
                 }`}
                 onClick={() => {
                     if (s.isAvailable) {
-                        handleSurahClick(s.surahNumber);
+                        handleFormulaClick(s.letters);
                     }
                 }}
             >
@@ -411,7 +411,19 @@ ${breakdown}
             {/* 1. Visual Matrix */}
             <div className="bg-surface-subtle border border-border-default rounded-xl p-3 relative space-y-4">
                 <div className="flex items-center justify-between text-xs text-text-secondary mb-1">
-                    <span>انقر على أي سورة ذات قيمة (1) لتصفية النتائج، وانقر على أي رقم لنسخه</span>
+                    {activeFilterList.length > 0 ? (
+                        <div className="flex items-center gap-2">
+                            <span className="text-primary font-bold">تصفية حسب: {activeFilterList.join('، ')}</span>
+                            <button 
+                                onClick={() => setActiveMuqattaatFilter && setActiveMuqattaatFilter('')}
+                                className="text-[10px] sm:text-xs text-red-500 hover:text-red-600 bg-red-500/10 px-2 py-0.5 rounded transition-colors cursor-pointer"
+                            >
+                                إلغاء التصفية
+                            </button>
+                        </div>
+                    ) : (
+                        <span>انقر على أي حرف لتصفية النتائج، أو انقر على أي رقم لنسخه</span>
+                    )}
                     <div className="flex items-center gap-2">
                         <label className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors">
                             <input 
