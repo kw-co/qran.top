@@ -53,6 +53,8 @@ interface SettingsContextType {
     setIsResearchModeActive: (active: boolean) => void;
     highlightHaMeem: boolean;
     setHighlightHaMeem: (enabled: boolean) => void;
+    highlightNoorani: boolean;
+    setHighlightNoorani: (enabled: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

@@ -3,6 +3,7 @@ import { fetchPageVersesV4, QuranV4Verse } from '../services/quranApiV4';
 import { QURAN_INDEX } from '../quranIndex';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { renderWordWithHaMeem, hasHaMeem } from '../utils/haMeemHighlight';
+import { renderWordWithNoorani, isWordPureNoorani } from '../utils/nooraniHighlight';
 import { injectMushafFontFaces, ensurePageFontLoaded, preloadAdjacentPageFonts } from '../utils/mushafFonts';
 
 interface MushafPageViewProps {
@@ -32,7 +33,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 }) => {
   const [verses, setVerses] = useState<QuranV4Verse[]>([]);
   const [loading, setLoading] = useState(true);
-  const { fontStyle, mushafFrameStyle, highlightHaMeem } = useSettingsContext();
+  const { fontStyle, mushafFrameStyle, highlightHaMeem, highlightNoorani } = useSettingsContext();
   const [isFontReady, setIsFontReady] = useState(false);
 
   const totalPages = 604;
@@ -317,6 +318,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   let displayText = word.text_uthmani;
                   let wordFontClass = '';
                   const isHaMeemWord = highlightHaMeem && hasHaMeem(word.text_uthmani);
+                  const isPureNooraniGlyphWord = useMadinahGlyphFont && highlightNoorani && isWordPureNoorani(word.text_uthmani);
 
                   if (useMadinahGlyphFont && word.code_v1) {
                       displayText = word.code_v1;
@@ -327,7 +329,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     <span 
                       key={word.id || idx}
                       id={ayahElementId}
-                      className={`hover:text-amber-600 transition-all cursor-pointer shrink-0 inline-flex items-baseline ${highlightClass} ${wordFontClass} ${isHaMeemWord ? 'text-amber-600 dark:text-amber-400 font-bold' : ''}`}
+                      className={`hover:text-amber-600 transition-all cursor-pointer shrink-0 inline-flex items-baseline ${highlightClass} ${wordFontClass} ${
+                        isPureNooraniGlyphWord 
+                          ? 'noorani-letter-highlight' 
+                          : (isHaMeemWord ? 'text-amber-600 dark:text-amber-400 font-bold' : '')
+                      }`}
                       onClick={(e) => {
                           if (isSelectionMode || e.ctrlKey || e.metaKey) {
                               const fullText = verse.words.filter((w:any) => w.char_type_name === 'word').map((w:any) => w.text_uthmani).join(' ');
@@ -350,7 +356,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                               <span className="mx-1 text-amber-600 text-[1.1em]">{`\u06DD${word.text_uthmani || verse.verse_number.toLocaleString('ar-EG')}`}</span>
                           )
                       ) : (
-                          useMadinahGlyphFont ? displayText : renderWordWithHaMeem(displayText, highlightHaMeem)
+                          useMadinahGlyphFont 
+                            ? displayText 
+                            : (highlightNoorani 
+                                ? renderWordWithNoorani(displayText, true) 
+                                : renderWordWithHaMeem(displayText, highlightHaMeem))
                       )}
                       {pauseMarks && pauseMarks.map((pm: any, pmidx: number) => {
                           const pmText = useMadinahGlyphFont && pm.code_v1 ? pm.code_v1 : pm.text_uthmani;

@@ -828,5 +828,42 @@ html.dark .animate-highlight-pulse {
   }
 }
 
+/* ==========================================================================
+   NOORANI LETTERS HIGHLIGHT STYLES (Theme-Adaptive & Highly Distinctive)
+   ========================================================================== */
+.noorani-letter-highlight {
+  color: var(--color-primary-text-strong, var(--color-primary));
+  font-weight: 700;
+  display: inline;
+  transition: color 0.2s ease-in-out;
+}
+
+/* Light 1: Warm Paper (ورقي دافئ) - Deep Noble Quranic Emerald */
+:root:not(.dark):not(.theme-duha):not(.theme-dark):not(.theme-isha) .noorani-letter-highlight,
+.theme-light .noorani-letter-highlight {
+  color: #15803d !important;
+  text-shadow: 0 0 1px rgba(21, 128, 61, 0.25);
+}
+
+/* Dark 1: Slate Navy (كحلي ليلي) - Luminous Mint Emerald */
+.theme-dark .noorani-letter-highlight,
+.dark:not(.theme-isha) .noorani-letter-highlight {
+  color: #34d399 !important;
+  text-shadow: 0 0 2px rgba(52, 211, 153, 0.35);
+}
+
+/* Light 2: Duha Academic (أكاديمي ناصع) - Radiant Royal Sapphire */
+.theme-duha .noorani-letter-highlight {
+  color: #1d4ed8 !important;
+  text-shadow: 0 0 1px rgba(29, 78, 216, 0.25);
+}
+
+/* Dark 2: Isha Deep Forest (زيتي ملكي) - Golden Amber Glow */
+.theme-isha .noorani-letter-highlight {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 2px rgba(251, 191, 36, 0.4);
+}
+
+
 
 

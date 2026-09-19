@@ -2,6 +2,7 @@ import React from 'react';
 import { useSettingsContext } from '../../contexts/SettingsContext';
 import type { FontSize, FontStyleType, WordClickBehavior } from '../../types';
 import { CheckIcon } from '../icons';
+import { renderWordWithNoorani } from '../../utils/nooraniHighlight';
 
 const FONT_SIZES: { id: FontSize; label: string; px: string }[] = [
     { id: 'xs', label: 'صغير جداً', px: '16px' },
@@ -94,6 +95,7 @@ const ReadingSettings: React.FC = () => {
         showMuqattaatInSearch, setShowMuqattaatInSearch,
         showImlaeiTashkeel, setShowImlaeiTashkeel,
         highlightHaMeem, setHighlightHaMeem,
+        highlightNoorani, setHighlightNoorani,
         fontDownloadProgress,
         isDownloadingFonts,
         isMushafDownloaded,
@@ -240,9 +242,25 @@ const ReadingSettings: React.FC = () => {
                 {/* Compact Live Preview */}
                 <div className="p-4 bg-surface rounded-xl border border-border-default text-center shadow-inner mt-2">
                     <p className={`text-text-primary leading-loose ${fontStyle === 'uthmani' || fontStyle === 'mushaf' ? 'font-quran-title' : 'font-quran-simple'} transition-all text-${fontSize}`}>
-                        ﴿ أَلَمْ نَشْرَحْ لَكَ صَدْرَكَ ۝ وَوَضَعْنَا عَنكَ وِزْرَكَ ﴾
+                        {highlightNoorani ? (
+                            <>
+                                ﴿ {renderWordWithNoorani('أَلَمْ', true)} {renderWordWithNoorani('نَشْرَحْ', true)} {renderWordWithNoorani('لَكَ', true)} {renderWordWithNoorani('صَدْرَكَ', true)} ۝ {renderWordWithNoorani('وَوَضَعْنَا', true)} {renderWordWithNoorani('عَنكَ', true)} {renderWordWithNoorani('وِزْرَكَ', true)} ﴾
+                            </>
+                        ) : (
+                            '﴿ أَلَمْ نَشْرَحْ لَكَ صَدْرَكَ ۝ وَوَضَعْنَا عَنكَ وِزْرَكَ ﴾'
+                        )}
                     </p>
-                    {highlightHaMeem && (
+                    {highlightNoorani && (
+                        <div className="mt-2 pt-2 border-t border-border-subtle flex flex-col items-center gap-1">
+                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                ✨ معاينة تلوين الأحرف النورانية (الـ 14 حرفاً بحسب ثيم التطبيق):
+                            </span>
+                            <p className={`text-text-primary leading-loose ${fontStyle === 'uthmani' || fontStyle === 'mushaf' ? 'font-quran-title' : 'font-quran-simple'} transition-all text-${fontSize}`}>
+                                ﴿ {renderWordWithNoorani('الم', true)} ۝ {renderWordWithNoorani('ذَٰلِكَ', true)} {renderWordWithNoorani('ٱلۡكِتَٰبُ', true)} {renderWordWithNoorani('لَا', true)} {renderWordWithNoorani('رَيۡبَ', true)} {renderWordWithNoorani('فِيهِ', true)} ﴾
+                            </p>
+                        </div>
+                    )}
+                    {highlightHaMeem && !highlightNoorani && (
                         <p className={`mt-2 pt-2 border-t border-border-subtle text-text-primary leading-loose ${fontStyle === 'uthmani' || fontStyle === 'mushaf' ? 'font-quran-title' : 'font-quran-simple'} transition-all text-${fontSize}`}>
                             ﴿ <span className="text-amber-600 dark:text-amber-400 font-bold">حـٓمٓ</span> ۝ تَنزِيلُ ٱلۡكِتَٰبِ مِنَ ٱللَّهِ ٱلۡعَزِيزِ ٱلۡعَلِيمِ ﴾
                         </p>
@@ -321,6 +339,18 @@ const ReadingSettings: React.FC = () => {
                         subtitle="تلوين أحكام التجويد والمدود"
                         checked={enableTajweed}
                         onChange={() => setEnableTajweed(!enableTajweed)}
+                    />
+
+                    {/* Noorani Letters Highlight */}
+                    <SwitchItem
+                        id="switch-noorani-letters"
+                        icon={<span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">✨ نـور</span>}
+                        title="تلوين الأحرف النورانية في المصحف"
+                        subtitle="تمييز أحرف الفواتح الـ 14 بلون متناسق حسب الثيم"
+                        badge="اختياري"
+                        badgeColor="bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400"
+                        checked={highlightNoorani}
+                        onChange={() => setHighlightNoorani(!highlightNoorani)}
                     />
 
                     {/* Ha-Meem Highlight */}

@@ -7,6 +7,7 @@ import WordMorphologyModal from './WordMorphologyModal';
 import { useResearchData } from '../hooks/useResearchData';
 import { LightBulbIcon } from './icons';
 import { renderWordWithHaMeem, hasHaMeem } from '../utils/haMeemHighlight';
+import { renderWordWithNoorani } from '../utils/nooraniHighlight';
 import * as textUtils from '../utils/text';
 
 interface AyahRendererProps {
@@ -82,7 +83,8 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
         enableMorphology, 
         fontStyle, 
         wordClickBehavior,
-        highlightHaMeem
+        highlightHaMeem,
+        highlightNoorani
     } = useSettingsContext();
     const researchData = useResearchData();
 
@@ -243,7 +245,9 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                                 }`}
                                                 aria-label={`خيارات الكلمة: ${word}`}
                                             >
-                                                {renderWordWithHaMeem(word, highlightHaMeem)}
+                                                {highlightNoorani 
+                                                    ? renderWordWithNoorani(word, true) 
+                                                    : renderWordWithHaMeem(word, highlightHaMeem)}
                                             </button>
                                             {wordIndex < arr.length - 1 && ' '}
                                         </React.Fragment>
