@@ -829,39 +829,38 @@ html.dark .animate-highlight-pulse {
 }
 
 /* ==========================================================================
-   NOORANI LETTERS HIGHLIGHT STYLES (Theme-Adaptive & Highly Distinctive)
+   NOORANI LETTERS HIGHLIGHT STYLES (Theme-Adaptive & Distinctive Quranic Gold)
    ========================================================================== */
 .noorani-letter-highlight {
-  color: var(--color-primary-text-strong, var(--color-primary));
   font-weight: 700;
   display: inline;
-  transition: color 0.2s ease-in-out;
+  transition: color 0.2s ease-in-out, text-shadow 0.2s ease-in-out;
 }
 
-/* Light 1: Warm Paper (ورقي دافئ) - Deep Noble Quranic Emerald */
+/* Light 1: Warm Paper (ورقي دافئ) - Deep Antique Quranic Gold (ذهب قرآني عتيق عالي الوضوح) */
 :root:not(.dark):not(.theme-duha):not(.theme-dark):not(.theme-isha) .noorani-letter-highlight,
 .theme-light .noorani-letter-highlight {
-  color: #15803d !important;
-  text-shadow: 0 0 1px rgba(21, 128, 61, 0.25);
+  color: #a16207 !important; /* Rich deep burnished gold with high contrast on paper */
+  text-shadow: 0 0 1px rgba(161, 98, 7, 0.35);
 }
 
-/* Dark 1: Slate Navy (كحلي ليلي) - Luminous Mint Emerald */
+/* Light 2: Duha Academic (أكاديمي ناصع) - Royal Imperial Gold (ذهب ملكي ناصع الوضوح) */
+.theme-duha .noorani-letter-highlight {
+  color: #b45309 !important; /* Warm vibrant amber-gold, crisp and distinct against white */
+  text-shadow: 0 0 1px rgba(180, 83, 9, 0.35);
+}
+
+/* Dark 1: Slate Navy (كحلي ليلي) - Radiant Illuminated Gold (ذهب مشرق متوهج) */
 .theme-dark .noorani-letter-highlight,
 .dark:not(.theme-isha) .noorani-letter-highlight {
-  color: #34d399 !important;
-  text-shadow: 0 0 2px rgba(52, 211, 153, 0.35);
+  color: #fbbf24 !important; /* Luminous warm gold, stands out brilliantly on dark navy */
+  text-shadow: 0 0 3px rgba(251, 191, 36, 0.45);
 }
 
-/* Light 2: Duha Academic (أكاديمي ناصع) - Radiant Royal Sapphire */
-.theme-duha .noorani-letter-highlight {
-  color: #1d4ed8 !important;
-  text-shadow: 0 0 1px rgba(29, 78, 216, 0.25);
-}
-
-/* Dark 2: Isha Deep Forest (زيتي ملكي) - Golden Amber Glow */
+/* Dark 2: Isha Deep Forest (زيتي ملكي) - Shimmering Champagne Gold (ذهب وهاج براق) */
 .theme-isha .noorani-letter-highlight {
-  color: #fbbf24 !important;
-  text-shadow: 0 0 2px rgba(251, 191, 36, 0.4);
+  color: #fcd34d !important; /* Brilliant champagne gold with glowing amber undertone */
+  text-shadow: 0 0 3px rgba(252, 211, 77, 0.5);
 }
 
 

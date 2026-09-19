@@ -96,6 +96,7 @@ const ReadingSettings: React.FC = () => {
         showImlaeiTashkeel, setShowImlaeiTashkeel,
         highlightHaMeem, setHighlightHaMeem,
         highlightNoorani, setHighlightNoorani,
+        highlightNooraniIncludeWaw, setHighlightNooraniIncludeWaw,
         fontDownloadProgress,
         isDownloadingFonts,
         isMushafDownloaded,
@@ -244,7 +245,7 @@ const ReadingSettings: React.FC = () => {
                     <p className={`text-text-primary leading-loose ${fontStyle === 'uthmani' || fontStyle === 'mushaf' ? 'font-quran-title' : 'font-quran-simple'} transition-all text-${fontSize}`}>
                         {highlightNoorani ? (
                             <>
-                                ﴿ {renderWordWithNoorani('أَلَمْ', true)} {renderWordWithNoorani('نَشْرَحْ', true)} {renderWordWithNoorani('لَكَ', true)} {renderWordWithNoorani('صَدْرَكَ', true)} ۝ {renderWordWithNoorani('وَوَضَعْنَا', true)} {renderWordWithNoorani('عَنكَ', true)} {renderWordWithNoorani('وِزْرَكَ', true)} ﴾
+                                ﴿ {renderWordWithNoorani('أَلَمْ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('نَشْرَحْ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('لَكَ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('صَدْرَكَ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} ۝ {renderWordWithNoorani('وَوَضَعْنَا', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('عَنكَ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('وِزْرَكَ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} ﴾
                             </>
                         ) : (
                             '﴿ أَلَمْ نَشْرَحْ لَكَ صَدْرَكَ ۝ وَوَضَعْنَا عَنكَ وِزْرَكَ ﴾'
@@ -252,11 +253,11 @@ const ReadingSettings: React.FC = () => {
                     </p>
                     {highlightNoorani && (
                         <div className="mt-2 pt-2 border-t border-border-subtle flex flex-col items-center gap-1">
-                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                                ✨ معاينة تلوين الأحرف النورانية (الـ 14 حرفاً بحسب ثيم التطبيق):
+                            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
+                                ✨ معاينة تلوين الأحرف النورانية {highlightNooraniIncludeWaw ? '(مع حرف الواو)' : '(الـ 14 الأصلية)'}:
                             </span>
                             <p className={`text-text-primary leading-loose ${fontStyle === 'uthmani' || fontStyle === 'mushaf' ? 'font-quran-title' : 'font-quran-simple'} transition-all text-${fontSize}`}>
-                                ﴿ {renderWordWithNoorani('الم', true)} ۝ {renderWordWithNoorani('ذَٰلِكَ', true)} {renderWordWithNoorani('ٱلۡكِتَٰبُ', true)} {renderWordWithNoorani('لَا', true)} {renderWordWithNoorani('رَيۡبَ', true)} {renderWordWithNoorani('فِيهِ', true)} ﴾
+                                ﴿ {renderWordWithNoorani('الم', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} ۝ {renderWordWithNoorani('ذَٰلِكَ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('ٱلۡكِتَٰبُ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('لَا', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('رَيۡبَ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} {renderWordWithNoorani('فِيهِ', true, 'noorani-letter-highlight', highlightNooraniIncludeWaw)} ﴾
                             </p>
                         </div>
                     )}
@@ -342,16 +343,33 @@ const ReadingSettings: React.FC = () => {
                     />
 
                     {/* Noorani Letters Highlight */}
-                    <SwitchItem
-                        id="switch-noorani-letters"
-                        icon={<span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">✨ نـور</span>}
-                        title="تلوين الأحرف النورانية في المصحف"
-                        subtitle="تمييز أحرف الفواتح الـ 14 بلون متناسق حسب الثيم"
-                        badge="اختياري"
-                        badgeColor="bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400"
-                        checked={highlightNoorani}
-                        onChange={() => setHighlightNoorani(!highlightNoorani)}
-                    />
+                    <div className="space-y-2">
+                        <SwitchItem
+                            id="switch-noorani-letters"
+                            icon={<span className="text-amber-600 dark:text-amber-400 font-bold text-sm">✨ نور</span>}
+                            title="تلوين الأحرف النورانية في المصحف"
+                            subtitle="تمييز أحرف الفواتح بلون ذهبي مكيّف مع كل ثيم"
+                            badge="ذهبي"
+                            badgeColor="bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300/40 dark:border-amber-600/40"
+                            checked={highlightNoorani}
+                            onChange={() => setHighlightNoorani(!highlightNoorani)}
+                        />
+
+                        {highlightNoorani && (
+                            <div className="mr-5 pr-3 border-r-2 border-amber-400/40 dark:border-amber-500/30">
+                                <SwitchItem
+                                    id="switch-noorani-include-waw"
+                                    icon={<span className="text-amber-700 dark:text-amber-300 font-bold text-base">و</span>}
+                                    title="إضافة حرف الواو (و) إلى الأحرف النورانية"
+                                    subtitle="إدراج حرف الواو (و، ؤ) ضمن الحروف الملونة بالذهبي"
+                                    badge="+ حرف الواو"
+                                    badgeColor="bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-300/50 dark:border-amber-700/50"
+                                    checked={highlightNooraniIncludeWaw}
+                                    onChange={() => setHighlightNooraniIncludeWaw(!highlightNooraniIncludeWaw)}
+                                />
+                            </div>
+                        )}
+                    </div>
 
                     {/* Ha-Meem Highlight */}
                     <SwitchItem

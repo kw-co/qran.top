@@ -23,6 +23,7 @@ const SHOW_IMLAEI_TASHKEEL_KEY = 'qran_app_show_imlaei_tashkeel';
 const RESEARCH_MODE_KEY = 'qran_app_research_mode_active';
 const HIGHLIGHT_HA_MEEM_KEY = 'qran_app_highlight_ha_meem';
 const HIGHLIGHT_NOORANI_KEY = 'qran_app_highlight_noorani';
+const HIGHLIGHT_NOORANI_INCLUDE_WAW_KEY = 'qran_app_highlight_noorani_include_waw';
 
 const DEFAULT_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
@@ -118,6 +119,9 @@ export const useSettings = () => {
     );
     const [highlightNoorani, setHighlightNoorani] = useState<boolean>(
         () => safeGetItem(HIGHLIGHT_NOORANI_KEY, 'false') === 'true'
+    );
+    const [highlightNooraniIncludeWaw, setHighlightNooraniIncludeWaw] = useState<boolean>(
+        () => safeGetItem(HIGHLIGHT_NOORANI_INCLUDE_WAW_KEY, 'false') === 'true'
     );
 
     // Madinah Font Download State
@@ -217,6 +221,7 @@ export const useSettings = () => {
     useEffect(() => { safeSetItem(RESEARCH_MODE_KEY, String(isResearchModeActive)); }, [isResearchModeActive]);
     useEffect(() => { safeSetItem(HIGHLIGHT_HA_MEEM_KEY, String(highlightHaMeem)); }, [highlightHaMeem]);
     useEffect(() => { safeSetItem(HIGHLIGHT_NOORANI_KEY, String(highlightNoorani)); }, [highlightNoorani]);
+    useEffect(() => { safeSetItem(HIGHLIGHT_NOORANI_INCLUDE_WAW_KEY, String(highlightNooraniIncludeWaw)); }, [highlightNooraniIncludeWaw]);
     useEffect(() => { safeSetItem(MUSHAF_FRAME_STYLE_KEY, mushafFrameStyle); }, [mushafFrameStyle]);
 
     const displayEdition = useMemo(() => {
@@ -266,6 +271,7 @@ export const useSettings = () => {
         openDownloadMushafModal, closeDownloadMushafModal,
         isResearchModeActive, setIsResearchModeActive,
         highlightHaMeem, setHighlightHaMeem,
-        highlightNoorani, setHighlightNoorani
+        highlightNoorani, setHighlightNoorani,
+        highlightNooraniIncludeWaw, setHighlightNooraniIncludeWaw
     };
 };

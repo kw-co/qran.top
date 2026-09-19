@@ -55,6 +55,8 @@ interface SettingsContextType {
     setHighlightHaMeem: (enabled: boolean) => void;
     highlightNoorani: boolean;
     setHighlightNoorani: (enabled: boolean) => void;
+    highlightNooraniIncludeWaw: boolean;
+    setHighlightNooraniIncludeWaw: (enabled: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
