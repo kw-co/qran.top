@@ -11,6 +11,7 @@ interface NooraniLetterMatrixProps {
     onToggleLetter: (letter: string) => void;
     onResetToPure: () => void;
     onResetWithWaw: () => void;
+    onSelectHawamim?: () => void;
     onSelectAll?: () => void;
     onClearAll?: () => void;
     letterFrequencies?: { [key: string]: number };
@@ -23,6 +24,7 @@ export const NooraniLetterMatrix: React.FC<NooraniLetterMatrixProps> = ({
     onToggleLetter,
     onResetToPure,
     onResetWithWaw,
+    onSelectHawamim,
     onSelectAll,
     onClearAll,
     letterFrequencies = {},
@@ -31,6 +33,7 @@ export const NooraniLetterMatrix: React.FC<NooraniLetterMatrixProps> = ({
 }) => {
     const allowedSet = new Set(allowedLetters.map(normalizeCharForNoorani));
     const pureSet = new Set(PURE_NOORANI_LETTERS.map(normalizeCharForNoorani));
+    const isHawamimOnly = allowedLetters.length === 2 && allowedSet.has('ح') && allowedSet.has('م');
 
     return (
         <div className="p-4 sm:p-5 bg-surface border border-border-default rounded-2xl shadow-xs space-y-4">
@@ -50,7 +53,7 @@ export const NooraniLetterMatrix: React.FC<NooraniLetterMatrixProps> = ({
                     <button
                         onClick={onResetToPure}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            !allowWaw && allowedLetters.length === 14
+                            !allowWaw && allowedLetters.length === 14 && !isHawamimOnly
                                 ? 'bg-emerald-600 text-white shadow-xs'
                                 : 'bg-surface-subtle hover:bg-surface-hover text-text-primary border border-border-default'
                         }`}
@@ -61,13 +64,27 @@ export const NooraniLetterMatrix: React.FC<NooraniLetterMatrixProps> = ({
                     <button
                         onClick={onResetWithWaw}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            allowWaw && allowedLetters.length === 15
+                            allowWaw && allowedLetters.length === 15 && !isHawamimOnly
                                 ? 'bg-sky-600 text-white shadow-xs'
                                 : 'bg-surface-subtle hover:bg-surface-hover text-text-primary border border-border-default'
                         }`}
                     >
                         + حرف الواو (15 حرفاً)
                     </button>
+
+                    {onSelectHawamim && (
+                        <button
+                            onClick={onSelectHawamim}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                isHawamimOnly
+                                    ? 'bg-amber-600 text-white shadow-xs'
+                                    : 'bg-surface-subtle hover:bg-surface-hover text-amber-700 dark:text-amber-400 border border-amber-500/30'
+                            }`}
+                            title="تحديد حروف الحواميم (ح، م) فقط"
+                        >
+                            <span>حروف الحواميم (ح، م)</span>
+                        </button>
+                    )}
 
                     {onSelectAll && (
                         <button

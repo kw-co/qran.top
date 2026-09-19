@@ -20,6 +20,7 @@ const MuqattaatView = lazyRetry(() => import('./MuqattaatView'));
 const HawameemSearchView = lazyRetry(() => import('./HawameemSearchView'));
 const AlphabetScannerView = lazyRetry(() => import('./AlphabetScannerView'));
 const NooraniAyahsView = lazyRetry(() => import('./NooraniAyahsView'));
+const UniversalAlphabetMatrixView = lazyRetry(() => import('./UniversalAlphabetMatrixView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -191,6 +192,8 @@ const isSearchPage = pathParts[0] === 'search';
             title = '🏛️ بنية المصحف';
         } else if (route === 'noorani' || route === 'noorani-ayahs') {
             title = '✨ الآيات النورانية';
+        } else if (route === 'letter-matrix' || route === 'alphabet-matrix' || route === 'matrix') {
+            title = '🧬 المصفوفة الأبجدية الشاملة';
         } else if (route === 'alm') {
             title = queryParams.get('tab') === 'pairing' ? '✨ أزواج السور' : '💡 الم';
         } else if (route === 'pairs' || route === 'surah-pairs') {
@@ -275,6 +278,17 @@ const isSearchPage = pathParts[0] === 'search';
         if (pathParts[0] === 'noorani' || pathParts[0] === 'noorani-ayahs') {
             return (
                 <NooraniAyahsView 
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])} 
+                    displayEditionData={quranData || []}
+                    onSaveAyah={(item) => handleSaveItem(item)}
+                    onStartPlayback={handleStartPlayback}
+                    currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber}
+                />
+            );
+        }
+        if (pathParts[0] === 'letter-matrix' || pathParts[0] === 'alphabet-matrix' || pathParts[0] === 'matrix') {
+            return (
+                <UniversalAlphabetMatrixView 
                     simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])} 
                     displayEditionData={quranData || []}
                     onSaveAyah={(item) => handleSaveItem(item)}

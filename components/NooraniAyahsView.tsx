@@ -7,7 +7,11 @@ import {
     ALL_ARABIC_LETTERS_ORDERED,
     NOORANI_MNEMONICS,
     FAWATIH_SURAHS_NUMBERS,
-    normalizeCharForNoorani 
+    HAWAMIM_SURAHS_NUMBERS,
+    HAWAMIM_LETTERS,
+    HAWAMIM_LETTERS_WITH_WAW,
+    normalizeCharForNoorani,
+    AyahNooraniAnalysis
 } from '../utils/nooraniAyahs';
 import { NooraniAyahCard } from './noorani/NooraniAyahCard';
 import { NooraniLetterMatrix } from './noorani/NooraniLetterMatrix';
@@ -24,6 +28,8 @@ import {
     ArrowRightIcon,
     SpeakerWaveIcon
 } from './icons';
+
+export type NooraniSortOrder = 'quran_order' | 'purity_desc' | 'longest_streak' | 'letters_desc' | 'letters_asc';
 
 interface NooraniAyahsViewProps {
     simpleCleanData: SurahData[];
@@ -48,10 +54,11 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
     // Filter Options
     const [purityThreshold, setPurityThreshold] = useState<number>(100); // 100 = 100% pure only
     const [excludeFawatih, setExcludeFawatih] = useState<boolean>(false);
-    const [surahScope, setSurahScope] = useState<'all' | 'fawatih_surahs' | 'meccan' | 'medinan'>('all');
+    const [surahScope, setSurahScope] = useState<'all' | 'fawatih_surahs' | 'hawamim_surahs' | 'meccan' | 'medinan'>('all');
     const [selectedSurahNumber, setSelectedSurahNumber] = useState<number | undefined>(undefined);
     const [displayWordMode, setDisplayWordMode] = useState<'text' | 'words'>('text');
     const [filterQuery, setFilterQuery] = useState<string>('');
+    const [sortOrder, setSortOrder] = useState<NooraniSortOrder>('quran_order');
 
     // Custom Letters Matrix State
     const [customLetters, setCustomLetters] = useState<string[]>(PURE_NOORANI_LETTERS);
@@ -114,6 +121,24 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
         setMatrixPage(1);
     };
 
+    // Quick Hawamim Letters & Surahs selection
+    const handleSelectHawamimOnly = () => {
+        setIsCustomMode(true);
+        setCustomLetters(HAWAMIM_LETTERS);
+        setAllowWaw(false);
+        setSurahScope('hawamim_surahs');
+        setSelectedSurahNumber(undefined);
+        setCurrentPage(1);
+        setMatrixPage(1);
+    };
+
+    const handleSelectHawamimSurahsScope = () => {
+        setSurahScope('hawamim_surahs');
+        setSelectedSurahNumber(undefined);
+        setCurrentPage(1);
+        setMatrixPage(1);
+    };
+
     const handleToggleSingleLetter = (letter: string) => {
         setIsCustomMode(true);
         const norm = normalizeCharForNoorani(letter);
@@ -149,16 +174,52 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
         });
     }, [simpleCleanData, allowWaw, purityThreshold, excludeFawatih, selectedSurahNumber, surahScope, isCustomMode, customLetters]);
 
-    // Local Text Filter for Ayahs Tab
+    // Sorting Helper
+    const sortAyahs = (list: AyahNooraniAnalysis[], order: NooraniSortOrder): AyahNooraniAnalysis[] => {
+        const copy = [...list];
+        switch (order) {
+            case 'quran_order':
+                return copy.sort((a, b) => a.ayahNumberGlobal - b.ayahNumberGlobal);
+            case 'purity_desc':
+                return copy.sort((a, b) => {
+                    if (b.percentage !== a.percentage) return b.percentage - a.percentage;
+                    return a.ayahNumberGlobal - b.ayahNumberGlobal;
+                });
+            case 'longest_streak':
+                return copy.sort((a, b) => {
+                    if (b.longestNooraniWordStreak.length !== a.longestNooraniWordStreak.length) {
+                        return b.longestNooraniWordStreak.length - a.longestNooraniWordStreak.length;
+                    }
+                    return a.ayahNumberGlobal - b.ayahNumberGlobal;
+                });
+            case 'letters_desc':
+                return copy.sort((a, b) => {
+                    if (b.totalLetters !== a.totalLetters) return b.totalLetters - a.totalLetters;
+                    return a.ayahNumberGlobal - b.ayahNumberGlobal;
+                });
+            case 'letters_asc':
+                return copy.sort((a, b) => {
+                    if (a.totalLetters !== b.totalLetters) return a.totalLetters - b.totalLetters;
+                    return a.ayahNumberGlobal - b.ayahNumberGlobal;
+                });
+            default:
+                return copy;
+        }
+    };
+
+    // Local Text Filter & Sort for Ayahs Tab
     const filteredResults = useMemo(() => {
-        if (!filterQuery.trim()) return scanData.results;
-        const q = filterQuery.trim().toLowerCase();
-        return scanData.results.filter(r => 
-            r.textNormalized.includes(q) || 
-            r.surahName.includes(q) || 
-            r.textOriginal.includes(q)
-        );
-    }, [scanData.results, filterQuery]);
+        let list = scanData.results;
+        if (filterQuery.trim()) {
+            const q = filterQuery.trim().toLowerCase();
+            list = list.filter(r => 
+                r.textNormalized.includes(q) || 
+                r.surahName.includes(q) || 
+                r.textOriginal.includes(q)
+            );
+        }
+        return sortAyahs(list, sortOrder);
+    }, [scanData.results, filterQuery, sortOrder]);
 
     // Paginated results for Ayahs Tab
     const totalPages = Math.ceil(filteredResults.length / pageSize);
@@ -175,16 +236,19 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
         setTimeout(() => setCopiedAll(false), 2500);
     };
 
-    // Local Text Filter for Matrix Tab
+    // Local Text Filter & Sort for Matrix Tab
     const filteredMatrixResults = useMemo(() => {
-        if (!matrixFilterQuery.trim()) return scanData.results;
-        const q = matrixFilterQuery.trim().toLowerCase();
-        return scanData.results.filter(r => 
-            r.textNormalized.includes(q) || 
-            r.surahName.includes(q) || 
-            r.textOriginal.includes(q)
-        );
-    }, [scanData.results, matrixFilterQuery]);
+        let list = scanData.results;
+        if (matrixFilterQuery.trim()) {
+            const q = matrixFilterQuery.trim().toLowerCase();
+            list = list.filter(r => 
+                r.textNormalized.includes(q) || 
+                r.surahName.includes(q) || 
+                r.textOriginal.includes(q)
+            );
+        }
+        return sortAyahs(list, sortOrder);
+    }, [scanData.results, matrixFilterQuery, sortOrder]);
 
     // Paginated results for Matrix Tab
     const totalMatrixPages = matrixPageSize > 0 ? Math.ceil(filteredMatrixResults.length / matrixPageSize) : 1;
@@ -370,7 +434,94 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
 
                     {/* Filter Bar */}
                     <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border-default shadow-xs space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {/* Quick Filter & Scope Pills */}
+                        <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-border-default/60">
+                            <span className="text-xs font-bold text-text-muted">فلاتر سريعة:</span>
+                            
+                            {/* Quran Order Pill */}
+                            <button
+                                onClick={() => setSortOrder('quran_order')}
+                                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                    sortOrder === 'quran_order'
+                                        ? 'bg-primary text-white shadow-xs'
+                                        : 'bg-surface-subtle hover:bg-surface-hover text-text-secondary border border-border-default'
+                                }`}
+                                title="عرض الآيات مرتبة كما وردت في المصحف الشريف سورة بسورة وآية بآية"
+                            >
+                                <BookOpenIcon className="w-3.5 h-3.5" />
+                                <span>ترتيب المصحف الشريف</span>
+                                {sortOrder === 'quran_order' && <CheckIcon className="w-3 h-3" />}
+                            </button>
+
+                            {/* Hawamim Ayahs in Hawamim Surahs Pill */}
+                            <button
+                                onClick={handleSelectHawamimOnly}
+                                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                    isCustomMode && customLetters.length === 2 && customLetters.includes('ح') && customLetters.includes('م') && surahScope === 'hawamim_surahs'
+                                        ? 'bg-amber-600 text-white shadow-xs'
+                                        : 'bg-surface-subtle hover:bg-surface-hover text-amber-700 dark:text-amber-400 border border-amber-500/30'
+                                }`}
+                                title="عرض آيات الحواميم المتشكلة من (ح، م) في سور آل حم السبعة فقط (40 إلى 46)"
+                            >
+                                <SparklesIcon className="w-3.5 h-3.5" />
+                                <span>آيات الحواميم في سور الحواميم (40-46)</span>
+                                {isCustomMode && customLetters.length === 2 && customLetters.includes('ح') && customLetters.includes('م') && surahScope === 'hawamim_surahs' && (
+                                    <CheckIcon className="w-3 h-3" />
+                                )}
+                            </button>
+
+                            {/* Hawamim Surahs Scope Pill */}
+                            <button
+                                onClick={handleSelectHawamimSurahsScope}
+                                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                    surahScope === 'hawamim_surahs' && (!isCustomMode || customLetters.length > 2)
+                                        ? 'bg-amber-600 text-white shadow-xs'
+                                        : 'bg-surface-subtle hover:bg-surface-hover text-text-secondary border border-border-default'
+                                }`}
+                                title="حصر البحث في سور آل حم السبعة فقط (غافر، فصلت، الشورى، الزخرف، الدخان، الجاثية، الأحقاف)"
+                            >
+                                <span>سور الحواميم فقط (40 - 46)</span>
+                                {surahScope === 'hawamim_surahs' && (!isCustomMode || customLetters.length > 2) && (
+                                    <CheckIcon className="w-3 h-3" />
+                                )}
+                            </button>
+
+                            {/* Reset to Pure 14 */}
+                            <button
+                                onClick={handleResetToPure}
+                                className={`px-2.5 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                                    !allowWaw && !isCustomMode && surahScope === 'all'
+                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                        : 'bg-surface-subtle hover:bg-surface-hover text-text-muted border border-border-default'
+                                }`}
+                            >
+                                <span>النمط الصافي (14 حرفاً)</span>
+                            </button>
+                        </div>
+
+                        {/* Dropdown Filters Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                            {/* Sort Order Selector */}
+                            <div>
+                                <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                                    ترتيب العرض (الفرز):
+                                </label>
+                                <select
+                                    value={sortOrder}
+                                    onChange={(e) => {
+                                        setSortOrder(e.target.value as NooraniSortOrder);
+                                        setCurrentPage(1);
+                                    }}
+                                    className="w-full px-3 py-2 rounded-xl bg-surface-subtle border border-border-default text-xs font-bold text-text-primary focus:outline-hidden focus:border-primary cursor-pointer"
+                                >
+                                    <option value="quran_order">📖 حسب ترتيب المصحف الشريف</option>
+                                    <option value="purity_desc">🌟 أعلى نسبة نقاوة نورانية</option>
+                                    <option value="longest_streak">✨ أطول تتابع كلمات نورانية</option>
+                                    <option value="letters_desc">📏 حسب طول الآية (الأطول أولاً)</option>
+                                    <option value="letters_asc">📐 حسب طول الآية (الأقصر أولاً)</option>
+                                </select>
+                            </div>
+
                             {/* Purity Level */}
                             <div>
                                 <label className="block text-xs font-semibold text-text-muted mb-1.5">
@@ -405,6 +556,7 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
                                     className="w-full px-3 py-2 rounded-xl bg-surface-subtle border border-border-default text-xs font-bold text-text-primary focus:outline-hidden focus:border-primary cursor-pointer"
                                 >
                                     <option value="all">كافة سور المصحف الشريف (114 سورة)</option>
+                                    <option value="hawamim_surahs">سور الحواميم السبعة فقط (غافر 40 إلى الأحقاف 46)</option>
                                     <option value="fawatih_surahs">السور ذات الفواتح النورانية فقط (29 سورة)</option>
                                     <option value="meccan">السور المكية فقط</option>
                                     <option value="medinan">السور المدنية فقط</option>
@@ -613,6 +765,7 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
                         onResetWithWaw={handleResetWithWaw}
                         onSelectAll={handleSelectAllLetters}
                         onClearAll={handleClearAllLetters}
+                        onSelectHawamim={handleSelectHawamimOnly}
                         letterFrequencies={scanData.stats.letterFrequencyInMatched}
                         allowWaw={allowWaw}
                         onToggleWaw={handleToggleWaw}
@@ -632,8 +785,24 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2.5">
+                                {/* Sort selector for Matrix */}
+                                <select
+                                    value={sortOrder}
+                                    onChange={(e) => {
+                                        setSortOrder(e.target.value as NooraniSortOrder);
+                                        setMatrixPage(1);
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-xl bg-surface-subtle border border-border-default text-xs font-semibold text-text-secondary focus:outline-hidden focus:border-primary cursor-pointer"
+                                >
+                                    <option value="quran_order">📖 ترتيب المصحف</option>
+                                    <option value="purity_desc">🌟 أعلى نقاوة</option>
+                                    <option value="longest_streak">✨ أطول تتابع</option>
+                                    <option value="letters_desc">📏 الأطول حروفاً</option>
+                                    <option value="letters_asc">📐 الأقصر حروفاً</option>
+                                </select>
+
                                 {/* Matrix Filter input */}
-                                <div className="relative min-w-[180px] sm:min-w-[220px]">
+                                <div className="relative min-w-[160px] sm:min-w-[200px]">
                                     <input
                                         type="text"
                                         value={matrixFilterQuery}
@@ -641,7 +810,7 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
                                             setMatrixFilterQuery(e.target.value);
                                             setMatrixPage(1);
                                         }}
-                                        placeholder="بحث في نتائج المصفوفة..."
+                                        placeholder="بحث في النتائج..."
                                         className="w-full pl-7 pr-3 py-1.5 rounded-xl bg-surface-subtle border border-border-default text-xs text-text-primary focus:outline-hidden focus:border-primary"
                                     />
                                     {matrixFilterQuery && (

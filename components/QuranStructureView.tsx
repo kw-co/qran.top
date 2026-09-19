@@ -26,6 +26,15 @@ const QuranStructureView: React.FC = () => {
             hoverBg: "hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
         },
         {
+            title: "المصفوفة الأبجدية الشاملة",
+            description: "مختبر تفاعلي لفحص وتصفية كامل القرآن (6,236 آية) بأي توليفة من حروف المعجم الـ 28 مع قياس الترددات وشريط التقدم المباشر.",
+            icon: <SparklesIcon className="w-8 h-8 text-purple-500" />,
+            href: "#/letter-matrix",
+            bg: "bg-purple-50 dark:bg-purple-900/10",
+            borderColor: "border-purple-200 dark:border-purple-800",
+            hoverBg: "hover:bg-purple-100 dark:hover:bg-purple-900/20"
+        },
+        {
             title: "أزواج السور",
             description: "دراسة الارتباط العضوي والترابط الموضوعي بين سور القرآن الكريم المثاني التي نزلت أو رتبت كأزواج.",
             icon: <SparklesIcon className="w-8 h-8 text-amber-500" />,

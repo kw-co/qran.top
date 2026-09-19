@@ -90,7 +90,7 @@ export interface NooraniScanFilterOptions {
     purityThreshold: number; // 100 (pure only), 90 (>=90%), 80, 0 (all)
     excludeFawatih: boolean; // Exclude single muqattaat word openings like "الم", "طه"
     surahNumber?: number; // Filter by specific surah
-    surahScope: 'all' | 'fawatih_surahs' | 'meccan' | 'medinan';
+    surahScope: 'all' | 'fawatih_surahs' | 'hawamim_surahs' | 'meccan' | 'medinan';
     customAllowedLetters?: string[]; // If custom letter set is used
 }
 
@@ -98,6 +98,13 @@ export interface NooraniScanFilterOptions {
 export const FAWATIH_SURAHS_NUMBERS = [
     2, 3, 7, 10, 11, 12, 13, 14, 15, 19, 20, 26, 27, 28, 29, 30, 31, 32, 36, 38, 40, 41, 42, 43, 44, 45, 46, 50, 68
 ];
+
+// 7 Hawamim Surahs (سور آل حم السبعة المتتالية من غافر 40 إلى الأحقاف 46)
+export const HAWAMIM_SURAHS_NUMBERS = [40, 41, 42, 43, 44, 45, 46];
+
+// Hawamim Letters (حروف فواتح الحواميم: ح، م)
+export const HAWAMIM_LETTERS = ['ح', 'م'];
+export const HAWAMIM_LETTERS_WITH_WAW = ['ح', 'م', 'و'];
 
 /**
  * Checks if an Ayah text is a standard Muqatta'at opening (like "الم", "يس", "حم", "كهيعص", etc.)
@@ -266,6 +273,7 @@ export function scanQuranNoorani(
         // Scope filters
         if (options.surahNumber && surah.number !== options.surahNumber) return;
         if (options.surahScope === 'fawatih_surahs' && !FAWATIH_SURAHS_NUMBERS.includes(surah.number)) return;
+        if (options.surahScope === 'hawamim_surahs' && !HAWAMIM_SURAHS_NUMBERS.includes(surah.number)) return;
         if (options.surahScope === 'meccan' && surah.revelationType !== 'Meccan') return;
         if (options.surahScope === 'medinan' && surah.revelationType === 'Meccan') return;
 
