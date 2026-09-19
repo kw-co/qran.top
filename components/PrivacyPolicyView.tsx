@@ -134,7 +134,7 @@ const PrivacyPolicyView: React.FC = () => {
                 <div className="qran-top-privacy-container">
                     <header>
                         <h1 id="header-title">{lang === 'ar' ? 'سياسة الخصوصية لتطبيق الباحث في المصحف الشريف' : 'Privacy Policy - Al-Bahith'}</h1>
-                        <p id="header-date" className="text-sm mt-2 opacity-80">{lang === 'ar' ? 'آخر تحديث: 22 أغسطس 2026' : 'Last updated: August 22, 2026'}</p>
+                        <p id="header-date" className="text-sm mt-2 opacity-80">{lang === 'ar' ? 'آخر تحديث: سبتمبر 2026' : 'Last updated: September 2026'}</p>
                     </header>
                     
                     <div className="lang-toggle">
@@ -153,7 +153,8 @@ const PrivacyPolicyView: React.FC = () => {
                             <p>يعتمد التطبيق بشكل رئيسي على التخزين المحلي الآمن داخل متصفحك (Local Storage & IndexedDB) لتقديم تجربة فائقة السرعة مع الحفاظ التام على خصوصيتك:</p>
                             <ul>
                                 <li><strong>تفضيلات القراءة والمظهر:</strong> تشمل اختيار نوع الخط وحجمه، المظهر (فاتح / داكن / وضع القراءة)، القارئ الصوتي المفضل، والتفاسير والترجمات المحددة.</li>
-                                <li><strong>الدفتر والملاحظات:</strong> الآيات المحفوظة، والملاحظات الشخصية تحفظ محلياً على جهازك فقط ولا تُرسل إلى أي خادم خارجي.</li>
+                                <li><strong>الدفتر والملاحظات والتعديلات الذكية:</strong> الآيات المحفوظة، الاقتطاعات المخصصة، الفوائد، والملاحظات الشخصية تحفظ محلياً على جهازك فقط ولا تُرسل إلى أي خادم خارجي إطلاقاً.</li>
+                                <li><strong>تصدير الملفات (Word & Print):</strong> عمليات إنشاء ملفات Word (.doc) وتجهيز صفحات الطباعة تتم بالكامل داخل متصفحك (Client-side Blob) دون رفع أي نص إلى أي خادم خارجي.</li>
                                 <li><strong>مفتاح الذكاء الاصطناعي (Gemini API Key):</strong> إذا قمت بإدخال مفتاح API الخاص بك لتفعيل الميزات المتقدمة، يُحفظ مشفراً في متصفحك ولا نطلع عليه مطلقاً.</li>
                                 <li><strong>خطوط مصحف المدينة والتخزين المؤقت:</strong> يتم تنزيل خطوط المصحف والملفات الأساسية في الذاكرة المحلية المؤقتة لجهازك لتمكين القراءة بدون اتصال بالإنترنت.</li>
                             </ul>
@@ -165,8 +166,8 @@ const PrivacyPolicyView: React.FC = () => {
                             <ul>
                                 <li><strong>الختمات الجماعية:</strong> يتم تخزين اسم الختمة، الإهداء، موعد الختم، وقائمة الأجزاء المحجوزة والمقروءة دون ربطها بأي بريد إلكتروني أو رقم هاتف أو هوية مستخدم.</li>
                                 <li><strong>حجز الأجزاء:</strong> الاسم المسجل عند حجز الجزء هو اسم اختياري يكتبه المشارك بنفسه لتنسيق القراءة في مجموعات المشاركة، ولا يرتبط بأي حساب.</li>
-                                <li><strong>النقاشات والتدبر العام:</strong> المشاركات والتعليقات العامة تُحفظ كنصوص عامة مجهولة الهوية.</li>
-                                <li><strong>أدوات التحليل والبنية:</strong> أدوات مثل "ماسح الحروف الأبجدية" و"البصمة النورانية" تعمل محلياً على جهازك بالكامل ولا يتم تخزين أو مشاركة أي بيانات متعلقة بالبحث.</li>
+                                <li><strong>النقاشات العامة:</strong> المشاركات والتعليقات العامة تُحفظ كنصوص عامة مجهولة الهوية ومتاحة للجميع.</li>
+                                <li><strong>أدوات التحليل والبنية:</strong> أدوات مثل "ماسح الحروف الأبجدية" و"البصمة النورانية" و"رحلة الرقم" تعمل محلياً على جهازك بالكامل ولا يتم تخزين أو مشاركة أي بيانات متعلقة بالبحث.</li>
                             </ul>
                         </section>
                         
@@ -177,7 +178,7 @@ const PrivacyPolicyView: React.FC = () => {
 
                         <section>
                             <h2>حذف البيانات والتحكم الكامل</h2>
-                            <p>يملك المستخدم التحكم الكامل في بياناته المحلية، ويمكنك في أي وقت مسح الذاكرة المؤقتة أو تفريغ الدفتر أو حذف الخطوط المحملة مباشرة عبر شاشة <strong>الإعدادات &larr; البيانات والمساحة</strong>.</p>
+                            <p>يملك المستخدم التحكم الكامل في بياناته المحلية، ويمكنك في أي وقت مسح الذاكرة المؤقتة أو تفريغ الدفتر أو حذف الخطوط المحملة مباشرة عبر شاشة <strong>الإعدادات &larr; البيانات والملفات</strong>.</p>
                         </section>
 
                         <section>
@@ -197,7 +198,8 @@ const PrivacyPolicyView: React.FC = () => {
                             <p>To provide high performance and offline readiness, essential preferences are stored entirely within your browser's local storage (LocalStorage & IndexedDB):</p>
                             <ul>
                                 <li><strong>Reading Preferences:</strong> Theme choice (light/dark), font style and sizing, preferred audio reciters, and active tafsirs or translations.</li>
-                                <li><strong>Tadabbur Notebook:</strong> Saved verses, custom collections, and personal reflections are stored exclusively on your device.</li>
+                                <li><strong>Notebook & Custom Notes:</strong> Saved verses, custom snipped quotes, benefits, and personal reflections are stored exclusively on your device.</li>
+                                <li><strong>Word Document Export & Printing:</strong> Word (.doc) generation and print formatting are performed 100% locally in your browser (Client-side Blob) without sending your text to any external server.</li>
                                 <li><strong>Gemini API Key:</strong> If provided for AI analysis, your API key is encrypted and stored locally only. We never access or transmit it to third parties.</li>
                                 <li><strong>Offline Mushaf Fonts & Caches:</strong> Madinah Mushaf font files and offline assets are stored on your device to support offline browsing.</li>
                             </ul>
@@ -220,7 +222,7 @@ const PrivacyPolicyView: React.FC = () => {
 
                         <section>
                             <h2>Data Control & Deletion</h2>
-                            <p>You have complete control over all local data and can clear cache, remove downloaded fonts, or reset settings at any time via <strong>Settings &rarr; Data & Storage</strong>.</p>
+                            <p>You have complete control over all local data and can clear cache, remove downloaded fonts, or reset settings at any time via <strong>Settings &rarr; Data & Files</strong>.</p>
                         </section>
 
                         <section>

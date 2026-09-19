@@ -164,6 +164,50 @@ const ManualView: React.FC = () => {
                         </ul>
                     </section>
 
+                    <section id="notebook-and-export">
+                        <h2>دليل الدفتر والطباعة والتصدير المتقدم</h2>
+                        <p>
+                            يشتمل التطبيق على نظام متكامل لحفظ الآيات وتدوين الفوائد وطباعتها وتصديرها بمرونة استثنائية:
+                        </p>
+                        <ul>
+                            <li>
+                                <svg className="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" /></svg>
+                                <div>
+                                    <h3 className="feature-title">1. الحفظ السريع بنقرة واحدة</h3>
+                                    <p className="feature-description">عند تصفحك لأي سورة أو صفحة أو عند البحث، اضغط على زر الحفظ بجانب الآية لإضافتها فوراً إلى دفترك الخاص.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <svg className="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+                                <div>
+                                    <h3 className="feature-title">2. الحفظ الذكي والتعديل والاقتطاع</h3>
+                                    <p className="feature-description">يمكنك اقتطاع جملة معينة من الآية أو وضع خط تحت كلمات محددة، ويتم حفظ التعديل تلقائياً في المتصفح بكفاءة تخزين عالية، مع إمكانية استعادة النص الكامل بنقرة واحدة.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <svg className="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                                <div>
+                                    <h3 className="feature-title">3. التصدير المباشر لملفات وورد Word (.doc)</h3>
+                                    <p className="feature-description">تصدير جميع الآيات المحفوظة والملاحظات إلى مستند وورد منسق ومضبوط لليمين، مع دعم جداول الأذكار والقوائم والخطوط الكبيرة بنقرة واحدة مباشرة من المتصفح.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <svg className="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24-1.047-.72-2.016-1.44-2.829m13.44 0a8.96 8.96 0 0 0-1.44 2.829M12 21a8.966 8.966 0 0 1-5.98-2.28 9.01 9.01 0 0 1-2.9-5.72A9 9 0 1 1 12 21Z" /></svg>
+                                <div>
+                                    <h3 className="feature-title">4. محرك الطباعة الموفر للحبر والأوراق</h3>
+                                    <p className="feature-description">صفحة طباعة متخصصة تتيح تخصيص العنوان، وإخفاء/إظهار التفسير والملاحظات، ودعم النمط الأحادي (Monochrome) لتوفير الحبر وتنسيق ورقة A4 بدقة متناهية.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <svg className="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                                <div>
+                                    <h3 className="feature-title">5. النسخ الاحتياطي والاستيراد والتصدير</h3>
+                                    <p className="feature-description">يمكنك تصدير كامل محتويات الدفتر كملف JSON واستعادته على أي جهاز آخر في أي وقت دون الحاجة لإنشاء حساب.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </section>
+
                     <section id="khatmat-system">
                         <h2>دليل نظام الختمات القرآنية الجماعية</h2>
                         <p>
@@ -311,10 +355,10 @@ const ManualView: React.FC = () => {
                                 </div>
                             </li>
                             <li>
-                                <svg className="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" /></svg>
+                                <svg className="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" /></svg>
                                 <div>
-                                    <h3 className="feature-title">الدفتر والمحفوظات</h3>
-                                    <p className="feature-description">احفظ آياتك المفضلة، ودوّن ملاحظاتك الخاصة مع إمكانية التصدير والاستيراد بأمان.</p>
+                                    <h3 className="feature-title">الدفتر الذكي والطباعة الموفرة والتصدير لـ Word</h3>
+                                    <p className="feature-description">احفظ آياتك، اقتطع النصوص المهمة بذكاء، دوّن الفوائد، وصدّر لمستندات وورد Word (.doc) أو اطبع بجداول منسقة موفرة للحبر.</p>
                                 </div>
                             </li>
                             <li>
