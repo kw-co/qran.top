@@ -38,23 +38,28 @@ export const DownloadMushafModal: React.FC<DownloadMushafModalProps> = ({ isOpen
             onClick={onClose}
         >
             <div 
-                className="w-full max-w-sm bg-surface border border-border-default rounded-2xl shadow-xl overflow-hidden transform transition-all duration-200"
+                className="w-full max-w-sm sm:max-w-md bg-surface border border-border-default rounded-2xl shadow-xl overflow-hidden transform transition-all duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Content */}
-                <div className="p-5 text-center space-y-3">
+                <div className="p-5 text-center space-y-3.5">
                     <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 text-primary flex items-center justify-center">
                         <BookOpenIcon className="w-6 h-6" />
                     </div>
 
                     <h3 className="text-base font-bold text-text-primary">
-                        تحميل مصحف المدينة
+                        تحميل خط مصحف المدينة
                     </h3>
 
                     {!isDownloadingFonts && !isMushafDownloaded && (
-                        <p className="text-sm text-text-secondary leading-relaxed">
-                            يتطلب هذا الوضع تنزيل خطوط مصحف المدينة (~18 ميغابايت) ليعمل لاحقاً بدون إنترنت.
-                        </p>
+                        <div className="text-right space-y-2 bg-surface-subtle p-3.5 rounded-xl border border-border-default/60 text-xs text-text-secondary leading-relaxed">
+                            <p className="text-text-primary font-semibold text-xs">
+                                💡 <strong>تنويه:</strong> الخط الحالي في التطبيق كافٍ ووافي ومطابق لرسم المصحف للقراءة اليومية.
+                            </p>
+                            <p>
+                                تنزيل خط <strong>مصحف المدينة</strong> (~18 ميغابايت) اختياري، ومخصص لمن يحتاج التطابق الطباعي التام مع المصحف المطبوع في أدق التفاصيل (مثل رسم حرفي <strong>الكاف</strong> و<strong>النون</strong> وتراكيب علامات الضبط الخاصة للأغراض البحثية).
+                            </p>
+                        </div>
                     )}
 
                     {/* Progress when downloading */}

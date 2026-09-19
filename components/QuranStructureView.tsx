@@ -17,6 +17,15 @@ const QuranStructureView: React.FC = () => {
             hoverBg: "hover:bg-purple-100 dark:hover:bg-purple-900/20"
         },
         {
+            title: "الآيات النورانية",
+            description: "مسح واستكشاف آيات القرآن الكريم المتشكلة حصراً أو بأعلى كثافة من الحروف النورانية الـ 14 مع خيارات التحكم بحرف الواو.",
+            icon: <SparklesIcon className="w-8 h-8 text-emerald-500" />,
+            href: "#/noorani",
+            bg: "bg-emerald-50 dark:bg-emerald-900/10",
+            borderColor: "border-emerald-200 dark:border-emerald-800",
+            hoverBg: "hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
+        },
+        {
             title: "أزواج السور",
             description: "دراسة الارتباط العضوي والترابط الموضوعي بين سور القرآن الكريم المثاني التي نزلت أو رتبت كأزواج.",
             icon: <SparklesIcon className="w-8 h-8 text-amber-500" />,

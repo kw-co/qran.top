@@ -6,18 +6,20 @@ import SurahDetailView from './SurahDetailView';
 import { SearchView } from './SearchView';
 import HistoryView from './HistoryView';
 import FingerprintToolView from './FingerprintToolView';
+import { lazyRetry } from '../utils/lazyRetry';
 
-const SettingsView = React.lazy(() => import('./SettingsView'));
-const SavedView = React.lazy(() => import('./SavedView'));
-const WordAnalysisView = React.lazy(() => import('./WordAnalysisView'));
-const PrivacyPolicyView = React.lazy(() => import('./PrivacyPolicyView'));
-const AboutView = React.lazy(() => import('./AboutView'));
-const GroupKhatmahView = React.lazy(() => import('./khatmiyah/GroupKhatmahView'));
-const ResearchView = React.lazy(() => import('./ResearchView'));
-const QuranStructureView = React.lazy(() => import('./QuranStructureView'));
-const MuqattaatView = React.lazy(() => import('./MuqattaatView'));
-const HawameemSearchView = React.lazy(() => import('./HawameemSearchView'));
-const AlphabetScannerView = React.lazy(() => import('./AlphabetScannerView'));
+const SettingsView = lazyRetry(() => import('./SettingsView'));
+const SavedView = lazyRetry(() => import('./SavedView'));
+const WordAnalysisView = lazyRetry(() => import('./WordAnalysisView'));
+const PrivacyPolicyView = lazyRetry(() => import('./PrivacyPolicyView'));
+const AboutView = lazyRetry(() => import('./AboutView'));
+const GroupKhatmahView = lazyRetry(() => import('./khatmiyah/GroupKhatmahView'));
+const ResearchView = lazyRetry(() => import('./ResearchView'));
+const QuranStructureView = lazyRetry(() => import('./QuranStructureView'));
+const MuqattaatView = lazyRetry(() => import('./MuqattaatView'));
+const HawameemSearchView = lazyRetry(() => import('./HawameemSearchView'));
+const AlphabetScannerView = lazyRetry(() => import('./AlphabetScannerView'));
+const NooraniAyahsView = lazyRetry(() => import('./NooraniAyahsView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -187,6 +189,8 @@ const isSearchPage = pathParts[0] === 'search';
             title = query.trim() ? `حم: ${query}` : 'حم البحث';
         } else if (route === 'structure') {
             title = '🏛️ بنية المصحف';
+        } else if (route === 'noorani' || route === 'noorani-ayahs') {
+            title = '✨ الآيات النورانية';
         } else if (route === 'alm') {
             title = queryParams.get('tab') === 'pairing' ? '✨ أزواج السور' : '💡 الم';
         } else if (route === 'pairs' || route === 'surah-pairs') {
@@ -268,6 +272,17 @@ const isSearchPage = pathParts[0] === 'search';
         if (pathParts[0] === 'privacy-policy') return <PrivacyPolicyView />;
         if (pathParts[0] === 'research') return <ResearchView />;
         if (pathParts[0] === 'structure') return <QuranStructureView />;
+        if (pathParts[0] === 'noorani' || pathParts[0] === 'noorani-ayahs') {
+            return (
+                <NooraniAyahsView 
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])} 
+                    displayEditionData={quranData || []}
+                    onSaveAyah={(item) => handleSaveItem(item)}
+                    onStartPlayback={handleStartPlayback}
+                    currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber}
+                />
+            );
+        }
         if (pathParts[0] === 'pairs' || pathParts[0] === 'surah-pairs') {
             const initialSurah = pathParts[1] ? parseInt(pathParts[1], 10) : 19;
             return (
