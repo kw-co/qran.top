@@ -15,9 +15,8 @@ import TopProgressBar from './components/TopProgressBar';
 import SidePanel from './components/SidePanel';
 import AudioPlayerBar from './components/AudioPlayerBar';
 import Toolbox from './components/Toolbox';
-import SaveItemModal from './components/SaveItemModal';
 
-import { ArrowUpIcon, RefreshIcon, WifiOffIcon, ArrowRightIcon, HomeIcon } from './components/icons';
+import { ArrowUpIcon, RefreshIcon, WifiOffIcon, ArrowRightIcon, HomeIcon, CheckIcon } from './components/icons';
 import Header from './components/Header';
 import ExternalLinkModal from './components/ExternalLinkModal';
 import DownloadMushafModal from './components/DownloadMushafModal';
@@ -49,9 +48,10 @@ const App: React.FC = () => {
     } = useAudioPlayer(currentPath, allQuranData, selectedAudioEdition, setSelectedAudioEdition, fetchCustomEditionData);
 
     const {
-        collections, itemToSave, setItemToSave, handleSaveItem, handleConfirmSave,
+        collections, handleSaveItem,
         handleDeleteCollection, handleDeleteSavedItem, handleExportNotebook,
-        handleImportNotebook, updateItemNotes,
+        handleImportNotebook, updateItemNotes, updateSavedItem, handleClearAll,
+        handleReorderItems, handleMoveItem,
     } = useNotebook();
     
     useServiceWorkerUpdater();
@@ -63,6 +63,28 @@ const App: React.FC = () => {
     const [showScroll, setShowScroll] = useState(false);
     const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
     const [externalLinkUrl, setExternalLinkUrl] = useState<string | null>(null);
+    const [appToast, setAppToast] = useState<{ message: string; type?: 'success' | 'info'; link?: string; linkText?: string } | null>(null);
+
+    // Global Toast listener
+    useEffect(() => {
+        const handleToastEvent = (e: any) => {
+            if (e.detail && e.detail.message) {
+                setAppToast({
+                    message: e.detail.message,
+                    type: e.detail.type || 'success',
+                    link: e.detail.link,
+                    linkText: e.detail.linkText,
+                });
+                const timer = setTimeout(() => {
+                    setAppToast(null);
+                }, 3500);
+                return () => clearTimeout(timer);
+            }
+        };
+
+        window.addEventListener('app-toast', handleToastEvent);
+        return () => window.removeEventListener('app-toast', handleToastEvent);
+    }, []);
 
     useEffect(() => {
         const handleShowModal = (e: Event) => {
@@ -166,8 +188,6 @@ const App: React.FC = () => {
                 settings.closeDownloadMushafModal();
             } else if (isSidePanelOpen) {
                 setIsSidePanelOpen(false);
-            } else if (itemToSave) {
-                setItemToSave(null);
             } else if (externalLinkUrl) {
                 setExternalLinkUrl(null);
             }
@@ -175,7 +195,7 @@ const App: React.FC = () => {
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [dataError, isSearchDataReady, clearError, isSidePanelOpen, itemToSave, externalLinkUrl, settings.isDownloadMushafModalOpen, settings.closeDownloadMushafModal]);
+    }, [dataError, isSearchDataReady, clearError, isSidePanelOpen, externalLinkUrl, settings.isDownloadMushafModalOpen, settings.closeDownloadMushafModal]);
 
     const handleReturnToHome = () => {
         clearError();
@@ -253,6 +273,10 @@ const App: React.FC = () => {
                             handleDeleteCollection={handleDeleteCollection}
                             handleDeleteSavedItem={handleDeleteSavedItem}
                             updateItemNotes={updateItemNotes}
+                            updateSavedItem={updateSavedItem}
+                            handleReorderItems={handleReorderItems}
+                            handleMoveItem={handleMoveItem}
+                            handleClearAll={handleClearAll}
                             handleExportNotebook={handleExportNotebook}
                             handleImportNotebook={handleImportNotebook}
                             handleSearch={handleSearch}
@@ -269,13 +293,35 @@ const App: React.FC = () => {
                         />
                     </main>
 
+                    {/* Global Floating Toast for 1-Click Saving & Actions */}
+                    {appToast && (
+                        <div className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 z-50 animate-fade-in max-w-md">
+                            <div className="flex items-center gap-3 px-4 py-3 bg-neutral-900/95 dark:bg-neutral-800/95 text-white rounded-2xl shadow-2xl border border-neutral-700/60 backdrop-blur-md">
+                                <div className="p-1.5 rounded-full bg-emerald-500/20 text-emerald-400 flex-shrink-0">
+                                    <CheckIcon className="w-4 h-4" />
+                                </div>
+                                <div className="text-xs sm:text-sm font-medium flex-grow">
+                                    {appToast.message}
+                                </div>
+                                {appToast.link && (
+                                    <a
+                                        href={appToast.link}
+                                        onClick={() => setAppToast(null)}
+                                        className="px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary-hover transition-colors flex-shrink-0"
+                                    >
+                                        {appToast.linkText || 'عرض'}
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {isPageWithToolbox && <Toolbox
                         isAudioPlayerVisible={!!playbackInfo}
                         onStartPlayback={handleStartPlayback as (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void}
                         isPlaybackLoading={!!playbackInfo?.trigger}
                         currentPath={currentPath}
                     />}
-                    {itemToSave && <SaveItemModal item={itemToSave} collections={collections} onClose={() => setItemToSave(null)} onSave={handleConfirmSave} />}
                     {externalLinkUrl && <ExternalLinkModal url={externalLinkUrl} onClose={() => setExternalLinkUrl(null)} />}
                     <DownloadMushafModal 
                         isOpen={settings.isDownloadMushafModalOpen} 

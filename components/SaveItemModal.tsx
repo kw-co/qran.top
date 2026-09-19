@@ -46,7 +46,7 @@ const SaveItemModal: React.FC<SaveItemModalProps> = ({ item, collections, onClos
                 <div className="p-5 border-b border-border-default flex justify-between items-center">
                     <h2 id="save-item-title" className="text-xl font-bold text-text-primary flex items-center gap-2">
                         <BookmarkIcon className="w-6 h-6 text-primary" />
-                        حفظ في دفتر التدبر
+                        حفظ في الدفتر
                     </h2>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-hover">
                         <ClearIcon className="w-5 h-5" />

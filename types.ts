@@ -83,6 +83,7 @@ export interface SavedAyahItem {
   surah: number;
   ayah: number;
   text: string; // a snippet of the ayah text
+  customText?: string; // Optional user customized/truncated verse text for printing or dhikr
   createdAt: number; // Timestamp
   notes?: string; // Added for Tadabbur
 }

@@ -324,8 +324,8 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                         <button
                             onClick={() => onSaveAyah(displayAyah)}
                             className="p-1.5 rounded-lg text-text-secondary hover:text-primary hover:bg-surface-hover border border-border-default transition-all flex items-center gap-1 text-xs font-semibold"
-                            aria-label="حفظ الآية في دفتر التدبر"
-                            title="حفظ الآية في دفتر التدبر"
+                            aria-label="حفظ الآية في الدفتر"
+                            title="حفظ الآية في الدفتر"
                         >
                             <BookmarkIcon className="w-4 h-4 text-primary" />
                             <span className="hidden sm:inline">حفظ</span>

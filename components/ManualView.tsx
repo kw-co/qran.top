@@ -313,8 +313,8 @@ const ManualView: React.FC = () => {
                             <li>
                                 <svg className="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" /></svg>
                                 <div>
-                                    <h3 className="feature-title">دفتر التدبر والمجموعات</h3>
-                                    <p className="feature-description">احفظ آياتك المفضلة، ونظّمها في مجلدات مخصصة، ودوّن تدبراتك الخاصة مع إمكانية التصدير والاستيراد بأمان.</p>
+                                    <h3 className="feature-title">الدفتر والمحفوظات</h3>
+                                    <p className="feature-description">احفظ آياتك المفضلة، ودوّن ملاحظاتك الخاصة مع إمكانية التصدير والاستيراد بأمان.</p>
                                 </div>
                             </li>
                             <li>

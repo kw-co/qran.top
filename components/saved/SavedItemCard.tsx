@@ -78,7 +78,7 @@ const SavedItemCard: React.FC<SavedItemCardProps> = ({ item, onDelete, onUpdateN
                             </button>
                             <button onClick={handleSaveNote} className="px-4 py-2 text-sm text-white rounded-md bg-primary hover:bg-primary-hover flex items-center gap-2">
                                 <CheckIcon className="w-4 h-4" />
-                                <span>حفظ التدبر</span>
+                                <span>حفظ الملاحظة</span>
                             </button>
                         </div>
                     </div>
@@ -94,7 +94,7 @@ const SavedItemCard: React.FC<SavedItemCardProps> = ({ item, onDelete, onUpdateN
                         <button 
                             onClick={() => setIsEditingNotes(true)} 
                             className="p-2 -m-2 rounded-full text-text-subtle hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors flex-shrink-0" 
-                            title={item.notes ? "تعديل التدبر" : "إضافة تدبر"}
+                            title={item.notes ? "تعديل الملاحظة" : "إضافة ملاحظة"}
                         >
                             <PencilIcon className="w-5 h-5" />
                         </button>

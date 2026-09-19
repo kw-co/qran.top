@@ -20,7 +20,7 @@ const DataAndFilesSettings: React.FC<DataAndFilesSettingsProps> = ({
     const [activeSection, setActiveSection] = useState<Section>(initialSection);
 
     const SECTIONS: { id: Section; label: string; icon: React.ReactNode }[] = [
-        { id: 'tadabbur', label: 'دفتر التدبر', icon: <FolderIcon className="w-4 h-4" /> },
+        { id: 'tadabbur', label: 'الدفتر', icon: <FolderIcon className="w-4 h-4" /> },
         { id: 'export_format', label: 'قوالب التصدير', icon: <PaperIcon className="w-4 h-4" /> },
         { id: 'storage', label: 'الذاكرة والتخزين', icon: <TrashIcon className="w-4 h-4" /> },
     ];
@@ -29,7 +29,7 @@ const DataAndFilesSettings: React.FC<DataAndFilesSettingsProps> = ({
         <div className="animate-fade-in space-y-6">
             <div>
                 <h2 className="text-xl font-bold text-text-primary">البيانات والملفات</h2>
-                <p className="text-xs text-text-muted mt-0.5">إدارة ملاحظات التدبر، قوالب تصدير الآيات، وذاكرة التخزين المؤقت.</p>
+                <p className="text-xs text-text-muted mt-0.5">إدارة ملاحظات الدفتر، قوالب تصدير الآيات، وذاكرة التخزين المؤقت.</p>
             </div>
 
             {/* Sub-sections segmented pills */}

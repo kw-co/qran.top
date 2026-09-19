@@ -60,7 +60,7 @@ const TadabburGateway: React.FC<TadabburGatewayProps> = ({ onExportNotebook, onI
 
     return (
         <div className="animate-fade-in">
-            <h2 className="text-2xl font-semibold mb-2 text-text-primary">بوابة دفتر التدبر</h2>
+            <h2 className="text-2xl font-semibold mb-2 text-text-primary">بوابة الدفتر</h2>
             <p className="text-text-secondary mb-8">استخدم هذه الواجهة لحفظ نسخة احتياطية من بياناتك واستعادتها كملف .json.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-5 bg-surface-subtle rounded-lg border border-border-default flex flex-col">
@@ -83,7 +83,7 @@ const TadabburGateway: React.FC<TadabburGatewayProps> = ({ onExportNotebook, onI
                     )}
                 </div>
                 <div className="p-5 bg-surface-subtle rounded-lg border border-border-default flex flex-col">
-                    <h3 className="text-xl font-semibold mb-2 text-text-primary">استعادة دفتر التدبر (استيراد)</h3>
+                    <h3 className="text-xl font-semibold mb-2 text-text-primary">استعادة الدفتر (استيراد)</h3>
                     <p className="text-sm text-text-secondary mb-4 flex-grow">
                         قم باختيار ملف الدفتر بصيغة .json لاستعادة بياناتك على هذا المتصفح. 
                         <strong>(تنبيه: سيتم استبدال الدفتر الحالي بالملف المرفوع)</strong>

@@ -36,6 +36,10 @@ interface AppRouterProps {
     handleDeleteCollection: (id: string) => void;
     handleDeleteSavedItem: (collectionId: string, itemId: string) => void;
     updateItemNotes: (collectionId: string, itemId: string, notes: string) => void;
+    updateSavedItem?: (itemId: string, updates: { notes?: string; customText?: string | null }) => void;
+    handleReorderItems?: (newItems: SavedItem[]) => void;
+    handleMoveItem?: (itemId: string, direction: 'up' | 'down') => void;
+    handleClearAll?: () => void;
     handleExportNotebook: () => Promise<string>;
     handleImportNotebook: (code: string) => Promise<void>;
     handleSearch: (query: string, sourceEdition?: string, position?: { surah: number; ayah: number; wordIndex: number; }) => void;
@@ -55,7 +59,9 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
     const {
         pathParts, queryParams, isInitialLoading, quranData, simpleSearchableAyahs, collections,
         allQuranData, fetchCustomEditionData,
-        handleDeleteCollection, handleDeleteSavedItem, updateItemNotes, handleExportNotebook,
+        handleDeleteCollection, handleDeleteSavedItem, updateItemNotes, 
+        handleReorderItems, handleMoveItem, handleClearAll,
+        handleExportNotebook,
         handleImportNotebook, handleSearch, handleSaveItem,
         handleSearchByAyahNumber, currentlyPlayingAyahGlobalNumber, playbackInfo, handleStartPlayback,
         hizbQuarterStartMap, setIsSearching, performSearchByAyahNumber, performSearch,
@@ -188,7 +194,7 @@ const isSearchPage = pathParts[0] === 'search';
         } else if (route === 'khatmah' || route === 'khatmiyah') {
             title = '🤝 الختمة الجماعية';
         } else if (route === 'saved') {
-            title = '📝 دفتر التدبر';
+            title = pathParts[1] === 'print' ? '🖨️ طباعة الدفتر' : '📝 الدفتر';
         } else if (route === 'analysis') {
             const query = pathParts[1] ? decodeURIComponent(pathParts[1]) : '';
             title = query.trim() ? `📊 ${query}` : '📊 تحليل';
@@ -205,7 +211,24 @@ const isSearchPage = pathParts[0] === 'search';
 
     const renderRoute = () => {
         if (isInitialLoading) return null;
-        if (pathParts[0] === 'saved') return <SavedView collections={collections} collectionId={pathParts[1] || null} onDeleteCollection={handleDeleteCollection} onDeleteSavedItem={handleDeleteSavedItem} onUpdateNotes={updateItemNotes} />;
+        if (pathParts[0] === 'saved') {
+            return (
+                <SavedView 
+                    collections={collections} 
+                    collectionId={pathParts[1] || null} 
+                    allQuranData={allQuranData}
+                    onDeleteCollection={handleDeleteCollection} 
+                    onDeleteSavedItem={handleDeleteSavedItem} 
+                    onUpdateNotes={updateItemNotes} 
+                    onUpdateItem={props.updateSavedItem}
+                    onExportNotebook={handleExportNotebook}
+                    onImportNotebook={handleImportNotebook}
+                    onClearAll={props.handleClearAll}
+                    onReorderItems={props.handleReorderItems}
+                    onMoveItem={props.handleMoveItem}
+                />
+            );
+        }
         if (pathParts[0] === 'history') return <HistoryView surahList={QURAN_INDEX} />;
         if (pathParts[0] === 'fingerprint') return <FingerprintToolView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} displayEditionData={quranData || []} allQuranData={allQuranData} onNewSearch={handleSearch} />;
         if (pathParts[0] === 'alphabet-scanner') return <AlphabetScannerView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} />;

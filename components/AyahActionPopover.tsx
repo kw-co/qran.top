@@ -113,7 +113,7 @@ const AyahActionPopover: React.FC<{
               <span className="text-xs font-semibold px-1">نسخ</span>
             </button>
             <div className="hidden sm:block w-px h-5 bg-border-default"></div>
-            <button onClick={() => { onSave(activePopover.ayah); }} className="p-1.5 sm:p-2.5 rounded-xl text-text-subtle hover:bg-surface-hover hover:text-primary transition-colors flex items-center gap-1 cursor-pointer" title="حفظ الآية في دفتر التدبر">
+            <button onClick={() => { onSave(activePopover.ayah); }} className="p-1.5 sm:p-2.5 rounded-xl text-text-subtle hover:bg-surface-hover hover:text-primary transition-colors flex items-center gap-1 cursor-pointer" title="حفظ الآية في الدفتر">
               <BookmarkIcon className="w-4 h-4 text-primary" />
               <span className="text-xs font-semibold px-1">حفظ</span>
             </button>

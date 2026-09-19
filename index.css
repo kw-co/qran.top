@@ -664,4 +664,169 @@ html.dark .animate-highlight-pulse {
   padding: 0 2px;
 }
 
+/* ==========================================================================
+   PRINT STYLES & QURANIC UTHMANIC PRINT LAYOUTS (طباعة الدفتر)
+   ========================================================================== */
+
+.quran-print-uthmani {
+  font-family: 'Amiri Quran', 'UthmanicHafs', 'KFGQPC', 'Scheherazade New', serif;
+  font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+  font-variant-ligatures: common-ligatures;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.2cm 1.2cm 1.4cm 1.2cm;
+  }
+
+  /* Hide all interactive app chrome during printing */
+  header, 
+  nav, 
+  aside, 
+  footer, 
+  .no-print,
+  #header-element,
+  .audio-player-bar,
+  .toolbox-container,
+  button,
+  .theme-toggle-btn {
+    display: none !important;
+  }
+
+  body, html, #root, main {
+    background: #ffffff !important;
+    color: #111827 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    font-size: 12pt;
+    line-height: 1.6;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-card-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-force-page-break {
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  /* Ultra-Compact Mode (نموذج مضغوط جداً - أقصى توفير للورق) */
+  .print-layout-ultra-compact {
+    font-size: 11pt !important;
+    line-height: 1.8 !important;
+  }
+
+  .print-layout-ultra-compact .print-ultra-continuous {
+    text-align: justify !important;
+    text-justify: inter-word !important;
+    line-height: 1.85 !important;
+  }
+
+  /* Table Mode (نموذج جدول الأذكار والفوائد - فائق التوفير) */
+  .print-layout-table table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .print-layout-table th,
+  .print-layout-table td {
+    padding: 0.15cm 0.25cm !important;
+    border: 1px solid #94a3b8 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-layout-table .quran-print-uthmani {
+    font-size: 13.5pt !important;
+    line-height: 1.6 !important;
+  }
+
+  .print-layout-ultra-compact .print-ayah-box {
+    margin-bottom: 0.2cm !important;
+    padding: 0.15cm 0.25cm !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 3px !important;
+    background-color: #fafafa !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-layout-ultra-compact .quran-print-uthmani {
+    font-size: 12.5pt !important;
+    line-height: 1.8 !important;
+  }
+
+  /* Normal Mode (نموذج عادي - وهو المضغوط سابقاً) */
+  .print-layout-normal .print-ayah-box {
+    margin-bottom: 0.45cm !important;
+    padding: 0.35cm 0.45cm !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    background-color: #fdfdfd !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-layout-normal .quran-print-uthmani {
+    font-size: 16pt !important;
+    line-height: 2.1 !important;
+  }
+
+  /* Large Mode (نموذج كبير) */
+  .print-layout-large .print-ayah-box {
+    margin-bottom: 0.9cm !important;
+    padding: 0.7cm 0.8cm !important;
+    border: 2px solid #94a3b8 !important;
+    border-radius: 8px !important;
+    background-color: #ffffff !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-layout-large .quran-print-uthmani {
+    font-size: 21pt !important;
+    line-height: 2.5 !important;
+  }
+
+  /* Monochrome / Black & White Mode (أبيض وأسود - توفير الحبر) */
+  .print-monochrome,
+  .print-monochrome * {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    border-color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .print-monochrome .print-ayah-bracket {
+    color: #000000 !important;
+  }
+
+  /* Quranic Ayah Number Bracket in print */
+  .print-ayah-bracket {
+    color: #166534 !important;
+    font-family: 'Amiri Quran', serif;
+    font-weight: bold;
+    padding: 0 3px;
+  }
+}
+
+
 

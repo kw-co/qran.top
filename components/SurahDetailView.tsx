@@ -84,16 +84,8 @@ const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string; resea
                   <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
                 </div>
       
-                {/* Left Info: Ayahs Count & Pairs Link */}
+                {/* Left Info: Ayahs Count */}
                 <div className="hidden sm:flex items-center justify-end gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[140px]">
-                  <a
-                    href={`#/pairs/${surahNumber}`}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition-all cursor-pointer"
-                    title={`اكتشف زوج سورة ${formattedName} والآيات الأكثر تطابقاً`}
-                  >
-                    <SparklesIcon className="w-3.5 h-3.5" />
-                    <span>زوج السورة</span>
-                  </a>
                   <span>آياتها:</span>
                   <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{ayahsCount}</span>
                   <span className="text-primary text-lg">۞</span>
@@ -118,13 +110,6 @@ const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string; resea
                   <span>ترتيبها:</span>
                   <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{surahNumber}</span>
                 </div>
-                <a
-                  href={`#/pairs/${surahNumber}`}
-                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition-all"
-                >
-                  <SparklesIcon className="w-3 h-3" />
-                  <span>زوج السورة</span>
-                </a>
                 <div className="flex items-center gap-1.5">
                   <span>آياتها:</span>
                   <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{ayahsCount}</span>

@@ -19,7 +19,7 @@ const CollectionListView: React.FC<CollectionListViewProps> = ({ collections }) 
         <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
             <div className="mb-8 p-6 bg-surface rounded-lg shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-text-secondary">نقل دفتر التدبر</h2>
+                    <h2 className="text-xl font-bold text-text-secondary">نقل الدفتر</h2>
                     <p className="text-text-muted mt-1">هل تريد نقل بياناتك المحفوظة إلى جهاز آخر أو استيرادها؟</p>
                 </div>
                 <a 
