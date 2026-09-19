@@ -11,7 +11,8 @@ interface NooraniLetterMatrixProps {
     onToggleLetter: (letter: string) => void;
     onResetToPure: () => void;
     onResetWithWaw: () => void;
-    onSelectAll: () => void;
+    onSelectAll?: () => void;
+    onClearAll?: () => void;
     letterFrequencies?: { [key: string]: number };
     allowWaw: boolean;
     onToggleWaw: (allow: boolean) => void;
@@ -22,6 +23,8 @@ export const NooraniLetterMatrix: React.FC<NooraniLetterMatrixProps> = ({
     onToggleLetter,
     onResetToPure,
     onResetWithWaw,
+    onSelectAll,
+    onClearAll,
     letterFrequencies = {},
     allowWaw,
     onToggleWaw
@@ -65,6 +68,30 @@ export const NooraniLetterMatrix: React.FC<NooraniLetterMatrixProps> = ({
                     >
                         + حرف الواو (15 حرفاً)
                     </button>
+
+                    {onSelectAll && (
+                        <button
+                            onClick={onSelectAll}
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                                allowedLetters.length === 28
+                                    ? 'bg-primary text-white'
+                                    : 'bg-surface-subtle hover:bg-surface-hover text-text-secondary border border-border-default'
+                            }`}
+                            title="تحديد كافة حروف المعجم الـ 28"
+                        >
+                            تحديد الكل
+                        </button>
+                    )}
+
+                    {onClearAll && (
+                        <button
+                            onClick={onClearAll}
+                            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-surface-subtle hover:bg-surface-hover text-rose-600 dark:text-rose-400 border border-border-default transition-all cursor-pointer"
+                            title="إلغاء تحديد كافة الحروف"
+                        >
+                            مسح التحديد
+                        </button>
+                    )}
                 </div>
             </div>
 

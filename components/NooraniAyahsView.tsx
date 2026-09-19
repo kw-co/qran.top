@@ -4,6 +4,7 @@ import {
     scanQuranNoorani, 
     PURE_NOORANI_LETTERS, 
     NOORANI_LETTERS_WITH_WAW, 
+    ALL_ARABIC_LETTERS_ORDERED,
     NOORANI_MNEMONICS,
     FAWATIH_SURAHS_NUMBERS,
     normalizeCharForNoorani 
@@ -55,13 +56,18 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
     // Custom Letters Matrix State
     const [customLetters, setCustomLetters] = useState<string[]>(PURE_NOORANI_LETTERS);
     const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
+    const [matrixPage, setMatrixPage] = useState<number>(1);
+    const [matrixPageSize, setMatrixPageSize] = useState<number>(20);
+    const [matrixDisplayMode, setMatrixDisplayMode] = useState<'words' | 'text'>('words');
+    const [matrixFilterQuery, setMatrixFilterQuery] = useState<string>('');
 
-    // Pagination
+    // Pagination for Ayahs Tab
     const [currentPage, setCurrentPage] = useState<number>(1);
     const pageSize = 20;
 
     // Toast / feedback
     const [copiedAll, setCopiedAll] = useState(false);
+    const [copiedMatrixAll, setCopiedMatrixAll] = useState(false);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -73,6 +79,7 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
         setIsCustomMode(false);
         setCustomLetters(wawAllowed ? NOORANI_LETTERS_WITH_WAW : PURE_NOORANI_LETTERS);
         setCurrentPage(1);
+        setMatrixPage(1);
     };
 
     const handleResetToPure = () => {
@@ -80,6 +87,7 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
         setIsCustomMode(false);
         setCustomLetters(PURE_NOORANI_LETTERS);
         setCurrentPage(1);
+        setMatrixPage(1);
     };
 
     const handleResetWithWaw = () => {
@@ -87,6 +95,23 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
         setIsCustomMode(false);
         setCustomLetters(NOORANI_LETTERS_WITH_WAW);
         setCurrentPage(1);
+        setMatrixPage(1);
+    };
+
+    const handleSelectAllLetters = () => {
+        setIsCustomMode(true);
+        setCustomLetters(ALL_ARABIC_LETTERS_ORDERED);
+        setAllowWaw(true);
+        setCurrentPage(1);
+        setMatrixPage(1);
+    };
+
+    const handleClearAllLetters = () => {
+        setIsCustomMode(true);
+        setCustomLetters([]);
+        setAllowWaw(false);
+        setCurrentPage(1);
+        setMatrixPage(1);
     };
 
     const handleToggleSingleLetter = (letter: string) => {
@@ -105,6 +130,7 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
             return nextList;
         });
         setCurrentPage(1);
+        setMatrixPage(1);
     };
 
     // Scan execution
@@ -123,7 +149,7 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
         });
     }, [simpleCleanData, allowWaw, purityThreshold, excludeFawatih, selectedSurahNumber, surahScope, isCustomMode, customLetters]);
 
-    // Local Text Filter
+    // Local Text Filter for Ayahs Tab
     const filteredResults = useMemo(() => {
         if (!filterQuery.trim()) return scanData.results;
         const q = filterQuery.trim().toLowerCase();
@@ -134,19 +160,46 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
         );
     }, [scanData.results, filterQuery]);
 
-    // Paginated results
+    // Paginated results for Ayahs Tab
     const totalPages = Math.ceil(filteredResults.length / pageSize);
     const paginatedResults = useMemo(() => {
         const start = (currentPage - 1) * pageSize;
         return filteredResults.slice(start, start + pageSize);
     }, [filteredResults, currentPage]);
 
-    // Copy all matching ayahs to clipboard
+    // Copy all matching ayahs in Ayahs Tab
     const handleCopyAll = () => {
         const text = filteredResults.map(r => `${r.textOriginal} [سورة ${r.surahName}: ${r.ayahNumberInSurah}]`).join('\n');
         navigator.clipboard.writeText(text);
         setCopiedAll(true);
         setTimeout(() => setCopiedAll(false), 2500);
+    };
+
+    // Local Text Filter for Matrix Tab
+    const filteredMatrixResults = useMemo(() => {
+        if (!matrixFilterQuery.trim()) return scanData.results;
+        const q = matrixFilterQuery.trim().toLowerCase();
+        return scanData.results.filter(r => 
+            r.textNormalized.includes(q) || 
+            r.surahName.includes(q) || 
+            r.textOriginal.includes(q)
+        );
+    }, [scanData.results, matrixFilterQuery]);
+
+    // Paginated results for Matrix Tab
+    const totalMatrixPages = matrixPageSize > 0 ? Math.ceil(filteredMatrixResults.length / matrixPageSize) : 1;
+    const paginatedMatrixResults = useMemo(() => {
+        if (matrixPageSize === 0) return filteredMatrixResults;
+        const start = (matrixPage - 1) * matrixPageSize;
+        return filteredMatrixResults.slice(start, start + matrixPageSize);
+    }, [filteredMatrixResults, matrixPage, matrixPageSize]);
+
+    // Copy all matching ayahs in Matrix Tab
+    const handleCopyMatrixAll = () => {
+        const text = filteredMatrixResults.map(r => `${r.textOriginal} [سورة ${r.surahName}: ${r.ayahNumberInSurah}]`).join('\n');
+        navigator.clipboard.writeText(text);
+        setCopiedMatrixAll(true);
+        setTimeout(() => setCopiedMatrixAll(false), 2500);
     };
 
     return (
@@ -558,7 +611,8 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
                         onToggleLetter={handleToggleSingleLetter}
                         onResetToPure={handleResetToPure}
                         onResetWithWaw={handleResetWithWaw}
-                        onSelectAll={() => {}}
+                        onSelectAll={handleSelectAllLetters}
+                        onClearAll={handleClearAllLetters}
                         letterFrequencies={scanData.stats.letterFrequencyInMatched}
                         allowWaw={allowWaw}
                         onToggleWaw={handleToggleWaw}
@@ -566,19 +620,159 @@ const NooraniAyahsView: React.FC<NooraniAyahsViewProps> = ({
 
                     {/* Active Scan Results with the Matrix */}
                     <div className="space-y-4">
-                        <div className="text-sm font-bold text-text-primary">
-                            الآيات المطابقة للمصفوفة المخصصة ({scanData.results.length} آية):
+                        {/* Matrix Filter & Controls Bar */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-surface rounded-2xl border border-border-default shadow-xs">
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm sm:text-base text-text-primary">
+                                    الآيات المطابقة للمصفوفة المخصصة:
+                                </span>
+                                <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-xs sm:text-sm">
+                                    {filteredMatrixResults.length} آية
+                                </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                {/* Matrix Filter input */}
+                                <div className="relative min-w-[180px] sm:min-w-[220px]">
+                                    <input
+                                        type="text"
+                                        value={matrixFilterQuery}
+                                        onChange={(e) => {
+                                            setMatrixFilterQuery(e.target.value);
+                                            setMatrixPage(1);
+                                        }}
+                                        placeholder="بحث في نتائج المصفوفة..."
+                                        className="w-full pl-7 pr-3 py-1.5 rounded-xl bg-surface-subtle border border-border-default text-xs text-text-primary focus:outline-hidden focus:border-primary"
+                                    />
+                                    {matrixFilterQuery && (
+                                        <button
+                                            onClick={() => setMatrixFilterQuery('')}
+                                            className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary cursor-pointer"
+                                        >
+                                            <ClearIcon className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Display Word Mode */}
+                                <div className="inline-flex items-center gap-1 bg-surface-subtle p-0.5 rounded-lg border border-border-default">
+                                    <button
+                                        onClick={() => setMatrixDisplayMode('words')}
+                                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
+                                            matrixDisplayMode === 'words' ? 'bg-primary text-white' : 'text-text-muted'
+                                        }`}
+                                    >
+                                        تحليل الكلمات
+                                    </button>
+                                    <button
+                                        onClick={() => setMatrixDisplayMode('text')}
+                                        className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
+                                            matrixDisplayMode === 'text' ? 'bg-primary text-white' : 'text-text-muted'
+                                        }`}
+                                    >
+                                        نص متصل
+                                    </button>
+                                </div>
+
+                                {/* Page Size Selector */}
+                                <select
+                                    value={matrixPageSize}
+                                    onChange={(e) => {
+                                        setMatrixPageSize(Number(e.target.value));
+                                        setMatrixPage(1);
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-xl bg-surface-subtle border border-border-default text-xs font-semibold text-text-secondary focus:outline-hidden focus:border-primary cursor-pointer"
+                                >
+                                    <option value="20">20 آية / صفحة</option>
+                                    <option value="50">50 آية / صفحة</option>
+                                    <option value="0">عرض كافة النتائج ({filteredMatrixResults.length})</option>
+                                </select>
+
+                                {/* Copy All */}
+                                <button
+                                    onClick={handleCopyMatrixAll}
+                                    disabled={filteredMatrixResults.length === 0}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-subtle hover:bg-surface-hover border border-border-default text-xs font-semibold text-text-secondary hover:text-primary transition-colors cursor-pointer disabled:opacity-40"
+                                >
+                                    {copiedMatrixAll ? (
+                                        <>
+                                            <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
+                                            <span className="text-emerald-500 font-bold">تم النسخ!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CopyIcon className="w-3.5 h-3.5" />
+                                            <span>نسخ الكل</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
-                        <div className="space-y-3">
-                            {scanData.results.slice(0, 15).map(item => (
-                                <NooraniAyahCard
-                                    key={`${item.surahNumber}:${item.ayahNumberInSurah}`}
-                                    item={item}
-                                    onSaveAyah={onSaveAyah}
-                                    displayMode="words"
-                                />
-                            ))}
-                        </div>
+
+                        {/* Cards List */}
+                        {paginatedMatrixResults.length === 0 ? (
+                            <div className="p-12 text-center bg-surface rounded-3xl border border-border-default text-text-muted space-y-2">
+                                <SparklesIcon className="w-8 h-8 mx-auto opacity-40" />
+                                <div className="font-bold text-sm">لا توجد آيات مطابقة للتركيبة الحالية للحروف</div>
+                                <div className="text-xs">جرب تفعيل المزيد من الحروف أو إعادة ضبط المصفوفة إلى النمط الصافي.</div>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {paginatedMatrixResults.map(item => (
+                                    <NooraniAyahCard
+                                        key={`${item.surahNumber}:${item.ayahNumberInSurah}`}
+                                        item={item}
+                                        onSaveAyah={onSaveAyah}
+                                        onPlayAyah={onStartPlayback ? () => onStartPlayback([item as any], 'ar.alafasy') : undefined}
+                                        isPlaying={currentlyPlayingAyahGlobalNumber === item.ayahNumberGlobal}
+                                        displayMode={matrixDisplayMode}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Pagination for Matrix Tab */}
+                        {matrixPageSize > 0 && totalMatrixPages > 1 && (
+                            <div className="flex items-center justify-center gap-2 pt-4">
+                                <button
+                                    onClick={() => setMatrixPage(p => Math.max(1, p - 1))}
+                                    disabled={matrixPage === 1}
+                                    className="px-3 py-1.5 rounded-xl bg-surface border border-border-default text-xs font-semibold disabled:opacity-40 hover:bg-surface-hover cursor-pointer"
+                                >
+                                    السابق
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: Math.min(5, totalMatrixPages) }, (_, i) => {
+                                        let pageNum = i + 1;
+                                        if (totalMatrixPages > 5 && matrixPage > 3) {
+                                            pageNum = Math.min(totalMatrixPages - 4 + i, matrixPage - 2 + i);
+                                        }
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => setMatrixPage(pageNum)}
+                                                className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                                                    matrixPage === pageNum
+                                                        ? 'bg-primary text-white shadow-xs'
+                                                        : 'bg-surface hover:bg-surface-hover border border-border-default text-text-secondary'
+                                                }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    onClick={() => setMatrixPage(p => Math.min(totalMatrixPages, p + 1))}
+                                    disabled={matrixPage === totalMatrixPages}
+                                    className="px-3 py-1.5 rounded-xl bg-surface border border-border-default text-xs font-semibold disabled:opacity-40 hover:bg-surface-hover cursor-pointer"
+                                >
+                                    التالي
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
