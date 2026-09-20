@@ -20,6 +20,8 @@ import {
     ExtractionStrategy, 
     ScanDirection, 
     getLetterMask, 
+    getWordStrategyMask,
+    findShortestEnclosingWindow,
     extractAlphabetSequence, 
     PRESET_SCAN_POINTS,
     REFERENCE_ALPHABETS
@@ -39,6 +41,7 @@ interface ScanResult {
     length: number;
     targetIndex: number;
     scanMode: 'shortest' | 'forward' | 'backward';
+    strategy: ExtractionStrategy;
 }
 
 const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanData }) => {
@@ -174,37 +177,22 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
             const chunk = chunks[currentChunk];
             for (const idx of chunk) {
                 if (scanMode === 'shortest') {
-                    let bestLen = Infinity;
-                    let bestL = -1;
-                    let bestR = -1;
-                    for (let L = idx; L >= 0; L--) {
-                        if (idx - L >= bestLen) break;
-                        let mask = 0;
-                        for (let R = L; R < flatWords.length; R++) {
-                            if (R - L + 1 >= bestLen) break;
-                            mask |= flatWords[R].mask;
-                            if (mask === ALL_LETTERS_MASK && R >= idx) {
-                                bestLen = R - L + 1;
-                                bestL = L;
-                                bestR = R;
-                                break;
-                            }
-                        }
-                    }
-                    if (bestL !== -1) {
+                    const { bestL, bestR, bestLen } = findShortestEnclosingWindow(flatWords, idx, searchStrategy);
+                    if (bestL !== -1 && bestR !== -1) {
                         foundResults.push({
                             L: bestL,
                             R: bestR,
                             length: bestLen,
                             targetIndex: idx,
-                            scanMode: 'shortest'
+                            scanMode: 'shortest',
+                            strategy: searchStrategy
                         });
                     }
                 } else if (scanMode === 'forward') {
                     let mask = 0;
                     let foundR = -1;
                     for (let R = idx; R < flatWords.length; R++) {
-                        mask |= flatWords[R].mask;
+                        mask |= getWordStrategyMask(flatWords[R], searchStrategy);
                         if (mask === ALL_LETTERS_MASK) {
                             foundR = R;
                             break;
@@ -216,14 +204,15 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                             R: foundR,
                             length: foundR - idx + 1,
                             targetIndex: idx,
-                            scanMode: 'forward'
+                            scanMode: 'forward',
+                            strategy: searchStrategy
                         });
                     }
                 } else if (scanMode === 'backward') {
                     let mask = 0;
                     let foundL = -1;
                     for (let L = idx; L >= 0; L--) {
-                        mask |= flatWords[L].mask;
+                        mask |= getWordStrategyMask(flatWords[L], searchStrategy);
                         if (mask === ALL_LETTERS_MASK) {
                             foundL = L;
                             break;
@@ -235,7 +224,8 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                             R: idx,
                             length: idx - foundL + 1,
                             targetIndex: idx,
-                            scanMode: 'backward'
+                            scanMode: 'backward',
+                            strategy: searchStrategy
                         });
                     }
                 }
@@ -256,36 +246,15 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
     const filteredResults = useMemo(() => {
         if (selectedLetters.length === 0) return results;
         return results.filter(res => {
-            const seen = new Set<string>();
-            let firstLetter = '';
-            
-            if (res.scanMode === 'backward') {
-                for (let j = res.R; j >= res.L; j--) {
-                    const word = flatWords[j]?.normalized || '';
-                    for (let k = word.length - 1; k >= 0; k--) {
-                        const char = word[k];
-                        if (ARABIC_LETTERS.includes(char) && !seen.has(char)) {
-                            firstLetter = char;
-                            break;
-                        }
-                    }
-                    if (firstLetter) break;
-                }
-            } else {
-                for (let j = res.L; j <= res.R; j++) {
-                    const word = flatWords[j]?.normalized || '';
-                    for (const char of word) {
-                        if (ARABIC_LETTERS.includes(char) && !seen.has(char)) {
-                            firstLetter = char;
-                            break;
-                        }
-                    }
-                    if (firstLetter) break;
-                }
-            }
-            return selectedLetters.includes(firstLetter);
+            const ext = extractAlphabetSequence(
+                flatWords,
+                res.scanMode === 'shortest' ? res.targetIndex : (res.scanMode === 'backward' ? res.R : res.L),
+                res.strategy || searchStrategy,
+                res.scanMode
+            );
+            return ext.firstLetter && selectedLetters.includes(ext.firstLetter);
         });
-    }, [results, selectedLetters, flatWords]);
+    }, [results, selectedLetters, flatWords, searchStrategy]);
 
     const displayedResults = filteredResults.slice(0, 30);
 
@@ -383,42 +352,112 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
             {activeTab === 'word_search' && (
                 <div className="space-y-6">
                     <div className="bg-surface p-6 rounded-xl shadow-sm border border-border-default">
-                        <div className="flex flex-col gap-4 mb-4">
-                            <label className="text-sm font-bold text-text-primary">اتجاه محرك المسح:</label>
-                            <div className="flex flex-wrap gap-4 bg-surface-subtle p-3 rounded-lg border border-border-default">
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <input 
-                                        type="radio" 
-                                        checked={scanMode === 'shortest'} 
-                                        onChange={() => setScanMode('shortest')} 
-                                        className="text-primary focus:ring-primary w-4 h-4 cursor-pointer" 
-                                    />
-                                    <span className="text-text-secondary group-hover:text-primary transition-colors text-sm font-semibold">
-                                        أقصر نافذة محيطة (متشعب)
-                                    </span>
+                        {/* Strategy and Direction Controls */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            {/* Strategy Selector (ميزة أوائل الكلمات ومناهج الاستخلاص) */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-bold text-text-primary">
+                                    طريقة استخلاص الحروف في المسح:
                                 </label>
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <input 
-                                        type="radio" 
-                                        checked={scanMode === 'forward'} 
-                                        onChange={() => setScanMode('forward')} 
-                                        className="text-primary focus:ring-primary w-4 h-4 cursor-pointer" 
-                                    />
-                                    <span className="text-text-secondary group-hover:text-primary transition-colors text-sm font-semibold">
-                                        مسح تقدمي (من الكلمة للأمام)
-                                    </span>
+                                <div className="grid grid-cols-3 gap-2 bg-surface-subtle p-2 rounded-lg border border-border-default">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchStrategy('first_letter')}
+                                        className={`p-2 rounded-md text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                            searchStrategy === 'first_letter'
+                                                ? 'bg-primary text-white font-bold shadow-xs'
+                                                : 'bg-surface border border-border-default text-text-secondary hover:border-primary/40'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold">أوائل الكلمات</span>
+                                        <span className={`text-[10px] mt-0.5 ${searchStrategy === 'first_letter' ? 'text-white/80' : 'text-text-muted'}`}>
+                                            الحرف الأول من كل كلمة
+                                        </span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchStrategy('all_letters')}
+                                        className={`p-2 rounded-md text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                            searchStrategy === 'all_letters'
+                                                ? 'bg-primary text-white font-bold shadow-xs'
+                                                : 'bg-surface border border-border-default text-text-secondary hover:border-primary/40'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold">جميع الحروف</span>
+                                        <span className={`text-[10px] mt-0.5 ${searchStrategy === 'all_letters' ? 'text-white/80' : 'text-text-muted'}`}>
+                                            كل حروف الكلمات
+                                        </span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchStrategy('last_letter')}
+                                        className={`p-2 rounded-md text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                            searchStrategy === 'last_letter'
+                                                ? 'bg-primary text-white font-bold shadow-xs'
+                                                : 'bg-surface border border-border-default text-text-secondary hover:border-primary/40'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold">أواخر الكلمات</span>
+                                        <span className={`text-[10px] mt-0.5 ${searchStrategy === 'last_letter' ? 'text-white/80' : 'text-text-muted'}`}>
+                                            الحرف الأخير من كل كلمة
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Scan Direction Selector (مسار المسح وأقصر نافذة محيطة) */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-bold text-text-primary">
+                                    اتجاه ومسار محرك المسح:
                                 </label>
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <input 
-                                        type="radio" 
-                                        checked={scanMode === 'backward'} 
-                                        onChange={() => setScanMode('backward')} 
-                                        className="text-primary focus:ring-primary w-4 h-4 cursor-pointer" 
-                                    />
-                                    <span className="text-text-secondary group-hover:text-primary transition-colors text-sm font-semibold">
-                                        مسح تراجعي (من الكلمة للخلف)
-                                    </span>
-                                </label>
+                                <div className="grid grid-cols-3 gap-2 bg-surface-subtle p-2 rounded-lg border border-border-default">
+                                    <button
+                                        type="button"
+                                        onClick={() => setScanMode('shortest')}
+                                        className={`p-2 rounded-md text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                            scanMode === 'shortest'
+                                                ? 'bg-primary text-white font-bold shadow-xs'
+                                                : 'bg-surface border border-border-default text-text-secondary hover:border-primary/40'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold">أقصر نافذة (متشعب)</span>
+                                        <span className={`text-[10px] mt-0.5 ${scanMode === 'shortest' ? 'text-white/80' : 'text-text-muted'}`}>
+                                            محيطة بالكلمة
+                                        </span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setScanMode('forward')}
+                                        className={`p-2 rounded-md text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                            scanMode === 'forward'
+                                                ? 'bg-primary text-white font-bold shadow-xs'
+                                                : 'bg-surface border border-border-default text-text-secondary hover:border-primary/40'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold">مسح تقدمي</span>
+                                        <span className={`text-[10px] mt-0.5 ${scanMode === 'forward' ? 'text-white/80' : 'text-text-muted'}`}>
+                                            للأمام من الكلمة
+                                        </span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setScanMode('backward')}
+                                        className={`p-2 rounded-md text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                            scanMode === 'backward'
+                                                ? 'bg-primary text-white font-bold shadow-xs'
+                                                : 'bg-surface border border-border-default text-text-secondary hover:border-primary/40'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold">مسح تراجعي</span>
+                                        <span className={`text-[10px] mt-0.5 ${scanMode === 'backward' ? 'text-white/80' : 'text-text-muted'}`}>
+                                            للخلف من الكلمة
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

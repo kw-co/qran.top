@@ -34,6 +34,7 @@ export interface AlphabetExtractionResult {
     discoveredLetters: DiscoveredLetter[];
     startWordIndex: number;
     endWordIndex: number;
+    pivotWordIndex?: number;
     totalWordsSpanned: number;
     isComplete28: boolean;
     strategy: ExtractionStrategy;
@@ -118,6 +119,110 @@ export const getLetterMask = (word: string): number => {
 };
 
 /**
+ * Computes letter bitmask for a word based on chosen extraction strategy
+ */
+export const getWordStrategyMask = (fw: FlatWord, strategy: ExtractionStrategy): number => {
+    if (!fw || !fw.normalized || fw.normalized.length === 0) return 0;
+    if (strategy === 'all_letters') {
+        return fw.mask;
+    }
+    const norm = fw.normalized;
+    if (strategy === 'first_letter') {
+        const idx = ARABIC_LETTERS.indexOf(norm[0]);
+        return idx !== -1 ? (1 << idx) : 0;
+    }
+    if (strategy === 'last_letter') {
+        const idx = ARABIC_LETTERS.indexOf(norm[norm.length - 1]);
+        return idx !== -1 ? (1 << idx) : 0;
+    }
+    if (strategy === 'first_and_last') {
+        let m = 0;
+        const i1 = ARABIC_LETTERS.indexOf(norm[0]);
+        if (i1 !== -1) m |= (1 << i1);
+        const i2 = ARABIC_LETTERS.indexOf(norm[norm.length - 1]);
+        if (i2 !== -1) m |= (1 << i2);
+        return m;
+    }
+    return fw.mask;
+};
+
+/**
+ * Finds the shortest enclosing window [L, R] around targetIdx (where L <= targetIdx <= R)
+ * that contains all 28 Arabic letters under the specified extraction strategy.
+ */
+export const findShortestEnclosingWindow = (
+    flatWords: FlatWord[],
+    targetIdx: number,
+    strategy: ExtractionStrategy = 'all_letters',
+    surahConstraint?: number
+): { bestL: number; bestR: number; bestLen: number } => {
+    if (!flatWords || flatWords.length === 0 || targetIdx < 0 || targetIdx >= flatWords.length) {
+        return { bestL: -1, bestR: -1, bestLen: Infinity };
+    }
+
+    const maxRadius = (strategy === 'first_letter' || strategy === 'last_letter') ? 2500 : 500;
+    let minL = Math.max(0, targetIdx - maxRadius);
+    let maxR = Math.min(flatWords.length - 1, targetIdx + maxRadius);
+
+    if (surahConstraint !== undefined) {
+        while (minL <= targetIdx && flatWords[minL]?.surah !== surahConstraint) {
+            minL++;
+        }
+        while (maxR >= targetIdx && flatWords[maxR]?.surah !== surahConstraint) {
+            maxR--;
+        }
+    }
+
+    const counts = new Uint16Array(28);
+    let distinct = 0;
+    let left = minL;
+    let bestL = -1;
+    let bestR = -1;
+    let bestLen = Infinity;
+
+    const rangeLen = maxR - minL + 1;
+    const masks = new Int32Array(rangeLen);
+    for (let i = 0; i < rangeLen; i++) {
+        masks[i] = getWordStrategyMask(flatWords[minL + i], strategy);
+    }
+
+    for (let right = minL; right <= maxR; right++) {
+        const rMask = masks[right - minL];
+        if (rMask !== 0) {
+            for (let b = 0; b < 28; b++) {
+                if (rMask & (1 << b)) {
+                    if (counts[b] === 0) distinct++;
+                    counts[b]++;
+                }
+            }
+        }
+
+        while (distinct === 28 && left <= targetIdx) {
+            if (right >= targetIdx) {
+                const curLen = right - left + 1;
+                if (curLen < bestLen) {
+                    bestLen = curLen;
+                    bestL = left;
+                    bestR = right;
+                }
+            }
+            const lMask = masks[left - minL];
+            if (lMask !== 0) {
+                for (let b = 0; b < 28; b++) {
+                    if (lMask & (1 << b)) {
+                        counts[b]--;
+                        if (counts[b] === 0) distinct--;
+                    }
+                }
+            }
+            left++;
+        }
+    }
+
+    return { bestL, bestR, bestLen };
+};
+
+/**
  * Extracts sequence of letters from flatWords starting at a specific position using the chosen strategy
  */
 export const extractAlphabetSequence = (
@@ -133,6 +238,7 @@ export const extractAlphabetSequence = (
             discoveredLetters: [],
             startWordIndex: startIndex,
             endWordIndex: startIndex,
+            pivotWordIndex: startIndex,
             totalWordsSpanned: 0,
             isComplete28: false,
             strategy,
@@ -145,6 +251,88 @@ export const extractAlphabetSequence = (
     const seen = new Set<string>();
     const sequence: string[] = [];
     const discoveredLetters: DiscoveredLetter[] = [];
+
+    // Direction: shortest (متشعب - أقصر نافذة محيطة بالكلمة)
+    if (direction === 'shortest') {
+        const { bestL, bestR } = findShortestEnclosingWindow(flatWords, startIndex, strategy, surahConstraint);
+
+        let startL = bestL;
+        let endR = bestR;
+
+        // Graceful fallback if complete 28 not reachable in scope
+        if (startL === -1 || endR === -1) {
+            if (surahConstraint !== undefined) {
+                startL = flatWords.findIndex(w => w.surah === surahConstraint);
+                endR = flatWords.map(w => w.surah).lastIndexOf(surahConstraint);
+            } else {
+                startL = Math.max(0, startIndex - 50);
+                endR = Math.min(flatWords.length - 1, startIndex + 50);
+            }
+            if (startL === -1) startL = startIndex;
+            if (endR === -1) endR = startIndex;
+        }
+
+        for (let i = startL; i <= endR; i++) {
+            const fw = flatWords[i];
+            if (!fw) continue;
+            const norm = fw.normalized;
+            if (!norm || norm.length === 0) continue;
+
+            let candidateLetters: { char: string; charIdx: number }[] = [];
+            if (strategy === 'all_letters') {
+                for (let c = 0; c < norm.length; c++) {
+                    candidateLetters.push({ char: norm[c], charIdx: c });
+                }
+            } else if (strategy === 'first_letter') {
+                candidateLetters.push({ char: norm[0], charIdx: 0 });
+            } else if (strategy === 'last_letter') {
+                const lastIdx = norm.length - 1;
+                candidateLetters.push({ char: norm[lastIdx], charIdx: lastIdx });
+            } else if (strategy === 'first_and_last') {
+                candidateLetters.push({ char: norm[0], charIdx: 0 });
+                if (norm.length > 1) {
+                    candidateLetters.push({ char: norm[norm.length - 1], charIdx: norm.length - 1 });
+                }
+            }
+
+            for (const { char, charIdx } of candidateLetters) {
+                if (ARABIC_LETTERS.includes(char) && !seen.has(char)) {
+                    seen.add(char);
+                    sequence.push(char);
+                    discoveredLetters.push({
+                        letter: char,
+                        orderIndex: sequence.length,
+                        wordIndex: i,
+                        wordText: fw.text,
+                        surah: fw.surah,
+                        surahName: fw.surahName,
+                        ayah: fw.ayah,
+                        charIndexInWord: charIdx,
+                        distanceFromStart: Math.abs(i - startIndex)
+                    });
+
+                    if (seen.size === 28) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        const missingLetters = ARABIC_LETTERS.split('').filter(l => !seen.has(l));
+        return {
+            sequence,
+            discoveredLetters,
+            startWordIndex: startL,
+            endWordIndex: endR,
+            pivotWordIndex: startIndex,
+            totalWordsSpanned: endR - startL + 1,
+            isComplete28: sequence.length === 28,
+            strategy,
+            direction,
+            firstLetter: sequence[0] || '',
+            missingLetters
+        };
+    }
 
     const isBackward = direction === 'backward';
     let currentIndex = startIndex;

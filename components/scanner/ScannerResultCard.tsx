@@ -15,6 +15,7 @@ interface ScannerResultCardProps {
         length: number;
         targetIndex: number;
         scanMode: 'shortest' | 'forward' | 'backward';
+        strategy?: ExtractionStrategy;
     };
     idx: number;
     flatWords: FlatWord[];
@@ -27,12 +28,15 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
     flatWords,
     onOpenInspector
 }) => {
-    const [strategy, setStrategy] = useState<ExtractionStrategy>('all_letters');
+    const [strategy, setStrategy] = useState<ExtractionStrategy>(res.strategy || 'first_letter');
     const [isReversed, setIsReversed] = useState<boolean>(false);
     const [isCopied, setIsCopied] = useState<boolean>(false);
 
     // Compute extraction based on chosen strategy
     const extraction = useMemo(() => {
+        if (res.scanMode === 'shortest') {
+            return extractAlphabetSequence(flatWords, res.targetIndex, strategy, 'shortest');
+        }
         const dir: ScanDirection = res.scanMode === 'backward' ? 'backward' : 'forward';
         const startIdx = res.scanMode === 'backward' ? res.R : res.L;
         return extractAlphabetSequence(flatWords, startIdx, strategy, dir);
@@ -58,7 +62,7 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
                             {idx + 1}
                         </div>
                         <span>
-                            {res.scanMode === 'backward' ? 'مسح تراجعي' : res.scanMode === 'forward' ? 'مسح تقدمي' : 'أقصر نافذة'} 
+                            {res.scanMode === 'backward' ? 'مسح تراجعي' : res.scanMode === 'forward' ? 'مسح تقدمي' : 'أقصر نافذة محيطة (متشعب)'} 
                             ({res.length} كلمة)
                         </span>
                     </div>
@@ -76,7 +80,7 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
 
                 {/* Open Inspector Action */}
                 <button
-                    onClick={() => onOpenInspector(res.targetIndex, strategy, res.scanMode === 'backward' ? 'backward' : 'forward')}
+                    onClick={() => onOpenInspector(res.targetIndex, strategy, res.scanMode)}
                     className="flex items-center gap-1.5 text-xs font-bold bg-primary text-white hover:bg-primary-focus px-3 py-1.5 rounded-lg transition-colors shadow-2xs cursor-pointer"
                 >
                     <SparklesIcon className="w-3.5 h-3.5 text-amber-300" />
@@ -95,7 +99,7 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
                         words.push(
                             <button
                                 key={`w-${i}`}
-                                onClick={() => onOpenInspector(i, strategy, res.scanMode === 'backward' ? 'backward' : 'forward')}
+                                onClick={() => onOpenInspector(i, strategy, res.scanMode)}
                                 className={`inline-block transition-all cursor-pointer rounded px-1 mx-0.5 ${
                                     isTarget 
                                         ? "text-amber-700 dark:text-amber-300 font-bold bg-amber-500/20 ring-1 ring-amber-400" 

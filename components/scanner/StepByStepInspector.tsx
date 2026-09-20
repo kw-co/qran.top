@@ -81,15 +81,26 @@ export const StepByStepInspector: React.FC<StepByStepInspectorProps> = ({
         return map;
     }, [visibleLetters]);
 
-    // Maximum word index reached so far in the simulation
-    const activeMaxWordIndex = useMemo(() => {
-        if (visibleLetters.length === 0) return result.startWordIndex;
-        if (result.direction === 'backward') {
+    const pivotWordIndex = result.pivotWordIndex ?? result.startWordIndex;
+
+    // Word index bounds reached so far in the simulation
+    const activeMinWordIndex = useMemo(() => {
+        if (visibleLetters.length === 0) return pivotWordIndex;
+        if (result.direction === 'backward' || result.direction === 'shortest') {
             return Math.min(...visibleLetters.map(l => l.wordIndex));
+        } else {
+            return result.startWordIndex;
+        }
+    }, [visibleLetters, pivotWordIndex, result.startWordIndex, result.direction]);
+
+    const activeMaxWordIndex = useMemo(() => {
+        if (visibleLetters.length === 0) return pivotWordIndex;
+        if (result.direction === 'backward') {
+            return result.startWordIndex;
         } else {
             return Math.max(...visibleLetters.map(l => l.wordIndex));
         }
-    }, [visibleLetters, result.startWordIndex, result.direction]);
+    }, [visibleLetters, pivotWordIndex, result.startWordIndex, result.direction]);
 
     // Copy handlers
     const handleCopySequence = (format: 'dashes' | 'compact' | 'numbered' | 'table') => {
@@ -133,47 +144,85 @@ export const StepByStepInspector: React.FC<StepByStepInspectorProps> = ({
                             {visibleLetters.length}/28
                         </div>
                         <div>
-                            <h2 className="text-lg sm:text-xl font-bold text-text-primary flex items-center gap-2">
+                            <h2 className="text-lg sm:text-xl font-bold text-text-primary flex items-center flex-wrap gap-2">
                                 <span>مستكشف الشيفرة ومحاكي المسح التفاعلي</span>
                                 {result.isComplete28 && (
                                     <span className="text-xs bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-300 dark:border-emerald-800">
                                         اكتملت الـ 28 حرفاً ✓
                                     </span>
                                 )}
+                                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold border border-primary/20">
+                                    {result.direction === 'shortest' ? 'أقصر نافذة محيطة (متشعب)' : result.direction === 'backward' ? 'مسح تراجعي' : 'مسح تقدمي'}
+                                    {result.totalWordsSpanned > 0 && ` (${result.totalWordsSpanned} كلمة)`}
+                                </span>
                             </h2>
                             <p className="text-xs text-text-secondary mt-0.5">
-                                تتبع ولادة تسلسل الأبجدية كلمة بكلمة، وانقر على أي كلمة لتغيير نقطة البداية فوراً
+                                {result.direction === 'shortest'
+                                    ? `نافذة محيطة بالكلمة المحورية [${flatWords[pivotWordIndex]?.text || ''}] من سورة ${flatWords[result.startWordIndex]?.surahName || ''} (آية ${flatWords[result.startWordIndex]?.ayah || ''}) إلى سورة ${flatWords[result.endWordIndex]?.surahName || ''} (آية ${flatWords[result.endWordIndex]?.ayah || ''})`
+                                    : 'تتبع ولادة تسلسل الأبجدية كلمة بكلمة، وانقر على أي كلمة لتغيير نقطة البداية فوراً'}
                             </p>
                         </div>
                     </div>
 
                     {/* Fast Mode Switchers */}
-                    <div className="flex flex-wrap items-center gap-1.5 bg-surface-subtle p-1.5 rounded-lg border border-border-default text-xs">
-                        <span className="font-bold text-text-secondary px-2">طريقة الانتقاء:</span>
-                        <button
-                            onClick={() => onReScanFromWord(result.startWordIndex, 'all_letters', result.direction)}
-                            className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                                result.strategy === 'all_letters' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
-                            }`}
-                        >
-                            جميع الحروف
-                        </button>
-                        <button
-                            onClick={() => onReScanFromWord(result.startWordIndex, 'first_letter', result.direction)}
-                            className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                                result.strategy === 'first_letter' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
-                            }`}
-                        >
-                            أوائل الكلمات
-                        </button>
-                        <button
-                            onClick={() => onReScanFromWord(result.startWordIndex, 'last_letter', result.direction)}
-                            className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                                result.strategy === 'last_letter' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
-                            }`}
-                        >
-                            أواخر الكلمات
-                        </button>
+                    <div className="flex flex-wrap items-center gap-2 bg-surface-subtle p-1.5 rounded-lg border border-border-default text-xs">
+                        <div className="flex items-center gap-1">
+                            <span className="font-bold text-text-secondary px-1">الانتقاء:</span>
+                            <button
+                                onClick={() => onReScanFromWord(pivotWordIndex, 'all_letters', result.direction)}
+                                className={`px-2 py-1 rounded font-semibold transition-colors ${
+                                    result.strategy === 'all_letters' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
+                                }`}
+                            >
+                                جميع الحروف
+                            </button>
+                            <button
+                                onClick={() => onReScanFromWord(pivotWordIndex, 'first_letter', result.direction)}
+                                className={`px-2 py-1 rounded font-semibold transition-colors ${
+                                    result.strategy === 'first_letter' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
+                                }`}
+                            >
+                                أوائل الكلمات
+                            </button>
+                            <button
+                                onClick={() => onReScanFromWord(pivotWordIndex, 'last_letter', result.direction)}
+                                className={`px-2 py-1 rounded font-semibold transition-colors ${
+                                    result.strategy === 'last_letter' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
+                                }`}
+                            >
+                                أواخر الكلمات
+                            </button>
+                        </div>
+
+                        <div className="h-4 w-px bg-border-default hidden sm:block"></div>
+
+                        <div className="flex items-center gap-1">
+                            <span className="font-bold text-text-secondary px-1">المسار:</span>
+                            <button
+                                onClick={() => onReScanFromWord(pivotWordIndex, result.strategy, 'forward')}
+                                className={`px-2 py-1 rounded font-semibold transition-colors ${
+                                    result.direction === 'forward' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
+                                }`}
+                            >
+                                تقدمي للأمام
+                            </button>
+                            <button
+                                onClick={() => onReScanFromWord(pivotWordIndex, result.strategy, 'backward')}
+                                className={`px-2 py-1 rounded font-semibold transition-colors ${
+                                    result.direction === 'backward' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
+                                }`}
+                            >
+                                تراجعي للخلف
+                            </button>
+                            <button
+                                onClick={() => onReScanFromWord(pivotWordIndex, result.strategy, 'shortest')}
+                                className={`px-2 py-1 rounded font-semibold transition-colors ${
+                                    result.direction === 'shortest' ? 'bg-primary text-white shadow-2xs' : 'text-text-secondary hover:text-text-primary'
+                                }`}
+                            >
+                                أقصر نافذة محيطة (متشعب)
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -366,10 +415,8 @@ export const StepByStepInspector: React.FC<StepByStepInspectorProps> = ({
                     {windowWords.map((fw, idx) => {
                         const globalIdx = fw.index;
                         const letterInfo = wordLetterMap.get(globalIdx);
-                        const isStartWord = globalIdx === result.startWordIndex;
-                        const isPassedInSim = result.direction === 'backward' 
-                            ? (globalIdx >= activeMaxWordIndex && globalIdx <= result.startWordIndex)
-                            : (globalIdx >= result.startWordIndex && globalIdx <= activeMaxWordIndex);
+                        const isStartWord = globalIdx === pivotWordIndex;
+                        const isPassedInSim = (globalIdx >= activeMinWordIndex && globalIdx <= activeMaxWordIndex);
 
                         return (
                             <span key={`w-${globalIdx}`} className="inline-block relative group m-1">

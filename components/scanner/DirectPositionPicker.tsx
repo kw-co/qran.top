@@ -273,7 +273,7 @@ export const DirectPositionPicker: React.FC<DirectPositionPickerProps> = ({
                     <label className="text-xs sm:text-sm font-bold text-text-primary block">
                         اتجاه مسار المسح:
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <button
                             type="button"
                             onClick={() => setDirection('forward')}
@@ -298,6 +298,19 @@ export const DirectPositionPicker: React.FC<DirectPositionPickerProps> = ({
                         >
                             <span className="text-xs font-bold">مسح تراجعي للخلف</span>
                             <span className="text-[10px] text-text-muted mt-0.5">من موضع الكلمة نحو الآيات السابقة</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setDirection('shortest')}
+                            className={`p-2.5 rounded-lg border text-right transition-all flex flex-col ${
+                                direction === 'shortest'
+                                    ? 'bg-primary/10 border-primary text-primary font-bold shadow-2xs'
+                                    : 'bg-surface border-border-default text-text-secondary hover:border-primary/40'
+                            }`}
+                        >
+                            <span className="text-xs font-bold">أقصر نافذة محيطة (متشعب)</span>
+                            <span className="text-[10px] text-text-muted mt-0.5">أصغر نطاق محيط بالكلمة (ثنائي الاتجاه) لاكتمال الحروف</span>
                         </button>
                     </div>
                 </div>
