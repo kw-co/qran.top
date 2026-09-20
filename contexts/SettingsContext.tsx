@@ -57,6 +57,8 @@ interface SettingsContextType {
     setHighlightNoorani: (enabled: boolean) => void;
     highlightNooraniIncludeWaw: boolean;
     setHighlightNooraniIncludeWaw: (enabled: boolean) => void;
+    highlightNooraniIncludeTaaMarbuta: boolean;
+    setHighlightNooraniIncludeTaaMarbuta: (enabled: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

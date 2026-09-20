@@ -33,7 +33,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 }) => {
   const [verses, setVerses] = useState<QuranV4Verse[]>([]);
   const [loading, setLoading] = useState(true);
-  const { fontStyle, mushafFrameStyle, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw } = useSettingsContext();
+  const { fontStyle, mushafFrameStyle, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta } = useSettingsContext();
   const [isFontReady, setIsFontReady] = useState(false);
 
   const totalPages = 604;
@@ -318,7 +318,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   let displayText = word.text_uthmani;
                   let wordFontClass = '';
                   const isHaMeemWord = highlightHaMeem && hasHaMeem(word.text_uthmani);
-                  const isPureNooraniGlyphWord = useMadinahGlyphFont && highlightNoorani && isWordPureNoorani(word.text_uthmani, highlightNooraniIncludeWaw);
+                  const isPureNooraniGlyphWord = useMadinahGlyphFont && highlightNoorani && isWordPureNoorani(word.text_uthmani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta);
 
                   if (useMadinahGlyphFont && word.code_v1) {
                       displayText = word.code_v1;
@@ -359,7 +359,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           useMadinahGlyphFont 
                             ? displayText 
                             : (highlightNoorani 
-                                ? renderWordWithNoorani(displayText, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw) 
+                                ? renderWordWithNoorani(displayText, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta) 
                                 : renderWordWithHaMeem(displayText, highlightHaMeem))
                       )}
                       {pauseMarks && pauseMarks.map((pm: any, pmidx: number) => {

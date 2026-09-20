@@ -629,11 +629,16 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                                                     {isFrequency && <SparklesIcon className="w-4 h-4 text-amber-500" />}
                                                     <span>{refItem.name.split('(')[0]}</span>
                                                 </h4>
-                                                {isFrequency && (
-                                                    <span className="text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
-                                                        مميز
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                                                        {refItem.sequence.length} حرفاً
                                                     </span>
-                                                )}
+                                                    {isFrequency && (
+                                                        <span className="text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full font-bold">
+                                                            مميز
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <p className="text-xs text-text-secondary leading-relaxed">
                                                 {refItem.description}

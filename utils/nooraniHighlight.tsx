@@ -14,7 +14,7 @@ const NOORANI_BASE_CHARS = new Set([
   'ص',
   'ر',
   'ك', 'ک', 'ڪ',
-  'ه', 'ة', 'ە', 'ہ', 'ۂ', 'ۃ',
+  'ه', 'ە', 'ہ',
   'ي', 'ى', 'ی', 'ئ', 'ۦ', 'ۨ', 'ٸ', 'ے', 'ۓ',
   'ع',
   'ط',
@@ -23,6 +23,10 @@ const NOORANI_BASE_CHARS = new Set([
   'ق',
   'ن', 'ں', 'ڻ'
 ]);
+
+// Optional Noorani letter sets: Waw & Taa Marbuta
+const WAW_CHARS = new Set(['و', 'ؤ', 'ۥ', 'ۄ', 'ۅ', 'ۆ', 'ۇ', 'ۈ', 'ۉ', 'ۊ', 'ۋ']);
+const TAA_MARBUTA_CHARS = new Set(['ة', 'ۃ', 'ۂ']);
 
 // Non-connecting Arabic letters to the left (حروف الانفصال)
 const NON_CONNECTING_TO_LEFT = new Set([
@@ -37,10 +41,15 @@ const NON_CONNECTING_TO_LEFT = new Set([
 const COMBINING_MARKS_REGEX = /^[\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u0640]+$/;
 const IS_COMBINING_CHAR = (ch: string) => /[\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u0640]/.test(ch);
 
-export const isNooraniChar = (char: string, includeWaw: boolean = false): boolean => {
+export const isNooraniChar = (
+  char: string, 
+  includeWaw: boolean = false, 
+  includeTaaMarbuta: boolean = false
+): boolean => {
   if (!char) return false;
   if (NOORANI_BASE_CHARS.has(char)) return true;
-  if (includeWaw && (char === 'و' || char === 'ؤ' || char === 'ۥ' || char === 'ۄ' || char === 'ۅ' || char === 'ۆ' || char === 'ۇ' || char === 'ۈ' || char === 'ۉ' || char === 'ۊ' || char === 'ۋ')) return true;
+  if (includeWaw && WAW_CHARS.has(char)) return true;
+  if (includeTaaMarbuta && TAA_MARBUTA_CHARS.has(char)) return true;
   return false;
 };
 
@@ -59,7 +68,11 @@ interface LetterCluster {
 /**
  * Splits an Arabic word into letter clusters (each base character + its combining harakat)
  */
-export const splitIntoClusters = (word: string, includeWaw: boolean = false): LetterCluster[] => {
+export const splitIntoClusters = (
+  word: string, 
+  includeWaw: boolean = false,
+  includeTaaMarbuta: boolean = false
+): LetterCluster[] => {
   const clusters: LetterCluster[] = [];
   let i = 0;
   
@@ -83,7 +96,7 @@ export const splitIntoClusters = (word: string, includeWaw: boolean = false): Le
     }
 
     const isLetter = isArabicBaseLetter(char);
-    const isNoorani = isNooraniChar(char, includeWaw);
+    const isNoorani = isNooraniChar(char, includeWaw, includeTaaMarbuta);
     let fullText = char;
     i++;
 
@@ -107,9 +120,13 @@ export const splitIntoClusters = (word: string, includeWaw: boolean = false): Le
 /**
  * Checks if a word is 100% composed of Noorani letters
  */
-export const isWordPureNoorani = (word: string, includeWaw: boolean = false): boolean => {
+export const isWordPureNoorani = (
+  word: string, 
+  includeWaw: boolean = false,
+  includeTaaMarbuta: boolean = false
+): boolean => {
   if (!word || !word.trim()) return false;
-  const clusters = splitIntoClusters(word, includeWaw);
+  const clusters = splitIntoClusters(word, includeWaw, includeTaaMarbuta);
   const letterClusters = clusters.filter(c => c.isLetter);
   if (letterClusters.length === 0) return false;
   return letterClusters.every(c => c.isNoorani);
@@ -123,18 +140,19 @@ export const renderWordWithNoorani = (
   word: string,
   highlightEnabled: boolean,
   extraClasses: string = 'noorani-letter-highlight',
-  includeWaw: boolean = false
+  includeWaw: boolean = false,
+  includeTaaMarbuta: boolean = false
 ): React.ReactNode => {
   if (!highlightEnabled || !word) {
     return word;
   }
 
   // Fast path: if the entire word is composed purely of Noorani letters
-  if (isWordPureNoorani(word, includeWaw)) {
+  if (isWordPureNoorani(word, includeWaw, includeTaaMarbuta)) {
     return <span className={extraClasses}>{word}</span>;
   }
 
-  const clusters = splitIntoClusters(word, includeWaw);
+  const clusters = splitIntoClusters(word, includeWaw, includeTaaMarbuta);
   if (clusters.length === 0) return word;
 
   // Group adjacent clusters with the same Noorani status

@@ -85,7 +85,8 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
         wordClickBehavior,
         highlightHaMeem,
         highlightNoorani,
-        highlightNooraniIncludeWaw
+        highlightNooraniIncludeWaw,
+        highlightNooraniIncludeTaaMarbuta
     } = useSettingsContext();
     const researchData = useResearchData();
 
@@ -247,7 +248,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                                 aria-label={`خيارات الكلمة: ${word}`}
                                             >
                                                 {highlightNoorani 
-                                                    ? renderWordWithNoorani(word, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw) 
+                                                    ? renderWordWithNoorani(word, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta) 
                                                     : renderWordWithHaMeem(word, highlightHaMeem)}
                                             </button>
                                             {wordIndex < arr.length - 1 && ' '}

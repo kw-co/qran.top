@@ -79,7 +79,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
     resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah,
     imlaeiSimpleData
 }) => {
-    const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw } = useSettingsContext();
+    const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta } = useSettingsContext();
 
     const [activeWordPopover, setActiveWordPopover] = useState<{
         word: string;
@@ -211,7 +211,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                     >
                         <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>
                             {highlightNoorani 
-                                ? renderWordWithNoorani(word, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw) 
+                                ? renderWordWithNoorani(word, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta) 
                                 : renderWordWithHaMeem(word, highlightHaMeem)}
                         </span>
                     </button>
@@ -245,7 +245,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                     ) : (
                         <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>
                             {highlightNoorani 
-                                ? renderWordWithNoorani(word, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw) 
+                                ? renderWordWithNoorani(word, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta) 
                                 : renderWordWithHaMeem(word, highlightHaMeem)}
                         </span>
                     )}
