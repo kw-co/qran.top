@@ -4,13 +4,16 @@ import { QURAN_INDEX } from '../quranIndex';
 import { 
     analyzeSyllableAttachments, 
     ALL_ARABIC_LETTERS,
+    POPULAR_SYLLABLE_PRESETS,
     AttachedLetterStats 
 } from '../utils/syllableAttachment';
 import { 
     SparklesIcon, 
     ChevronLeftIcon,
     ArrowRightIcon,
-    ArrowLeftIcon
+    ArrowLeftIcon,
+    SearchIcon,
+    ClearIcon
 } from './icons';
 
 interface SyllableClusterViewProps {
@@ -24,8 +27,9 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
     simpleCleanData,
     onSearch 
 }) => {
-    // 1. Single Letter State (Default: 'ح' as requested in example)
-    const [selectedLetter, setSelectedLetter] = useState<string>('ح');
+    // 1. Query State: Supports 1 single letter OR multi-letter syllable/word
+    const [inputQuery, setInputQuery] = useState<string>('حم');
+    const [appliedQuery, setAppliedQuery] = useState<string>('حم');
     const [selectedSurah, setSelectedSurah] = useState<number | undefined>(undefined);
     const [directionFilter, setDirectionFilter] = useState<DirectionFilter>('all');
 
@@ -36,14 +40,15 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
 
     // 2. Perform fast analysis without storing heavy match objects
     const analysisResult = useMemo(() => {
+        const queryToUse = appliedQuery.trim() || 'ح';
         return analyzeSyllableAttachments(
             simpleCleanData,
-            selectedLetter,
+            queryToUse,
             'all_adjacent',
             selectedSurah,
-            false // includeMatches = false to prevent heavy DOM and speed up calculation
+            false // includeMatches = false to prevent heavy DOM and maintain instant speed
         );
-    }, [simpleCleanData, selectedLetter, selectedSurah]);
+    }, [simpleCleanData, appliedQuery, selectedSurah]);
 
     // Choose active top 10 list based on direction filter
     const activeTop10: AttachedLetterStats[] = useMemo(() => {
@@ -55,22 +60,34 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
         return analysisResult.top10;
     }, [analysisResult, directionFilter]);
 
-    // Max count for calculating progress bar width
+    // Max count for calculating relative progress bar width
     const maxCount = useMemo(() => {
         if (activeTop10.length === 0) return 1;
         return activeTop10[0].totalCount || 1;
     }, [activeTop10]);
 
-    // Handle direct character input
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.trim();
-        if (!val) return;
-        // Take the last or first valid Arabic letter
-        const arabicMatch = val.match(/[\u0621-\u064A]/);
-        if (arabicMatch) {
-            setSelectedLetter(arabicMatch[0]);
+    // Submit handler
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmed = inputQuery.trim();
+        if (trimmed) {
+            setAppliedQuery(trimmed);
         }
     };
+
+    // Quick single-letter selection
+    const handleSelectSingleLetter = (letter: string) => {
+        setInputQuery(letter);
+        setAppliedQuery(letter);
+    };
+
+    // Quick preset syllable selection
+    const handleSelectPreset = (preset: string) => {
+        setInputQuery(preset);
+        setAppliedQuery(preset);
+    };
+
+    const isSingleLetter = appliedQuery.trim().length === 1;
 
     return (
         <div className="container mx-auto p-4 md:p-8 max-w-5xl text-text-primary min-h-[80vh] space-y-6" dir="rtl">
@@ -86,11 +103,11 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
 
                 <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                     <SparklesIcon className="w-3.5 h-3.5" />
-                    <span>تحليل اتصال الحروف القرآنية</span>
+                    <span>تحليل اتصال الحروف والمقاطع القرآنية</span>
                 </div>
             </div>
 
-            {/* Header & Single-Letter Selection */}
+            {/* Header & Input Selection */}
             <div className="bg-surface rounded-2xl border border-border-default p-6 md:p-8 shadow-sm space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
@@ -98,17 +115,19 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
                             <span className="p-2.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 inline-flex">
                                 <SparklesIcon className="w-7 h-7" />
                             </span>
-                            <span>أكثر 10 أحرف اتصالاً بحرف «{selectedLetter}»</span>
+                            <span>
+                                أكثر 10 أحرف اتصالاً بـ {isSingleLetter ? 'حرف' : 'مقطع'} «{appliedQuery}»
+                            </span>
                         </h1>
                         <p className="text-sm md:text-base text-text-secondary leading-relaxed">
-                            اختر أي حرف من حروف الهجاء أدناه لمعرفة الحروف العشرة الأكثر التصاقاً واقتراناً به (سواء من قبله أو من بعده) عبر كلمات القرآن الكريم كاملة.
+                            اكتب حرفاً واحداً أو مقطعاً مكوناً من عدة أحرف (مثل: <span className="font-bold text-text-primary">حم، الم، طه، ح، م</span>...) لمعرفة الحروف العشرة الأكثر التصاقاً به (سواء من قبله كسابقة أو من بعده كلاحقة) بسرعة وبساطة تامة.
                         </p>
                     </div>
 
                     {/* Surah Filter Dropdown */}
                     <div className="w-full md:w-56 space-y-1">
                         <label className="text-xs font-bold text-text-secondary block">
-                            نطاق البحث:
+                            نطاق التحليل:
                         </label>
                         <select
                             value={selectedSurah || ''}
@@ -125,34 +144,55 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
                     </div>
                 </div>
 
-                {/* 28 Arabic Alphabet Quick Picker */}
-                <div className="space-y-2 pt-2 border-t border-border-subtle">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-text-muted">
-                            اختر الحرف المراد تحليله بنقرة واحدة:
-                        </span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-text-muted">أو اكتب الحرف:</span>
+                {/* Text Input Form (Type 1 letter or more) */}
+                <form onSubmit={handleFormSubmit} className="pt-2 border-t border-border-subtle">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="relative flex-1">
                             <input
                                 type="text"
-                                maxLength={2}
-                                value={selectedLetter}
-                                onChange={handleInputChange}
-                                className="w-10 h-8 text-center bg-surface-subtle border border-border-default rounded-lg font-amiri text-lg font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                                value={inputQuery}
+                                onChange={(e) => setInputQuery(e.target.value)}
+                                placeholder="اكتب حرفاً واحداً أو مقطعاً (مثال: ح، م، حم، الم، يس، طه، سبح...)"
+                                className="w-full py-2.5 px-4 pr-4 pl-10 bg-surface-subtle border border-border-default rounded-xl text-base md:text-lg font-amiri font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary shadow-2xs"
+                                dir="rtl"
                             />
+                            {inputQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setInputQuery('')}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary cursor-pointer"
+                                    title="مسح"
+                                >
+                                    <ClearIcon className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
-                    </div>
 
+                        <button
+                            type="submit"
+                            className="py-2.5 px-6 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs text-sm"
+                        >
+                            <SearchIcon className="w-4 h-4" />
+                            <span>تحليل الاتصال</span>
+                        </button>
+                    </div>
+                </form>
+
+                {/* 28 Arabic Alphabet Quick Picker */}
+                <div className="space-y-2 pt-2 border-t border-border-subtle">
+                    <span className="text-xs font-bold text-text-muted block">
+                        أو اختر حرفاً مفرداً بنقرة واحدة:
+                    </span>
                     <div className="flex flex-wrap gap-1.5 justify-start">
                         {ALL_ARABIC_LETTERS.map(({ letter, name }) => {
-                            const isCurrent = selectedLetter === letter;
+                            const isCurrent = appliedQuery === letter;
                             return (
                                 <button
                                     key={letter}
                                     type="button"
-                                    onClick={() => setSelectedLetter(letter)}
+                                    onClick={() => handleSelectSingleLetter(letter)}
                                     title={`حرف ${name}`}
-                                    className={`w-9 h-9 md:w-10 md:h-10 rounded-xl font-amiri text-xl md:text-2xl font-bold transition-all cursor-pointer flex items-center justify-center ${
+                                    className={`w-8 h-8 md:w-9 md:h-9 rounded-xl font-amiri text-lg md:text-xl font-bold transition-all cursor-pointer flex items-center justify-center ${
                                         isCurrent
                                             ? 'bg-primary text-white shadow-md scale-105 ring-2 ring-primary/40 font-black'
                                             : 'bg-surface-subtle hover:bg-surface border border-border-default hover:border-primary/50 text-text-primary'
@@ -164,12 +204,36 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
                         })}
                     </div>
                 </div>
+
+                {/* Popular Multi-Letter Presets */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border-subtle">
+                    <span className="text-xs text-text-muted font-bold ml-1">مقاطع شائعة:</span>
+                    {POPULAR_SYLLABLE_PRESETS.map((p) => {
+                        const isCurrent = appliedQuery === p.syllable;
+                        return (
+                            <button
+                                key={p.syllable}
+                                type="button"
+                                onClick={() => handleSelectPreset(p.syllable)}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                                    isCurrent
+                                        ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-400 font-extrabold shadow-2xs'
+                                        : 'bg-surface-subtle hover:bg-surface text-text-secondary border-border-default hover:border-text-muted'
+                                }`}
+                            >
+                                {p.title}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Quick Metrics Bar */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
                 <div className="bg-surface rounded-xl border border-border-default p-4 text-center">
-                    <span className="text-xs text-text-muted font-medium block mb-1">مرات ورود حرف «{selectedLetter}»</span>
+                    <span className="text-xs text-text-muted font-medium block mb-1">
+                        مرات ورود «{appliedQuery}»
+                    </span>
                     <span className="text-xl md:text-2xl font-bold text-text-primary">
                         {analysisResult.totalOccurrences.toLocaleString('ar-SA')}
                     </span>
@@ -185,19 +249,19 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
                 </div>
 
                 <div className="bg-surface rounded-xl border border-border-default p-4 text-center border-l-4 border-l-blue-500">
-                    <span className="text-xs text-blue-600 dark:text-blue-400 font-bold block mb-1">ملتصقة من قبل (سوابق)</span>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-bold block mb-1">صلات من قبل (سوابق)</span>
                     <span className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {analysisResult.totalBeforeCount.toLocaleString('ar-SA')}
                     </span>
-                    <span className="text-[11px] text-text-secondary block mt-0.5">تسبق حرف «{selectedLetter}» مباشرة</span>
+                    <span className="text-[11px] text-text-secondary block mt-0.5">تسبق «{appliedQuery}» مباشرة</span>
                 </div>
 
                 <div className="bg-surface rounded-xl border border-border-default p-4 text-center border-l-4 border-l-amber-500">
-                    <span className="text-xs text-amber-600 dark:text-amber-400 font-bold block mb-1">ملتصقة من بعد (لواحق)</span>
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-bold block mb-1">صلات من بعد (لواحق)</span>
                     <span className="text-xl md:text-2xl font-bold text-amber-600 dark:text-amber-400">
                         {analysisResult.totalAfterCount.toLocaleString('ar-SA')}
                     </span>
-                    <span className="text-[11px] text-text-secondary block mt-0.5">تلي حرف «{selectedLetter}» مباشرة</span>
+                    <span className="text-[11px] text-text-secondary block mt-0.5">تلي «{appliedQuery}» مباشرة</span>
                 </div>
             </div>
 
@@ -247,7 +311,7 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
                 </div>
 
                 <span className="text-xs text-text-muted font-medium mr-auto md:mr-0">
-                    أعلى 10 أحرف الأكثر تكراراً
+                    أعلى 10 أحرف اتصالاً
                 </span>
             </div>
 
@@ -256,7 +320,7 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
                 <div className="border-b border-border-subtle pb-3 flex items-center justify-between">
                     <div>
                         <h2 className="text-lg md:text-xl font-bold text-text-primary flex items-center gap-2">
-                            <span>قائمة أكثر 10 أحرف اتصالاً بحرف «{selectedLetter}»</span>
+                            <span>قائمة أكثر 10 أحرف اتصالاً بـ «{appliedQuery}»</span>
                             <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
                                 {directionFilter === 'before' ? 'من قبل (السوابق)' : directionFilter === 'after' ? 'من بعد (اللواحق)' : 'من قبل ومن بعد معاً'}
                             </span>
@@ -266,7 +330,7 @@ export const SyllableClusterView: React.FC<SyllableClusterViewProps> = ({
 
                 {activeTop10.length === 0 ? (
                     <div className="py-12 text-center text-text-muted">
-                        لا توجد أحرف متصلة مسجلة لهذا الحرف وفق النطاق المختار.
+                        لا توجد أحرف متصلة مسجلة لـ «{appliedQuery}» وفق النطاق المختار.
                     </div>
                 ) : (
                     <div className="space-y-3">
