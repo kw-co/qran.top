@@ -71,8 +71,8 @@ const QuranStructureView: React.FC = () => {
             hoverBg: "hover:bg-rose-100 dark:hover:bg-rose-900/20"
         },
         {
-            title: "الحروف الملتصقة بالمقاطع",
-            description: "اكتشاف أكثر الحروف اتصالاً والتصاقاً بأي مقطع أو لفظ تحدده في القرآن الكريم (مثل الحروف الأربعة الأكثر التصاقاً بمقطع 'حم')، مع إحصاءات التكرار والمواضع.",
+            title: "اتصال الحروف القرآنية",
+            description: "اكتشاف أكثر 10 أحرف اتصالاً والتصاقاً بأي حرف تختاره في القرآن الكريم (سواء من قبله أو من بعده)، بإحصاءات واضحة وفائقة السرعة.",
             icon: <SparklesIcon className="w-8 h-8 text-amber-500" />,
             href: "#/syllable-cluster",
             bg: "bg-amber-50 dark:bg-amber-900/10",

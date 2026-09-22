@@ -90,12 +90,46 @@ export interface SyllableAnalysisResult {
     top4: AttachedLetterStats[];
     top4Before: AttachedLetterStats[];
     top4After: AttachedLetterStats[];
+    top10: AttachedLetterStats[];
+    top10Before: AttachedLetterStats[];
+    top10After: AttachedLetterStats[];
     allLettersBefore: AttachedLetterStats[];
     allLettersAfter: AttachedLetterStats[];
     allLetters: AttachedLetterStats[];
     surahDistribution: { surahNumber: number; surahName: string; count: number }[];
     matches: SyllableMatch[];
 }
+
+export const ALL_ARABIC_LETTERS: { letter: string; name: string }[] = [
+    { letter: 'ا', name: 'الألف' },
+    { letter: 'ب', name: 'الباء' },
+    { letter: 'ت', name: 'التاء' },
+    { letter: 'ث', name: 'الثاء' },
+    { letter: 'ج', name: 'الجيم' },
+    { letter: 'ح', name: 'الحاء' },
+    { letter: 'خ', name: 'الخاء' },
+    { letter: 'د', name: 'الدال' },
+    { letter: 'ذ', name: 'الذال' },
+    { letter: 'ر', name: 'الراء' },
+    { letter: 'ز', name: 'الزاي' },
+    { letter: 'س', name: 'السين' },
+    { letter: 'ش', name: 'الشين' },
+    { letter: 'ص', name: 'الصاد' },
+    { letter: 'ض', name: 'الضاد' },
+    { letter: 'ط', name: 'الطاء' },
+    { letter: 'ظ', name: 'الظاء' },
+    { letter: 'ع', name: 'العين' },
+    { letter: 'غ', name: 'الغين' },
+    { letter: 'ف', name: 'الفاء' },
+    { letter: 'ق', name: 'القاف' },
+    { letter: 'ك', name: 'الكاف' },
+    { letter: 'ل', name: 'اللام' },
+    { letter: 'م', name: 'الميم' },
+    { letter: 'ن', name: 'النون' },
+    { letter: 'ه', name: 'الهاء' },
+    { letter: 'و', name: 'الواو' },
+    { letter: 'ي', name: 'الياء' },
+];
 
 /**
  * Analyzes Quran words to find which letters are attached/adjacent to a given syllable/substring.
@@ -104,7 +138,8 @@ export function analyzeSyllableAttachments(
     simpleCleanData: SurahData[],
     syllableQuery: string,
     mode: AttachmentMode = 'all_adjacent',
-    surahFilter?: number
+    surahFilter?: number,
+    includeMatches: boolean = false
 ): SyllableAnalysisResult {
     const rawSyllable = syllableQuery.trim();
     const normSyllable = normalizeArabicText(rawSyllable);
@@ -121,6 +156,9 @@ export function analyzeSyllableAttachments(
             top4: [],
             top4Before: [],
             top4After: [],
+            top10: [],
+            top10Before: [],
+            top10After: [],
             allLettersBefore: [],
             allLettersAfter: [],
             allLetters: [],
@@ -143,6 +181,7 @@ export function analyzeSyllableAttachments(
     const surahCountMap: Record<number, { surahNumber: number; surahName: string; count: number }> = {};
     let totalMatchingWords = 0;
     let matchCounter = 0;
+    let totalOccurrencesCount = 0;
 
     const getOrInitStats = (char: string) => {
         if (!letterStatsMap[char]) {
@@ -217,20 +256,24 @@ export function analyzeSyllableAttachments(
                         if (s.allExamples.size < 5) s.allExamples.add(word);
                     });
 
-                    matches.push({
-                        id: `match_${surah.number}_${ayah.numberInSurah}_${wIdx}_${matchCounter++}`,
-                        surahNumber: surah.number,
-                        surahName: cleanSurahName,
-                        ayahNumber: ayah.numberInSurah,
-                        ayahText: ayah.text,
-                        wordIndex: wIdx,
-                        originalWord: word,
-                        normalizedWord: normWord,
-                        attachedBefore: beforeChar,
-                        attachedAfter: afterChar,
-                        matchStartIndex: foundIdx,
-                        matchEndIndex: matchEnd
-                    });
+                    totalOccurrencesCount++;
+
+                    if (includeMatches) {
+                        matches.push({
+                            id: `match_${surah.number}_${ayah.numberInSurah}_${wIdx}_${matchCounter++}`,
+                            surahNumber: surah.number,
+                            surahName: cleanSurahName,
+                            ayahNumber: ayah.numberInSurah,
+                            ayahText: ayah.text,
+                            wordIndex: wIdx,
+                            originalWord: word,
+                            normalizedWord: normWord,
+                            attachedBefore: beforeChar,
+                            attachedAfter: afterChar,
+                            matchStartIndex: foundIdx,
+                            matchEndIndex: matchEnd
+                        });
+                    }
 
                     searchIdx = foundIdx + 1;
                 }
@@ -277,6 +320,7 @@ export function analyzeSyllableAttachments(
     });
 
     const top4 = lettersArray.slice(0, 4);
+    const top10 = lettersArray.slice(0, 10);
 
     // 1. Separate Calculation for FRONT / BEFORE (قدام المقطع - السوابق)
     const allLettersBefore: AttachedLetterStats[] = Object.values(letterStatsMap)
@@ -301,6 +345,7 @@ export function analyzeSyllableAttachments(
             : 0;
     });
     const top4Before = allLettersBefore.slice(0, 4);
+    const top10Before = allLettersBefore.slice(0, 10);
 
     // 2. Separate Calculation for BACK / AFTER (ورى المقطع - اللواحق)
     const allLettersAfter: AttachedLetterStats[] = Object.values(letterStatsMap)
@@ -325,13 +370,14 @@ export function analyzeSyllableAttachments(
             : 0;
     });
     const top4After = allLettersAfter.slice(0, 4);
+    const top10After = allLettersAfter.slice(0, 10);
 
     const surahDistribution = Object.values(surahCountMap).sort((a, b) => b.count - a.count);
 
     return {
         syllable: rawSyllable,
         normalizedSyllable: normSyllable,
-        totalOccurrences: matches.length,
+        totalOccurrences: totalOccurrencesCount,
         totalMatchingWords,
         totalAttachmentsCount,
         totalBeforeCount,
@@ -339,6 +385,9 @@ export function analyzeSyllableAttachments(
         top4,
         top4Before,
         top4After,
+        top10,
+        top10Before,
+        top10After,
         allLettersBefore,
         allLettersAfter,
         allLetters: lettersArray,
