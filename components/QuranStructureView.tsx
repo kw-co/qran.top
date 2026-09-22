@@ -80,6 +80,15 @@ const QuranStructureView: React.FC = () => {
             hoverBg: "hover:bg-amber-100 dark:hover:bg-amber-900/20"
         },
         {
+            title: "شيفرة الحروف النورانية (14 إلى 4)",
+            description: "هندسة عكسية لكشف أكثر 4 أحرف عربية استحقاقاً للمقابلة والارتباط بكل حرف نوراني، مع فحص اقتران الواو بفواتح (ن، ق، ص).",
+            icon: <SparklesIcon className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />,
+            href: "#/noorani-cipher",
+            bg: "bg-yellow-50 dark:bg-yellow-900/10",
+            borderColor: "border-yellow-200 dark:border-yellow-800",
+            hoverBg: "hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
+        },
+        {
             title: "الكتب الإلهية والنسخ السبع",
             description: "دراسة وتأملات الأستاذ أنوار إسحاق حول الكتب الإلهية داخل المصحف الشريف والأنبياء المخاطبين بها.",
             icon: <BookOpenIcon className="w-8 h-8 text-blue-500" />,

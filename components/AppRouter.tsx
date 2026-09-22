@@ -22,6 +22,7 @@ const AlphabetScannerView = lazyRetry(() => import('./AlphabetScannerView'));
 const NooraniAyahsView = lazyRetry(() => import('./NooraniAyahsView'));
 const UniversalAlphabetMatrixView = lazyRetry(() => import('./UniversalAlphabetMatrixView'));
 const SyllableClusterView = lazyRetry(() => import('./SyllableClusterView'));
+const NooraniReverseCipherView = lazyRetry(() => import('./NooraniReverseCipherView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -214,6 +215,8 @@ const isSearchPage = pathParts[0] === 'search';
             title = '🕒 السجل';
         } else if (route === 'syllable-cluster' || route === 'affix-letters' || route === 'attached-letters') {
             title = '🔤 الحروف الملتصقة بالمقاطع';
+        } else if (route === 'noorani-cipher' || route === 'cipher-reverse' || route === 'reverse-cipher') {
+            title = '🔐 هندسة شيفرة الحروف النورانية';
         }
 
         document.title = title;
@@ -221,6 +224,13 @@ const isSearchPage = pathParts[0] === 'search';
 
     const renderRoute = () => {
         if (isInitialLoading) return null;
+        if (pathParts[0] === 'noorani-cipher' || pathParts[0] === 'cipher-reverse' || pathParts[0] === 'reverse-cipher') {
+            return (
+                <NooraniReverseCipherView 
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || []} 
+                />
+            );
+        }
         if (pathParts[0] === 'syllable-cluster' || pathParts[0] === 'affix-letters' || pathParts[0] === 'attached-letters' || pathParts[0] === 'syllable-letters') {
             return (
                 <SyllableClusterView 
