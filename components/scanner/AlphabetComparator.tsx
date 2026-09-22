@@ -117,7 +117,7 @@ export const AlphabetComparator: React.FC<AlphabetComparatorProps> = ({ sequence
                     <div className="flex flex-wrap gap-1.5 text-xs text-amber-800 dark:text-amber-300">
                         <span className="font-semibold">أزرار سريعة للفرضيات:</span>
                         <button 
-                            onClick={() => setCustomHypothesis('النمويهربتكعفسدقحجشضصخذطثظغ')}
+                            onClick={() => setCustomHypothesis('النميهربتكعفسدقحجشضصخذطثظغ')}
                             className="bg-surface px-2 py-0.5 rounded border border-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50 cursor-pointer"
                         >
                             📊 التردد الإحصائي (القرآني)
@@ -129,7 +129,7 @@ export const AlphabetComparator: React.FC<AlphabetComparatorProps> = ({ sequence
                             الحروف المقطعة أولاً
                         </button>
                         <button 
-                            onClick={() => setCustomHypothesis('عحهخغقكجشضصسزطدتظذثرلنفبموي')}
+                            onClick={() => setCustomHypothesis('عحهخغقكجشضصسزطدتظذثرلنفبمي')}
                             className="bg-surface px-2 py-0.5 rounded border border-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50 cursor-pointer"
                         >
                             المخارج الصوتية
@@ -159,7 +159,7 @@ export const AlphabetComparator: React.FC<AlphabetComparatorProps> = ({ sequence
                                 <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                                     comp.exactMatchesCount > 2 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-surface text-text-muted'
                                 }`}>
-                                    {comp.exactMatchesCount}/28 تطابق
+                                    {comp.exactMatchesCount}/27 تطابق
                                 </span>
                                 <span className="text-xs font-mono font-bold">
                                     {comp.matchPercentage}%
@@ -182,7 +182,7 @@ export const AlphabetComparator: React.FC<AlphabetComparatorProps> = ({ sequence
 
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-bold px-2.5 py-1 bg-primary/10 text-primary rounded-lg">
-                            التطابق الموضعي: {activeComp.exactMatchesCount} من 28 ({activeComp.matchPercentage}%)
+                            التطابق الموضعي: {activeComp.exactMatchesCount} من 27 ({activeComp.matchPercentage}%)
                         </span>
 
                         {/* Direct Copy Button for Active Reference */}
@@ -216,12 +216,15 @@ export const AlphabetComparator: React.FC<AlphabetComparatorProps> = ({ sequence
                     </div>
                 </div>
 
-                {/* Side-by-side Slot Visualization (1 to 28) */}
+                {/* Side-by-side Slot Visualization (1 to 27) */}
                 <div className="space-y-3 overflow-x-auto pb-2" dir="rtl">
                     <div className="min-w-[640px]">
                         {/* Headers */}
-                        <div className="grid grid-cols-28 gap-1 mb-1 text-center text-[10px] text-text-muted font-mono">
-                            {Array.from({ length: 28 }).map((_, i) => (
+                        <div 
+                            className="grid gap-1 mb-1 text-center text-[10px] text-text-muted font-mono"
+                            style={{ gridTemplateColumns: 'repeat(27, minmax(0, 1fr))' }}
+                        >
+                            {Array.from({ length: 27 }).map((_, i) => (
                                 <div key={i} className="py-0.5">{i + 1}</div>
                             ))}
                         </div>
@@ -232,8 +235,11 @@ export const AlphabetComparator: React.FC<AlphabetComparatorProps> = ({ sequence
                                 <span>التسلسل المستخرج من النص:</span>
                                 <span className="text-[11px] text-text-muted">({sequence.length} حرفاً)</span>
                             </div>
-                            <div className="grid grid-cols-28 gap-1 text-center">
-                                {Array.from({ length: 28 }).map((_, i) => {
+                            <div 
+                                className="grid gap-1 text-center"
+                                style={{ gridTemplateColumns: 'repeat(27, minmax(0, 1fr))' }}
+                            >
+                                {Array.from({ length: 27 }).map((_, i) => {
                                     const char = sequence[i];
                                     const isMatch = activeComp.matchingIndices.includes(i);
                                     return (
@@ -260,7 +266,10 @@ export const AlphabetComparator: React.FC<AlphabetComparatorProps> = ({ sequence
                             <div className="text-xs font-bold text-text-secondary mb-1 flex items-center justify-between">
                                 <span>ترتيب المرجع المقارن ({activeRef.name.split('(')[0]}):</span>
                             </div>
-                            <div className="grid grid-cols-28 gap-1 text-center">
+                            <div 
+                                className="grid gap-1 text-center"
+                                style={{ gridTemplateColumns: 'repeat(27, minmax(0, 1fr))' }}
+                            >
                                 {activeRef.sequence.split('').map((char, i) => {
                                     const isMatch = activeComp.matchingIndices.includes(i);
                                     return (

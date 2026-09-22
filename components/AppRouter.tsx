@@ -21,6 +21,7 @@ const HawameemSearchView = lazyRetry(() => import('./HawameemSearchView'));
 const AlphabetScannerView = lazyRetry(() => import('./AlphabetScannerView'));
 const NooraniAyahsView = lazyRetry(() => import('./NooraniAyahsView'));
 const UniversalAlphabetMatrixView = lazyRetry(() => import('./UniversalAlphabetMatrixView'));
+const SyllableClusterView = lazyRetry(() => import('./SyllableClusterView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -211,6 +212,8 @@ const isSearchPage = pathParts[0] === 'search';
             title = '⚙️ الإعدادات';
         } else if (route === 'history') {
             title = '🕒 السجل';
+        } else if (route === 'syllable-cluster' || route === 'affix-letters' || route === 'attached-letters') {
+            title = '🔤 الحروف الملتصقة بالمقاطع';
         }
 
         document.title = title;
@@ -218,6 +221,14 @@ const isSearchPage = pathParts[0] === 'search';
 
     const renderRoute = () => {
         if (isInitialLoading) return null;
+        if (pathParts[0] === 'syllable-cluster' || pathParts[0] === 'affix-letters' || pathParts[0] === 'attached-letters' || pathParts[0] === 'syllable-letters') {
+            return (
+                <SyllableClusterView 
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || []} 
+                    onSearch={handleSearch} 
+                />
+            );
+        }
         if (pathParts[0] === 'saved') {
             return (
                 <SavedView 

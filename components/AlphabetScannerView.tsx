@@ -22,7 +22,10 @@ import {
     getLetterMask, 
     getWordStrategyMask,
     findShortestEnclosingWindow,
+    findOptimalAlphabetWindow,
+    countAyahsSpanned,
     extractAlphabetSequence, 
+    countBits,
     PRESET_SCAN_POINTS,
     REFERENCE_ALPHABETS
 } from '../utils/alphabetCipher';
@@ -40,18 +43,21 @@ interface ScanResult {
     R: number;
     length: number;
     targetIndex: number;
-    scanMode: 'shortest' | 'forward' | 'backward';
+    scanMode: ScanDirection;
     strategy: ExtractionStrategy;
+    targetLetterCount?: number;
+    ayahsSpanned?: number;
 }
 
 const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanData }) => {
-    // Navigation / Active Mode Tab
-    const [activeTab, setActiveTab] = useState<'inspector' | 'word_search' | 'presets'>('inspector');
+    // Navigation / Active Mode Tab - Default is the primary scanner engine
+    const [activeTab, setActiveTab] = useState<'scanner' | 'inspector' | 'presets'>('scanner');
 
     // Word Search State
     const [targetWord, setTargetWord] = useState('');
-    const [scanMode, setScanMode] = useState<'shortest' | 'forward' | 'backward'>('shortest');
+    const [scanMode, setScanMode] = useState<ScanDirection>('optimal');
     const [searchStrategy, setSearchStrategy] = useState<ExtractionStrategy>('all_letters');
+    const [searchTargetLetters, setSearchTargetLetters] = useState<number>(27);
     const [isScanning, setIsScanning] = useState(false);
     const [progress, setProgress] = useState(0);
     const [results, setResults] = useState<ScanResult[]>([]);
@@ -60,8 +66,9 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
 
     // Inspector State
     const [inspectorStartIndex, setInspectorStartIndex] = useState<number>(0);
-    const [inspectorStrategy, setInspectorStrategy] = useState<ExtractionStrategy>('all_letters');
-    const [inspectorDirection, setInspectorDirection] = useState<ScanDirection>('forward');
+    const [inspectorStrategy, setInspectorStrategy] = useState<ExtractionStrategy>('first_letter');
+    const [inspectorDirection, setInspectorDirection] = useState<ScanDirection>('optimal');
+    const [inspectorTargetLetters, setInspectorTargetLetters] = useState<number>(27);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -113,21 +120,31 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                 startWordIndex: 0,
                 endWordIndex: 0,
                 totalWordsSpanned: 0,
+                isComplete27: false,
                 isComplete28: false,
+                isClusterComplete: false,
+                targetLetterCount: inspectorTargetLetters,
+                densityRatio: 0,
                 strategy: inspectorStrategy,
                 direction: inspectorDirection,
                 firstLetter: '',
                 missingLetters: ARABIC_LETTERS.split('')
             };
         }
-        return extractAlphabetSequence(flatWords, inspectorStartIndex, inspectorStrategy, inspectorDirection);
-    }, [flatWords, inspectorStartIndex, inspectorStrategy, inspectorDirection]);
+        return extractAlphabetSequence(flatWords, inspectorStartIndex, inspectorStrategy, inspectorDirection, undefined, inspectorTargetLetters);
+    }, [flatWords, inspectorStartIndex, inspectorStrategy, inspectorDirection, inspectorTargetLetters]);
 
     // Handle switching to inspector from anywhere
-    const handleOpenInInspector = (startWordIndex: number, strategy: ExtractionStrategy = 'all_letters', direction: ScanDirection = 'forward') => {
+    const handleOpenInInspector = (
+        startWordIndex: number, 
+        strategy: ExtractionStrategy = 'all_letters', 
+        direction: ScanDirection = 'forward',
+        targetLetterCount: number = 27
+    ) => {
         setInspectorStartIndex(startWordIndex);
         setInspectorStrategy(strategy);
         setInspectorDirection(direction);
+        setInspectorTargetLetters(targetLetterCount);
         setActiveTab('inspector');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -166,7 +183,16 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
 
         const processChunk = () => {
             if (currentChunk >= chunks.length) {
-                foundResults.sort((a, b) => a.length - b.length);
+                if (scanMode === 'optimal') {
+                    foundResults.sort((a, b) => {
+                        const aA = a.ayahsSpanned ?? 999;
+                        const bA = b.ayahsSpanned ?? 999;
+                        if (aA !== bA) return aA - bA;
+                        return a.length - b.length;
+                    });
+                } else {
+                    foundResults.sort((a, b) => a.length - b.length);
+                }
                 setResults(foundResults);
                 setProgress(100);
                 setIsScanning(false);
@@ -175,9 +201,25 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
             }
 
             const chunk = chunks[currentChunk];
+            const isReached = (m: number) => searchTargetLetters === 27 ? m === ALL_LETTERS_MASK : countBits(m) >= searchTargetLetters;
+
             for (const idx of chunk) {
-                if (scanMode === 'shortest') {
-                    const { bestL, bestR, bestLen } = findShortestEnclosingWindow(flatWords, idx, searchStrategy);
+                if (scanMode === 'optimal') {
+                    const optimal = findOptimalAlphabetWindow(flatWords, idx, searchStrategy, undefined, searchTargetLetters);
+                    if (optimal && optimal.bestL !== -1 && optimal.bestR !== -1) {
+                        foundResults.push({
+                            L: optimal.bestL,
+                            R: optimal.bestR,
+                            length: optimal.bestLen,
+                            targetIndex: idx,
+                            scanMode: 'optimal',
+                            strategy: searchStrategy,
+                            targetLetterCount: searchTargetLetters,
+                            ayahsSpanned: optimal.ayahsSpanned
+                        });
+                    }
+                } else if (scanMode === 'shortest') {
+                    const { bestL, bestR, bestLen } = findShortestEnclosingWindow(flatWords, idx, searchStrategy, undefined, searchTargetLetters);
                     if (bestL !== -1 && bestR !== -1) {
                         foundResults.push({
                             L: bestL,
@@ -185,7 +227,9 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                             length: bestLen,
                             targetIndex: idx,
                             scanMode: 'shortest',
-                            strategy: searchStrategy
+                            strategy: searchStrategy,
+                            targetLetterCount: searchTargetLetters,
+                            ayahsSpanned: countAyahsSpanned(flatWords, bestL, bestR)
                         });
                     }
                 } else if (scanMode === 'forward') {
@@ -193,7 +237,7 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                     let foundR = -1;
                     for (let R = idx; R < flatWords.length; R++) {
                         mask |= getWordStrategyMask(flatWords[R], searchStrategy);
-                        if (mask === ALL_LETTERS_MASK) {
+                        if (isReached(mask)) {
                             foundR = R;
                             break;
                         }
@@ -205,7 +249,9 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                             length: foundR - idx + 1,
                             targetIndex: idx,
                             scanMode: 'forward',
-                            strategy: searchStrategy
+                            strategy: searchStrategy,
+                            targetLetterCount: searchTargetLetters,
+                            ayahsSpanned: countAyahsSpanned(flatWords, idx, foundR)
                         });
                     }
                 } else if (scanMode === 'backward') {
@@ -213,7 +259,7 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                     let foundL = -1;
                     for (let L = idx; L >= 0; L--) {
                         mask |= getWordStrategyMask(flatWords[L], searchStrategy);
-                        if (mask === ALL_LETTERS_MASK) {
+                        if (isReached(mask)) {
                             foundL = L;
                             break;
                         }
@@ -225,7 +271,9 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                             length: idx - foundL + 1,
                             targetIndex: idx,
                             scanMode: 'backward',
-                            strategy: searchStrategy
+                            strategy: searchStrategy,
+                            targetLetterCount: searchTargetLetters,
+                            ayahsSpanned: countAyahsSpanned(flatWords, foundL, idx)
                         });
                     }
                 }
@@ -250,11 +298,13 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                 flatWords,
                 res.scanMode === 'shortest' ? res.targetIndex : (res.scanMode === 'backward' ? res.R : res.L),
                 res.strategy || searchStrategy,
-                res.scanMode
+                res.scanMode,
+                undefined,
+                res.targetLetterCount || searchTargetLetters
             );
             return ext.firstLetter && selectedLetters.includes(ext.firstLetter);
         });
-    }, [results, selectedLetters, flatWords, searchStrategy]);
+    }, [results, selectedLetters, flatWords, searchStrategy, searchTargetLetters]);
 
     const displayedResults = filteredResults.slice(0, 30);
 
@@ -269,12 +319,17 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                 
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-primary-text flex items-center gap-3">
-                            <SparklesIcon className="w-8 h-8 text-amber-500" />
-                            ماسح الحروف الأبجدية ومستكشف الشيفرة
-                        </h1>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <h1 className="text-2xl sm:text-3xl font-bold text-primary-text flex items-center gap-3">
+                                <SparklesIcon className="w-8 h-8 text-amber-500" />
+                                ماسح الحروف الأبجدية ومستكشف الشيفرة
+                            </h1>
+                            <span className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800/60 px-3 py-1 rounded-full font-bold">
+                                أمر شامل: حرف الواو (و) خارج الأبجدية ومستثنى من كافة أنظمة المسح (الأساس 27 حرفاً)
+                            </span>
+                        </div>
                         <p className="text-text-secondary mt-1.5 text-sm sm:text-base leading-relaxed">
-                            أداة بحثية متقدمة لاستكشاف شيفرة وترتيب الحروف الأبجدية الـ 28 في القرآن الكريم، مع إمكانية تأشير نقطة الانطلاق، واختيار طرق الانتقاء (متسلسلة أو أوائل الكلمات أو أواخرها)، ومطابقة النتائج مع التراتيب التاريخية واللغوية.
+                            أداة بحثية متقدمة لاستكشاف شيفرة وترتيب الحروف الأبجدية الـ 27 (دون حرف الواو) في القرآن الكريم، مع إمكانية تأشير نقطة الانطلاق، واختيار طرق الانتقاء (متسلسلة أو أوائل الكلمات أو أواخرها)، ومطابقة النتائج مع التراتيب التاريخية واللغوية.
                         </p>
                     </div>
                 </div>
@@ -283,27 +338,30 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
             {/* Navigation Tabs */}
             <div className="flex border-b border-border-default mb-6 overflow-x-auto gap-2 text-sm font-bold">
                 <button
-                    onClick={() => setActiveTab('inspector')}
+                    onClick={() => setActiveTab('scanner')}
                     className={`pb-3 px-4 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-                        activeTab === 'inspector'
-                            ? 'border-primary text-primary font-bold'
-                            : 'border-transparent text-text-secondary hover:text-text-primary'
-                    }`}
-                >
-                    <SparklesIcon className="w-4 h-4 text-amber-500" />
-                    <span>مستكشف الشيفرة ومحاكي المسح التفاعلي</span>
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('word_search')}
-                    className={`pb-3 px-4 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-                        activeTab === 'word_search'
+                        activeTab === 'scanner'
                             ? 'border-primary text-primary font-bold'
                             : 'border-transparent text-text-secondary hover:text-text-primary'
                     }`}
                 >
                     <SearchIcon className="w-4 h-4" />
-                    <span>البحث بالكلمة ومسح النوافذ</span>
+                    <span>ماسح الحروف بالكلمة والنوافذ</span>
+                </button>
+
+                <button
+                    onClick={() => setActiveTab('inspector')}
+                    className={`pb-3 px-4 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                        activeTab === 'inspector'
+                            ? 'border-amber-500 text-amber-600 dark:text-amber-400 font-bold'
+                            : 'border-transparent text-text-secondary hover:text-text-primary'
+                    }`}
+                >
+                    <SparklesIcon className="w-4 h-4 text-amber-500" />
+                    <span>مستكشف الشيفرة ومحاكي المسح التفاعلي</span>
+                    <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold">
+                        بوابة جديدة
+                    </span>
                 </button>
 
                 <button
@@ -319,38 +377,27 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                 </button>
             </div>
 
-            {/* TAB 1: INTERACTIVE CIPHER INSPECTOR & SIMULATOR */}
-            {activeTab === 'inspector' && (
+            {/* TAB 1: MAIN SCANNER ENGINE (ماسح الحروف بالكلمة والنوافذ) */}
+            {activeTab === 'scanner' && (
                 <div className="space-y-6">
-                    {/* Direct Position Picker & Pointer Component */}
-                    <DirectPositionPicker
-                        flatWords={flatWords}
-                        currentStartIndex={inspectorStartIndex}
-                        currentStrategy={inspectorStrategy}
-                        currentDirection={inspectorDirection}
-                        onSelectPosition={(startIdx, strat, dir) => {
-                            setInspectorStartIndex(startIdx);
-                            setInspectorStrategy(strat);
-                            setInspectorDirection(dir);
-                        }}
-                    />
+                    {/* Quick Access to New Interactive Portal */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-xl text-xs">
+                        <div className="flex items-center gap-2.5">
+                            <SparklesIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span className="text-text-primary">
+                                <strong>بوابة جديدة ومستقلة:</strong> تم تخصيص بوابة مستقلة لـ <strong>مستكشف الشيفرة ومحاكي المسح التفاعلي</strong> لفحص مسار الحروف كلمة بكلمة واختبار التراتيب دون إعاقة عمل الماسح.
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('inspector')}
+                            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                        >
+                            <span>فتح بوابة المحاكي التفاعلي</span>
+                            <ArrowRightIcon className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
 
-                    {/* Step by Step Simulator and Word-by-Word Explorer */}
-                    <StepByStepInspector
-                        result={inspectorResult}
-                        flatWords={flatWords}
-                        onReScanFromWord={(wIdx, strat, dir) => {
-                            setInspectorStartIndex(wIdx);
-                            setInspectorStrategy(strat);
-                            setInspectorDirection(dir);
-                        }}
-                    />
-                </div>
-            )}
-
-            {/* TAB 2: WORD SEARCH & ENCLOSING WINDOWS */}
-            {activeTab === 'word_search' && (
-                <div className="space-y-6">
                     <div className="bg-surface p-6 rounded-xl shadow-sm border border-border-default">
                         {/* Strategy and Direction Controls */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -407,12 +454,36 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                                 </div>
                             </div>
 
-                            {/* Scan Direction Selector (مسار المسح وأقصر نافذة محيطة) */}
+                            {/* Scan Direction Selector (مسار المسح والمسح الذكي) */}
                             <div className="flex flex-col gap-2">
-                                <label className="text-sm font-bold text-text-primary">
-                                    اتجاه ومسار محرك المسح:
+                                <label className="text-sm font-bold text-text-primary flex items-center justify-between">
+                                    <span>اتجاه ومسار محرك المسح:</span>
+                                    {scanMode === 'optimal' && (
+                                        <span className="text-[11px] font-normal text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                                            <SparklesIcon className="w-3.5 h-3.5" />
+                                            تدوير الاحتمالات وتقليل تباعد الآيات
+                                        </span>
+                                    )}
                                 </label>
-                                <div className="grid grid-cols-3 gap-2 bg-surface-subtle p-2 rounded-lg border border-border-default">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-surface-subtle p-2 rounded-lg border border-border-default">
+                                    <button
+                                        type="button"
+                                        onClick={() => setScanMode('optimal')}
+                                        className={`p-2 rounded-md text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                            scanMode === 'optimal'
+                                                ? 'bg-amber-600 text-white font-bold shadow-xs'
+                                                : 'bg-surface border border-border-default text-text-secondary hover:border-amber-400/40'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold flex items-center gap-1">
+                                            <SparklesIcon className="w-3.5 h-3.5 text-amber-200" />
+                                            <span>المسح الذكي</span>
+                                        </span>
+                                        <span className={`text-[10px] mt-0.5 ${scanMode === 'optimal' ? 'text-white/90' : 'text-text-muted'}`}>
+                                            أقل عدد آيات
+                                        </span>
+                                    </button>
+
                                     <button
                                         type="button"
                                         onClick={() => setScanMode('shortest')}
@@ -422,7 +493,7 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                                                 : 'bg-surface border border-border-default text-text-secondary hover:border-primary/40'
                                         }`}
                                     >
-                                        <span className="text-xs font-bold">أقصر نافذة (متشعب)</span>
+                                        <span className="text-xs font-bold">أقصر نافذة</span>
                                         <span className={`text-[10px] mt-0.5 ${scanMode === 'shortest' ? 'text-white/80' : 'text-text-muted'}`}>
                                             محيطة بالكلمة
                                         </span>
@@ -459,6 +530,52 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                                     </button>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Cluster Threshold Selector (عتبة اقتناص الكتلة المكتنزة والسماح بنقص أحرف) */}
+                        <div className="bg-amber-500/5 p-4 rounded-xl border border-amber-500/20 space-y-2.5 mb-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    <label className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-300">
+                                        عتبة اكتمال الكتلة المتتالية (اقتناص الأبجدية دون الواو مع استثناء النواقص):
+                                    </label>
+                                </div>
+                                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 rounded">
+                                    {searchTargetLetters === 27 
+                                        ? 'كامل 27 حرفاً (100% دون الواو المستثنى)' 
+                                        : `كتلة متتالية تطلب ${searchTargetLetters} حرفاً (سماح بنقص ${27 - searchTargetLetters} أحرف)`}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                                {[
+                                    { count: 27, label: '27 (كامل)', sub: 'دون الواو' },
+                                    { count: 26, label: '26 حرفاً', sub: 'سماح بنقص 1' },
+                                    { count: 25, label: '25 حرفاً', sub: 'سماح بنقص 2' },
+                                    { count: 24, label: '24 حرفاً', sub: 'سماح بنقص 3' },
+                                    { count: 23, label: '23 حرفاً', sub: 'سماح بنقص 4' },
+                                    { count: 22, label: '22 حرفاً', sub: 'سماح بنقص 5' },
+                                ].map(item => (
+                                    <button
+                                        key={item.count}
+                                        type="button"
+                                        onClick={() => setSearchTargetLetters(item.count)}
+                                        className={`p-2 rounded-lg border text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                            searchTargetLetters === item.count
+                                                ? 'bg-amber-500/20 border-amber-500 text-amber-900 dark:text-amber-200 font-bold shadow-2xs ring-1 ring-amber-400/50'
+                                                : 'bg-surface border-border-default text-text-secondary hover:border-amber-400/50'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold">{item.label}</span>
+                                        <span className="text-[10px] text-text-muted mt-0.5">{item.sub}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <p className="text-[11px] text-text-muted leading-relaxed">
+                                ✨ <strong>حرف الواو (و) مستثنى كلياً</strong> من كافة أنظمة المسح والعد الأبجدي. عند مسح أوائل الكلمات، قد تقع حروف نادرة في آيات متباعدة جداً مما يشتت النافذة ويضخم عدد الكلمات؛ يتيح لك هذا الخيار التقاط الكتل المتراصة المتتالية فور استيفاء العدد المستهدف (مثلاً 24 أو 25 أو 26) دون تشتت.
+                            </p>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4">
@@ -580,14 +697,140 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                 </div>
             )}
 
+            {/* TAB 2: DEDICATED NEW PORTAL - INTERACTIVE CIPHER INSPECTOR & SIMULATOR (بوابة مستكشف الشيفرة والمحاكي التفاعلي) */}
+            {activeTab === 'inspector' && (
+                <div className="space-y-6">
+                    {/* Portal Header Card */}
+                    <div className="bg-surface rounded-xl border border-amber-500/30 p-5 shadow-sm space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-default pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    <SparklesIcon className="w-7 h-7" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-lg sm:text-xl font-bold text-text-primary">
+                                            بوابة مستكشف الشيفرة ومحاكي المسح التفاعلي
+                                        </h2>
+                                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-400/40">
+                                            بوابة تفاعلية متخصصة
+                                        </span>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-text-secondary mt-1">
+                                        بيئة متقدمة لتتبع ومحاكاة مسار الحروف الـ 27 كلمة بكلمة، واختبار نقاط الانطلاق ونوافذ الكتل المتراصة
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('scanner')}
+                                className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                            >
+                                <SearchIcon className="w-4 h-4" />
+                                <span>← العودة إلى ماسح الحروف بالكلمة</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Direct Position Picker & Pointer Component */}
+                    <DirectPositionPicker
+                        flatWords={flatWords}
+                        currentStartIndex={inspectorStartIndex}
+                        currentStrategy={inspectorStrategy}
+                        currentDirection={inspectorDirection}
+                        currentTargetLetterCount={inspectorTargetLetters}
+                        onSelectPosition={(startIdx, strat, dir, targetCount) => {
+                            setInspectorStartIndex(startIdx);
+                            setInspectorStrategy(strat);
+                            setInspectorDirection(dir);
+                            if (targetCount !== undefined) {
+                                setInspectorTargetLetters(targetCount);
+                            }
+                        }}
+                    />
+
+                    {/* Step by Step Simulator and Word-by-Word Explorer */}
+                    <StepByStepInspector
+                        result={inspectorResult}
+                        flatWords={flatWords}
+                        targetLetterCount={inspectorTargetLetters}
+                        onReScanFromWord={(wIdx, strat, dir, targetCount) => {
+                            setInspectorStartIndex(wIdx);
+                            setInspectorStrategy(strat);
+                            setInspectorDirection(dir);
+                            if (targetCount !== undefined) {
+                                setInspectorTargetLetters(targetCount);
+                            }
+                        }}
+                    />
+                </div>
+            )}
+
             {/* TAB 3: UNIVERSAL VERSES & ALPHABET SYSTEMS REFERENCE */}
             {activeTab === 'presets' && (
                 <div className="space-y-6">
-                    {/* Universal Verses Card */}
+                    {/* Record Breaking Optimal Clusters Card */}
                     <div className="bg-surface rounded-xl border border-border-default p-6 shadow-sm space-y-6">
                         <div className="flex items-center gap-3 border-b border-border-default pb-4">
                             <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
                                 <SparklesIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                                    <span>الكتل القياسية لاكتمال الأبجدية من أوائل الكلمات (المسح الذكي)</span>
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                                        أقل عدد آيات
+                                    </span>
+                                </h3>
+                                <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
+                                    نتائج تدوير خوارزمية المسح الذكي لاقتناص الأبجدية كاملة (27 حرفاً دون الواو) بأعلى كثافة وتقارب بين الكلمات
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {PRESET_SCAN_POINTS.filter(p => p.id === 'anam_94' || p.id === 'nisa_1' || p.id === 'yunus_2').map(preset => (
+                                <div key={preset.id} className="bg-surface-subtle rounded-xl p-5 border border-border-default flex flex-col justify-between space-y-4 hover:border-amber-400/40 transition-colors">
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-bold text-text-primary text-sm">
+                                                {preset.title}
+                                            </span>
+                                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300">
+                                                سورة {preset.surahName}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-text-secondary mb-3 leading-relaxed">
+                                            {preset.description}
+                                        </p>
+                                        <p className="font-amiri text-base text-text-primary leading-loose bg-surface p-3 rounded-lg border border-border-subtle text-justify" dir="rtl">
+                                            {preset.preview}
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            const match = flatWords.find(w => w.surah === preset.surah && w.ayah === preset.ayah);
+                                            if (match) {
+                                                handleOpenInInspector(match.index, 'first_letter', 'optimal');
+                                            }
+                                        }}
+                                        className="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                                    >
+                                        <SparklesIcon className="w-4 h-4 text-amber-200" />
+                                        <span>فحص هذه الكتلة في المسح الذكي</span>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Universal Verses Card */}
+                    <div className="bg-surface rounded-xl border border-border-default p-6 shadow-sm space-y-6">
+                        <div className="flex items-center gap-3 border-b border-border-default pb-4">
+                            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                                <BookOpenIcon className="w-6 h-6" />
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-text-primary">
@@ -600,7 +843,7 @@ const AlphabetScannerView: React.FC<AlphabetScannerViewProps> = ({ simpleCleanDa
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {PRESET_SCAN_POINTS.slice(0, 2).map(preset => (
+                            {PRESET_SCAN_POINTS.filter(p => p.id === 'fath_29' || p.id === 'imran_154').map(preset => (
                                 <div key={preset.id} className="bg-surface-subtle rounded-xl p-5 border border-border-default flex flex-col justify-between space-y-4">
                                     <div>
                                         <div className="flex items-center justify-between mb-2">

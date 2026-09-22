@@ -71,6 +71,15 @@ const QuranStructureView: React.FC = () => {
             hoverBg: "hover:bg-rose-100 dark:hover:bg-rose-900/20"
         },
         {
+            title: "الحروف الملتصقة بالمقاطع",
+            description: "اكتشاف أكثر الحروف اتصالاً والتصاقاً بأي مقطع أو لفظ تحدده في القرآن الكريم (مثل الحروف الأربعة الأكثر التصاقاً بمقطع 'حم')، مع إحصاءات التكرار والمواضع.",
+            icon: <SparklesIcon className="w-8 h-8 text-amber-500" />,
+            href: "#/syllable-cluster",
+            bg: "bg-amber-50 dark:bg-amber-900/10",
+            borderColor: "border-amber-200 dark:border-amber-800",
+            hoverBg: "hover:bg-amber-100 dark:hover:bg-amber-900/20"
+        },
+        {
             title: "الكتب الإلهية والنسخ السبع",
             description: "دراسة وتأملات الأستاذ أنوار إسحاق حول الكتب الإلهية داخل المصحف الشريف والأنبياء المخاطبين بها.",
             icon: <BookOpenIcon className="w-8 h-8 text-blue-500" />,

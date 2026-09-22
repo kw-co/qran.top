@@ -14,12 +14,14 @@ interface ScannerResultCardProps {
         R: number;
         length: number;
         targetIndex: number;
-        scanMode: 'shortest' | 'forward' | 'backward';
+        scanMode: 'shortest' | 'forward' | 'backward' | 'optimal';
         strategy?: ExtractionStrategy;
+        targetLetterCount?: number;
+        ayahsSpanned?: number;
     };
     idx: number;
     flatWords: FlatWord[];
-    onOpenInspector: (startWordIndex: number, strategy: ExtractionStrategy, direction: ScanDirection) => void;
+    onOpenInspector: (startWordIndex: number, strategy: ExtractionStrategy, direction: ScanDirection, targetLetterCount?: number) => void;
 }
 
 export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
@@ -32,17 +34,21 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
     const [isReversed, setIsReversed] = useState<boolean>(false);
     const [isCopied, setIsCopied] = useState<boolean>(false);
 
-    // Compute extraction based on chosen strategy
+    const targetCount = res.targetLetterCount ?? 27;
+
+    // Compute extraction based on chosen strategy and target letter count
     const extraction = useMemo(() => {
         if (res.scanMode === 'shortest') {
-            return extractAlphabetSequence(flatWords, res.targetIndex, strategy, 'shortest');
+            return extractAlphabetSequence(flatWords, res.targetIndex, strategy, 'shortest', undefined, targetCount);
         }
         const dir: ScanDirection = res.scanMode === 'backward' ? 'backward' : 'forward';
         const startIdx = res.scanMode === 'backward' ? res.R : res.L;
-        return extractAlphabetSequence(flatWords, startIdx, strategy, dir);
-    }, [res, flatWords, strategy]);
+        return extractAlphabetSequence(flatWords, startIdx, strategy, dir, undefined, targetCount);
+    }, [res, flatWords, strategy, targetCount]);
 
     const displaySequence = isReversed ? [...extraction.sequence].reverse() : extraction.sequence;
+    const isDenseCluster = targetCount < 27 || extraction.missingLetters.length > 0;
+    const densityPercent = ((displaySequence.length / Math.max(1, res.length)) * 100).toFixed(0);
 
     const handleCopy = () => {
         const textToCopy = displaySequence.join(' - ');
@@ -56,16 +62,44 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
         <div className="bg-surface border border-border-default rounded-xl overflow-hidden hover:shadow-md transition-shadow space-y-0">
             {/* Card Header */}
             <div className="bg-surface-subtle px-4 py-3 border-b border-border-default flex flex-wrap gap-x-6 gap-y-2 items-center justify-between text-sm">
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 font-bold text-primary">
                         <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">
                             {idx + 1}
                         </div>
-                        <span>
-                            {res.scanMode === 'backward' ? 'مسح تراجعي' : res.scanMode === 'forward' ? 'مسح تقدمي' : 'أقصر نافذة محيطة (متشعب)'} 
-                            ({res.length} كلمة)
+                        <span className="flex items-center gap-1.5">
+                            {res.scanMode === 'optimal' ? (
+                                <>
+                                    <SparklesIcon className="w-4 h-4 text-amber-500 inline" />
+                                    <span>المسح الذكي</span>
+                                </>
+                            ) : res.scanMode === 'backward' ? (
+                                'مسح تراجعي'
+                            ) : res.scanMode === 'forward' ? (
+                                'مسح تقدمي'
+                            ) : (
+                                'أقصر نافذة محيطة'
+                            )} 
+                            <span>({res.length} كلمة)</span>
                         </span>
                     </div>
+
+                    {res.ayahsSpanned !== undefined && res.ayahsSpanned > 0 && (
+                        <span className="text-xs bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-400/40 px-2.5 py-0.5 rounded-full font-bold">
+                            {res.ayahsSpanned} آيات فقط
+                        </span>
+                    )}
+
+                    {isDenseCluster ? (
+                        <span className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800/60 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                            <span>كتلة مكتنزة: {displaySequence.length} من 27 حرفاً</span>
+                            <span className="text-[10px] text-text-muted">({densityPercent}% كثافة)</span>
+                        </span>
+                    ) : (
+                        <span className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full font-bold">
+                            اكتمال تام (27 حرفاً - دون الواو)
+                        </span>
+                    )}
 
                     <div className="text-text-secondary flex items-center gap-1.5 text-xs sm:text-sm">
                         <BookOpenIcon className="w-4 h-4 text-primary/70" />
@@ -80,7 +114,7 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
 
                 {/* Open Inspector Action */}
                 <button
-                    onClick={() => onOpenInspector(res.targetIndex, strategy, res.scanMode)}
+                    onClick={() => onOpenInspector(res.targetIndex, strategy, res.scanMode, targetCount)}
                     className="flex items-center gap-1.5 text-xs font-bold bg-primary text-white hover:bg-primary-focus px-3 py-1.5 rounded-lg transition-colors shadow-2xs cursor-pointer"
                 >
                     <SparklesIcon className="w-3.5 h-3.5 text-amber-300" />
@@ -99,7 +133,7 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
                         words.push(
                             <button
                                 key={`w-${i}`}
-                                onClick={() => onOpenInspector(i, strategy, res.scanMode)}
+                                onClick={() => onOpenInspector(i, strategy, res.scanMode, targetCount)}
                                 className={`inline-block transition-all cursor-pointer rounded px-1 mx-0.5 ${
                                     isTarget 
                                         ? "text-amber-700 dark:text-amber-300 font-bold bg-amber-500/20 ring-1 ring-amber-400" 
@@ -178,6 +212,30 @@ export const ScannerResultCard: React.FC<ScannerResultCardProps> = ({
                         </div>
                     ))}
                 </div>
+
+                {/* Missing / Absent Letters Display */}
+                {extraction.missingLetters.length > 0 && (
+                    <div className="pt-2 border-t border-border-subtle flex flex-wrap items-center gap-2 text-xs">
+                        <span className="font-bold text-text-secondary flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                            الحروف الغائبة عن هذه الكتلة ({extraction.missingLetters.length} من 27):
+                        </span>
+                        <div className="flex flex-wrap gap-1" dir="rtl">
+                            {extraction.missingLetters.map((char) => (
+                                <span 
+                                    key={char} 
+                                    className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-800 dark:text-amber-300 font-bold font-amiri border border-amber-300/60 dark:border-amber-700/60"
+                                    title={`حرف (${char}) لم يرد في هذه الكتلة المتتالية المكونة من ${res.length} كلمة`}
+                                >
+                                    {char}
+                                </span>
+                            ))}
+                        </div>
+                        <span className="text-[11px] text-text-muted mr-auto">
+                            (حرف الواو مستثنى كلياً من العد والمسح)
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
     );

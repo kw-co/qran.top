@@ -11,10 +11,11 @@ import { BookOpenIcon, PlayIcon, SparklesIcon, ArrowRightIcon } from '../icons';
 
 interface DirectPositionPickerProps {
     flatWords: FlatWord[];
-    onSelectPosition: (startWordIndex: number, strategy: ExtractionStrategy, direction: ScanDirection) => void;
+    onSelectPosition: (startWordIndex: number, strategy: ExtractionStrategy, direction: ScanDirection, targetLetterCount?: number) => void;
     currentStartIndex: number;
     currentStrategy: ExtractionStrategy;
     currentDirection: ScanDirection;
+    currentTargetLetterCount?: number;
 }
 
 export const DirectPositionPicker: React.FC<DirectPositionPickerProps> = ({
@@ -22,13 +23,15 @@ export const DirectPositionPicker: React.FC<DirectPositionPickerProps> = ({
     onSelectPosition,
     currentStartIndex,
     currentStrategy,
-    currentDirection
+    currentDirection,
+    currentTargetLetterCount = 27
 }) => {
     const [selectedSurah, setSelectedSurah] = useState<number>(48);
     const [selectedAyah, setSelectedAyah] = useState<number>(29);
     const [selectedWordIdxInAyah, setSelectedWordIdxInAyah] = useState<number>(0);
     const [strategy, setStrategy] = useState<ExtractionStrategy>(currentStrategy);
     const [direction, setDirection] = useState<ScanDirection>(currentDirection);
+    const [targetLetterCount, setTargetLetterCount] = useState<number>(currentTargetLetterCount);
 
     const surahInfo = useMemo(() => {
         return QURAN_INDEX.find(s => s.number === selectedSurah) || QURAN_INDEX[0];
@@ -56,7 +59,7 @@ export const DirectPositionPicker: React.FC<DirectPositionPickerProps> = ({
         // Find matching word index in flatWords
         const targetWord = flatWords.find(w => w.surah === preset.surah && w.ayah === preset.ayah);
         if (targetWord) {
-            onSelectPosition(targetWord.index, strategy, direction);
+            onSelectPosition(targetWord.index, strategy, direction, targetLetterCount);
         }
     };
 
@@ -65,7 +68,7 @@ export const DirectPositionPicker: React.FC<DirectPositionPickerProps> = ({
         if (wordsInSelectedAyah.length === 0) return;
         const target = wordsInSelectedAyah[selectedWordIdxInAyah] || wordsInSelectedAyah[0];
         if (target) {
-            onSelectPosition(target.index, strategy, direction);
+            onSelectPosition(target.index, strategy, direction, targetLetterCount);
         }
     };
 
@@ -273,7 +276,36 @@ export const DirectPositionPicker: React.FC<DirectPositionPickerProps> = ({
                     <label className="text-xs sm:text-sm font-bold text-text-primary block">
                         اتجاه مسار المسح:
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setDirection('optimal')}
+                            className={`p-2.5 rounded-lg border text-right transition-all flex flex-col ${
+                                direction === 'optimal'
+                                    ? 'bg-amber-500/10 border-amber-500 text-amber-900 dark:text-amber-300 font-bold shadow-2xs ring-1 ring-amber-400/40'
+                                    : 'bg-surface border-border-default text-text-secondary hover:border-amber-400/40'
+                            }`}
+                        >
+                            <span className="text-xs font-bold flex items-center gap-1">
+                                <SparklesIcon className="w-3.5 h-3.5 text-amber-500" />
+                                <span>المسح الذكي (أقل عدد آيات)</span>
+                            </span>
+                            <span className="text-[10px] text-text-muted mt-0.5">تدوير جميع الاحتمالات وتقريب الكلمات لأضيق نطاق آيات</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setDirection('shortest')}
+                            className={`p-2.5 rounded-lg border text-right transition-all flex flex-col ${
+                                direction === 'shortest'
+                                    ? 'bg-primary/10 border-primary text-primary font-bold shadow-2xs'
+                                    : 'bg-surface border-border-default text-text-secondary hover:border-primary/40'
+                            }`}
+                        >
+                            <span className="text-xs font-bold">أقصر نافذة محيطة (متشعب)</span>
+                            <span className="text-[10px] text-text-muted mt-0.5">أصغر نطاق محيط بالكلمة (ثنائي الاتجاه) لاكتمال الحروف</span>
+                        </button>
+
                         <button
                             type="button"
                             onClick={() => setDirection('forward')}
@@ -299,21 +331,48 @@ export const DirectPositionPicker: React.FC<DirectPositionPickerProps> = ({
                             <span className="text-xs font-bold">مسح تراجعي للخلف</span>
                             <span className="text-[10px] text-text-muted mt-0.5">من موضع الكلمة نحو الآيات السابقة</span>
                         </button>
+                    </div>
+                </div>
+            </div>
 
+            {/* Cluster Threshold (عتبة اكتمال الكتلة والسماح بنقص أحرف) */}
+            <div className="bg-surface-subtle p-4 rounded-xl border border-border-default space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-xs sm:text-sm font-bold text-text-primary flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span>عتبة اكتمال الكتلة / حد الحروف المطلوبة (الأبجدية 27 حرفاً - دون الواو):</span>
+                    </label>
+                    <span className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold">
+                        {targetLetterCount === 27 ? 'كامل 27 حرفاً (بدون الواو)' : `اقتناص كتلة مكتنزة من ${targetLetterCount} حرفاً (سماح بنقص ${27 - targetLetterCount} أحرف)`}
+                    </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                    {[
+                        { count: 27, label: '27 (كامل)', desc: 'دون الواو' },
+                        { count: 26, label: '26 حرفاً', desc: 'سماح بنقص حرف' },
+                        { count: 25, label: '25 حرفاً', desc: 'سماح بحرفين' },
+                        { count: 24, label: '24 حرفاً', desc: 'سماح بـ 3 حروف' },
+                        { count: 23, label: '23 حرفاً', desc: 'سماح بـ 4 حروف' },
+                        { count: 22, label: '22 حرفاً', desc: 'سماح بـ 5 حروف' },
+                    ].map(item => (
                         <button
+                            key={item.count}
                             type="button"
-                            onClick={() => setDirection('shortest')}
-                            className={`p-2.5 rounded-lg border text-right transition-all flex flex-col ${
-                                direction === 'shortest'
-                                    ? 'bg-primary/10 border-primary text-primary font-bold shadow-2xs'
+                            onClick={() => setTargetLetterCount(item.count)}
+                            className={`p-2 rounded-lg border text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                                targetLetterCount === item.count
+                                    ? 'bg-amber-500/15 border-amber-500 text-amber-900 dark:text-amber-300 font-bold shadow-2xs ring-1 ring-amber-400/40'
                                     : 'bg-surface border-border-default text-text-secondary hover:border-primary/40'
                             }`}
                         >
-                            <span className="text-xs font-bold">أقصر نافذة محيطة (متشعب)</span>
-                            <span className="text-[10px] text-text-muted mt-0.5">أصغر نطاق محيط بالكلمة (ثنائي الاتجاه) لاكتمال الحروف</span>
+                            <span className="text-xs font-bold">{item.label}</span>
+                            <span className="text-[10px] text-text-muted mt-0.5">{item.desc}</span>
                         </button>
-                    </div>
+                    ))}
                 </div>
+                <p className="text-[11px] text-text-muted">
+                    💡 حرف الواو (و) مستثنى كلياً من منظومة المسح الأبجدي. يتيح لك هذا الخيار اكتشاف الكتل القرآنية المتوالية كلمة بكلمة حتى لو غابت بعض الحروف النادرة (كالظاء أو الغين) دون تشتت النافذة لآيات بعيدة.
+                </p>
             </div>
 
             {/* Launch Button */}
