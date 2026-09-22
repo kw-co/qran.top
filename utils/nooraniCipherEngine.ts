@@ -404,3 +404,180 @@ export function simulateCipherTranslation(
         cipherDetails: details
     };
 }
+
+export interface LetterPairSimilarity {
+    letterA: string;
+    letterB: string;
+    similarityScore: number; // 0 - 100%
+    sharedTop4: string[];
+    sharedTop8: string[];
+    cosineSimilarity: number;
+}
+
+export interface SimilarityPairCluster {
+    pairId: number;
+    nodeA: NooraniCipherNode;
+    nodeB: NooraniCipherNode;
+    similarityScore: number;
+    sharedTopLetters: string[];
+}
+
+/**
+ * Computes the similarity score and shared candidate letters between two Noorani cipher nodes.
+ */
+export function computePairSimilarity(nodeA: NooraniCipherNode, nodeB: NooraniCipherNode): LetterPairSimilarity {
+    // 1. Build score maps for all 28 alphabet letters
+    const scoreMapA = new Map<string, number>();
+    const scoreMapB = new Map<string, number>();
+
+    nodeA.allCandidates.forEach(c => scoreMapA.set(c.letter, c.score));
+    nodeB.allCandidates.forEach(c => scoreMapB.set(c.letter, c.score));
+
+    // 2. Cosine similarity over the score vectors
+    let dot = 0;
+    let magA = 0;
+    let magB = 0;
+
+    ARABIC_ALPHABET_28.forEach(a => {
+        const sa = scoreMapA.get(a.letter) || 0;
+        const sb = scoreMapB.get(a.letter) || 0;
+        dot += sa * sb;
+        magA += sa * sa;
+        magB += sb * sb;
+    });
+
+    const cosineSim = (magA > 0 && magB > 0) ? (dot / (Math.sqrt(magA) * Math.sqrt(magB))) : 0;
+
+    // 3. Overlap in top candidates
+    const top4A = new Set(nodeA.top4.map(c => c.letter));
+    const top4B = new Set(nodeB.top4.map(c => c.letter));
+    const sharedTop4 = nodeA.top4.filter(c => top4B.has(c.letter)).map(c => c.letter);
+
+    const top8A = new Set(nodeA.allCandidates.slice(0, 8).map(c => c.letter));
+    const top8B = new Set(nodeB.allCandidates.slice(0, 8).map(c => c.letter));
+    const sharedTop8 = nodeA.allCandidates.slice(0, 8).filter(c => top8B.has(c.letter)).map(c => c.letter);
+
+    // Composite similarity percentage (weighted 65% cosine profile + 35% top candidate overlaps)
+    const jaccardTop8 = (sharedTop8.length / Math.max(1, 16 - sharedTop8.length));
+    const rawScore = (cosineSim * 0.65 + jaccardTop8 * 0.35) * 100;
+    const similarityScore = Math.min(100, Math.round(rawScore * 10) / 10);
+
+    return {
+        letterA: nodeA.nooraniLetter,
+        letterB: nodeB.nooraniLetter,
+        similarityScore,
+        sharedTop4,
+        sharedTop8,
+        cosineSimilarity: Math.round(cosineSim * 1000) / 10
+    };
+}
+
+/**
+ * Clusters Noorani letters into mutual twin pairs sorted directly under each other
+ * based on highest correlation/overlap in their connected alphabet letters.
+ */
+export function clusterNodesBySimilarityPairs(nodes: NooraniCipherNode[]): {
+    sortedNodes: NooraniCipherNode[];
+    pairs: SimilarityPairCluster[];
+    similarityMatrix: Record<string, Record<string, number>>;
+    bestPartnerMap: Record<string, { partnerLetter: string; similarity: number; sharedLetters: string[] }>;
+} {
+    // 1. Build complete pairwise similarity matrix
+    const matrix: Record<string, Record<string, number>> = {};
+    const pairCache = new Map<string, LetterPairSimilarity>();
+
+    nodes.forEach(n1 => {
+        matrix[n1.nooraniLetter] = {};
+        nodes.forEach(n2 => {
+            if (n1.nooraniLetter === n2.nooraniLetter) {
+                matrix[n1.nooraniLetter][n2.nooraniLetter] = 100;
+            } else {
+                const key = [n1.nooraniLetter, n2.nooraniLetter].sort().join('-');
+                let sim = pairCache.get(key);
+                if (!sim) {
+                    sim = computePairSimilarity(n1, n2);
+                    pairCache.set(key, sim);
+                }
+                matrix[n1.nooraniLetter][n2.nooraniLetter] = sim.similarityScore;
+            }
+        });
+    });
+
+    // 2. Determine best partner for each letter
+    const bestPartnerMap: Record<string, { partnerLetter: string; similarity: number; sharedLetters: string[] }> = {};
+    nodes.forEach(n1 => {
+        let bestScore = -1;
+        let bestPartner = '';
+        let bestShared: string[] = [];
+
+        nodes.forEach(n2 => {
+            if (n1.nooraniLetter !== n2.nooraniLetter) {
+                const key = [n1.nooraniLetter, n2.nooraniLetter].sort().join('-');
+                const sim = pairCache.get(key)!;
+                if (sim.similarityScore > bestScore) {
+                    bestScore = sim.similarityScore;
+                    bestPartner = n2.nooraniLetter;
+                    bestShared = sim.sharedTop8;
+                }
+            }
+        });
+
+        bestPartnerMap[n1.nooraniLetter] = {
+            partnerLetter: bestPartner,
+            similarity: bestScore,
+            sharedLetters: bestShared
+        };
+    });
+
+    // 3. Greedy Maximum Weight Matching to form distinct pairs
+    const visited = new Set<string>();
+    const pairs: SimilarityPairCluster[] = [];
+    const sortedNodes: NooraniCipherNode[] = [];
+
+    // All possible distinct pairs sorted descending by similarity
+    const allPairsList: { a: NooraniCipherNode; b: NooraniCipherNode; sim: LetterPairSimilarity }[] = [];
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+            const nA = nodes[i];
+            const nB = nodes[j];
+            const key = [nA.nooraniLetter, nB.nooraniLetter].sort().join('-');
+            const sim = pairCache.get(key)!;
+            allPairsList.push({ a: nA, b: nB, sim });
+        }
+    }
+    allPairsList.sort((p1, p2) => p2.sim.similarityScore - p1.sim.similarityScore);
+
+    let pairCounter = 1;
+    for (const item of allPairsList) {
+        if (!visited.has(item.a.nooraniLetter) && !visited.has(item.b.nooraniLetter)) {
+            visited.add(item.a.nooraniLetter);
+            visited.add(item.b.nooraniLetter);
+
+            pairs.push({
+                pairId: pairCounter++,
+                nodeA: item.a,
+                nodeB: item.b,
+                similarityScore: item.sim.similarityScore,
+                sharedTopLetters: item.sim.sharedTop8
+            });
+
+            // Put them directly under each other:
+            sortedNodes.push(item.a);
+            sortedNodes.push(item.b);
+        }
+    }
+
+    // Add any remaining unvisited nodes (if odd count)
+    nodes.forEach(n => {
+        if (!visited.has(n.nooraniLetter)) {
+            sortedNodes.push(n);
+        }
+    });
+
+    return {
+        sortedNodes,
+        pairs,
+        similarityMatrix: matrix,
+        bestPartnerMap
+    };
+}

@@ -214,7 +214,7 @@ const isSearchPage = pathParts[0] === 'search';
         } else if (route === 'history') {
             title = '🕒 السجل';
         } else if (route === 'syllable-cluster' || route === 'affix-letters' || route === 'attached-letters') {
-            title = '🔤 الحروف الملتصقة بالمقاطع';
+            title = '🔤 مصفوفة اتصال الحروف والمقاطع';
         } else if (route === 'noorani-cipher' || route === 'cipher-reverse' || route === 'reverse-cipher') {
             title = '🔐 هندسة شيفرة الحروف النورانية';
         }
