@@ -292,10 +292,10 @@ ${breakdown}
                         ? (s.isPresent ? 'border-primary/40 bg-primary/5 hover:border-primary hover:shadow-2xs cursor-pointer' : 'border-border-default bg-surface hover:border-primary hover:shadow-2xs cursor-pointer')
                         : 'border-border-default/60 bg-surface-subtle/30 opacity-70 cursor-default'
                 }`}
-                title={`سورة ${s.surahName} (${s.surahNumber}) - [${s.letters}]\n${
+                title={`سورة ${s.surahName} (رقم ${s.surahNumber}) - [فاتحة: ${s.letters}]\n${
                     s.isPresent
-                        ? `وردت في نتائج البحث (القيمة: 1) - ${isCellActive ? 'انقر لإلغاء التصفية' : 'انقر لتصفية النتائج لهذه السورة'}`
-                        : (s.isAvailable ? 'متاحة في نتائج البحث الأصلية (القيمة: 0) - انقر للتصفية' : 'لم ترد في نتائج البحث (القيمة: 0)')
+                        ? `✓ وردت في نتائج البحث (القيمة: 1) - ${isCellActive ? 'انقر لإلغاء التصفية' : `انقر لتصفية النتائج على سورة ${s.surahName}`}`
+                        : (s.isAvailable ? `متاحة في نتائج البحث الأصلية (القيمة: 0) - انقر للتصفية` : `✗ لم ترد كلمة البحث في سورة ${s.surahName} (القيمة: 0)`)
                 }`}
                 onClick={() => {
                     if (s.isAvailable) {
@@ -308,8 +308,11 @@ ${breakdown}
                     {s.letters}
                 </span>
 
-                {/* Middle row: Surah number index */}
-                <span className="text-[8px] sm:text-[9px] text-text-muted font-mono py-0.5 leading-none">
+                {/* Surah Name & Number */}
+                <span className="text-[7.5px] text-text-secondary truncate px-0.5 leading-tight font-sans mt-0.5" title={`سورة ${s.surahName}`}>
+                    {s.surahName}
+                </span>
+                <span className="text-[7px] text-text-muted font-mono leading-none pb-0.5">
                     {s.surahNumber}
                 </span>
 

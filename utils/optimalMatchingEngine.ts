@@ -1,4 +1,4 @@
-import { ARABIC_ALPHABET_28, NooraniCipherNode } from './nooraniCipherEngine';
+import { ARABIC_ALPHABET_28, CANONICAL_14_NOORANI_LETTERS, NooraniCipherNode } from './nooraniCipherEngine';
 
 export interface Optimal2LetterAssignment {
     nooraniLetter: string;
@@ -54,6 +54,20 @@ export function computeOptimal14x2Partition(
         };
     }
 
+    // Ensure we strictly evaluate the 14 canonical Noorani letters (14 x 2 = 28 slots)
+    const canonicalSet = new Set(CANONICAL_14_NOORANI_LETTERS.map(c => c.letter));
+    const targetNodes = nodes.filter(n => canonicalSet.has(n.nooraniLetter));
+    if (targetNodes.length === 0) {
+        return {
+            assignments: [],
+            assignedLettersSet: new Set(),
+            all28Covered: false,
+            coverageCount: 0,
+            totalScore: 0,
+            method
+        };
+    }
+
     // Map each alphabet letter to its name
     const letterNameMap = new Map<string, string>();
     ARABIC_ALPHABET_28.forEach(a => letterNameMap.set(a.letter, a.name));
@@ -67,7 +81,7 @@ export function computeOptimal14x2Partition(
         reason: string;
     }>>();
 
-    nodes.forEach(n => {
+    targetNodes.forEach(n => {
         const charMap = new Map<string, { score: number; rank: number; attach: number; inWord: number; reason: string }>();
         n.allCandidates.forEach(c => {
             charMap.set(c.letter, {
@@ -83,7 +97,7 @@ export function computeOptimal14x2Partition(
 
     // 14 Noorani letters duplicate to 28 slots (each Noorani has slot A and slot B)
     const nooraniSlots: { nooraniLetter: string; slotIdx: number }[] = [];
-    nodes.forEach(n => {
+    targetNodes.forEach(n => {
         nooraniSlots.push({ nooraniLetter: n.nooraniLetter, slotIdx: 1 });
         nooraniSlots.push({ nooraniLetter: n.nooraniLetter, slotIdx: 2 });
     });
@@ -91,12 +105,12 @@ export function computeOptimal14x2Partition(
     const all28Letters = ARABIC_ALPHABET_28.map(a => a.letter);
 
     let finalPairings: Map<string, string[]> = new Map(); // Noorani -> [Letter1, Letter2]
-    nodes.forEach(n => finalPairings.set(n.nooraniLetter, []));
+    targetNodes.forEach(n => finalPairings.set(n.nooraniLetter, []));
 
     if (method === 'greedy_priority') {
         // Greedy assignment: sort all possible (Noorani, Alphabet) pairs by score descending
         const allEdges: { noorani: string; alphabet: string; score: number }[] = [];
-        nodes.forEach(n => {
+        targetNodes.forEach(n => {
             const m = candidateMap.get(n.nooraniLetter);
             all28Letters.forEach(a => {
                 const item = m?.get(a);
@@ -112,7 +126,7 @@ export function computeOptimal14x2Partition(
 
         const usedAlphabet = new Set<string>();
         const nooraniCounts = new Map<string, number>();
-        nodes.forEach(n => nooraniCounts.set(n.nooraniLetter, 0));
+        targetNodes.forEach(n => nooraniCounts.set(n.nooraniLetter, 0));
 
         allEdges.forEach(edge => {
             if (!usedAlphabet.has(edge.alphabet) && (nooraniCounts.get(edge.noorani) || 0) < 2) {
@@ -125,7 +139,7 @@ export function computeOptimal14x2Partition(
         // Ensure any unassigned alphabet letters get assigned to nodes that still have room
         const remainingAlphabet = all28Letters.filter(a => !usedAlphabet.has(a));
         remainingAlphabet.forEach(a => {
-            for (const n of nodes) {
+            for (const n of targetNodes) {
                 if ((finalPairings.get(n.nooraniLetter)?.length || 0) < 2) {
                     finalPairings.get(n.nooraniLetter)?.push(a);
                     usedAlphabet.add(a);
@@ -139,7 +153,7 @@ export function computeOptimal14x2Partition(
         const N = 28;
         // Cost matrix where cost = MAX_SCORE - score (to minimize cost)
         let maxVal = 0;
-        nodes.forEach(n => {
+        targetNodes.forEach(n => {
             const m = candidateMap.get(n.nooraniLetter);
             all28Letters.forEach(a => {
                 const s = m?.get(a)?.score || 0;
@@ -224,7 +238,7 @@ export function computeOptimal14x2Partition(
     const assignedLettersSet = new Set<string>();
     let totalScore = 0;
 
-    nodes.forEach(n => {
+    targetNodes.forEach(n => {
         const rawLetters = finalPairings.get(n.nooraniLetter) || [];
         const m = candidateMap.get(n.nooraniLetter);
 

@@ -23,6 +23,7 @@ const NooraniAyahsView = lazyRetry(() => import('./NooraniAyahsView'));
 const UniversalAlphabetMatrixView = lazyRetry(() => import('./UniversalAlphabetMatrixView'));
 const SyllableClusterView = lazyRetry(() => import('./SyllableClusterView'));
 const NooraniReverseCipherView = lazyRetry(() => import('./NooraniReverseCipherView'));
+const WordSurahGeometryView = lazyRetry(() => import('./WordSurahGeometryView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -217,6 +218,11 @@ const isSearchPage = pathParts[0] === 'search';
             title = '🔤 مصفوفة اتصال الحروف والمقاطع';
         } else if (route === 'noorani-cipher' || route === 'cipher-reverse' || route === 'reverse-cipher') {
             title = '🔐 هندسة شيفرة الحروف النورانية';
+        } else if (route === 'word-geometry' || route === 'word-gravity' || route === 'surah-geometry') {
+            const q = pathParts[1] ? decodeURIComponent(pathParts[1]) : '';
+            title = q ? `⚖️ مركز ثقل: ${q}` : '⚖️ مركز ثقل المفردة وهندسة السور';
+        } else if (route === 'structure' || route === 'cipher-lab') {
+            title = '🏛️ بنية المصحف | مختبر التشفير وفك التشفير';
         }
 
         document.title = title;
@@ -228,6 +234,16 @@ const isSearchPage = pathParts[0] === 'search';
             return (
                 <NooraniReverseCipherView 
                     simpleCleanData={allQuranData?.['quran-simple-clean'] || []} 
+                />
+            );
+        }
+        if (pathParts[0] === 'word-geometry' || pathParts[0] === 'word-gravity' || pathParts[0] === 'surah-geometry') {
+            const initialWord = pathParts[1] ? decodeURIComponent(pathParts[1]) : undefined;
+            return (
+                <WordSurahGeometryView 
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])}
+                    initialWord={initialWord}
+                    onSearch={handleSearch}
                 />
             );
         }
@@ -295,7 +311,16 @@ const isSearchPage = pathParts[0] === 'search';
         }
         if (pathParts[0] === 'privacy-policy') return <PrivacyPolicyView />;
         if (pathParts[0] === 'research') return <ResearchView />;
-        if (pathParts[0] === 'structure') return <QuranStructureView />;
+        if (pathParts[0] === 'structure' || pathParts[0] === 'cipher-lab') {
+            const requestedTab = queryParams.get('tab') as 'lab' | 'sections' | null;
+            return (
+                <QuranStructureView 
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])} 
+                    onSearch={handleSearch}
+                    initialTab={pathParts[0] === 'cipher-lab' ? 'lab' : (requestedTab || 'lab')}
+                />
+            );
+        }
         if (pathParts[0] === 'noorani' || pathParts[0] === 'noorani-ayahs') {
             return (
                 <NooraniAyahsView 

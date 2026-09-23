@@ -21,6 +21,39 @@ const ALL_MUQATTAAT_CONFIG: { letters: string; allSurahs: number[] }[] = [
     { letters: "ن", allSurahs: [68] }
 ];
 
+// Complete list of all 29 Muqatta'at Surahs with Arabic names and letters in Quranic order
+export const FULL_29_MUQATTAAT_LIST = [
+    { surah: 2,  name: "البقرة",    letters: "الم" },
+    { surah: 3,  name: "آل عمران",  letters: "الم" },
+    { surah: 7,  name: "الأعراف",   letters: "المص" },
+    { surah: 10, name: "يونس",      letters: "الر" },
+    { surah: 11, name: "هود",       letters: "الر" },
+    { surah: 12, name: "يوسف",      letters: "الر" },
+    { surah: 13, name: "الرعد",     letters: "المر" },
+    { surah: 14, name: "إبراهيم",   letters: "الر" },
+    { surah: 15, name: "الحجر",     letters: "الر" },
+    { surah: 19, name: "مريم",      letters: "كهيعص" },
+    { surah: 20, name: "طه",        letters: "طه" },
+    { surah: 26, name: "الشعراء",   letters: "طسم" },
+    { surah: 27, name: "النمل",     letters: "طس" },
+    { surah: 28, name: "القصص",     letters: "طسم" },
+    { surah: 29, name: "العنكبوت",  letters: "الم" },
+    { surah: 30, name: "الروم",     letters: "الم" },
+    { surah: 31, name: "لقمان",     letters: "الم" },
+    { surah: 32, name: "السجدة",    letters: "الم" },
+    { surah: 36, name: "يس",        letters: "يس" },
+    { surah: 38, name: "ص",         letters: "ص" },
+    { surah: 40, name: "غافر",      letters: "حم" },
+    { surah: 41, name: "فصلت",      letters: "حم" },
+    { surah: 42, name: "الشورى",    letters: "حم عسق" },
+    { surah: 43, name: "الزخرف",    letters: "حم" },
+    { surah: 44, name: "الدخان",    letters: "حم" },
+    { surah: 45, name: "الجاثية",   letters: "حم" },
+    { surah: 46, name: "الأحقاف",   letters: "حم" },
+    { surah: 50, name: "ق",         letters: "ق" },
+    { surah: 68, name: "القلم",     letters: "ن" }
+];
+
 const SURAH_MUQATTAAT_MAP: Record<number, string> = {
     2: "الم",
     3: "الم",
@@ -89,27 +122,37 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
     const finalQueryForChecks = correctedQuery || query;
     const shouldShowAnalysisButton = finalQueryForChecks.trim().split(/\s+/).filter(Boolean).length === 1 && searchType === 'text';
 
+    const activeFiltersList = React.useMemo(() => {
+        return (activeMuqattaatFilter || '').split(',').map(f => f.trim()).filter(Boolean);
+    }, [activeMuqattaatFilter]);
+
     const allMuqattaatStats = React.useMemo(() => {
-        if (!displayedResults || displayedResults.length === 0) return [];
-        const surahNumbers = new Set(displayedResults.map(a => a.surah?.number).filter((n): n is number => !!n));
+        const sourceResults = (baseResults && baseResults.length > 0) ? baseResults : displayedResults;
+        if (!sourceResults || sourceResults.length === 0) return [];
 
-        const FULL_29_MUQATTAAT = [
-            { surah: 2, letters: "الم" }, { surah: 3, letters: "الم" }, { surah: 7, letters: "المص" }, { surah: 10, letters: "الر" },
-            { surah: 11, letters: "الر" }, { surah: 12, letters: "الر" }, { surah: 13, letters: "المر" }, { surah: 14, letters: "الر" },
-            { surah: 15, letters: "الر" }, { surah: 19, letters: "كهيعص" }, { surah: 20, letters: "طه" }, { surah: 26, letters: "طسم" },
-            { surah: 27, letters: "طس" }, { surah: 28, letters: "طسم" }, { surah: 29, letters: "الم" }, { surah: 30, letters: "الم" },
-            { surah: 31, letters: "الم" }, { surah: 32, letters: "الم" }, { surah: 36, letters: "يس" }, { surah: 38, letters: "ص" },
-            { surah: 40, letters: "حم" }, { surah: 41, letters: "حم" }, { surah: 42, letters: "حم عسق" }, { surah: 43, letters: "حم" },
-            { surah: 44, letters: "حم" }, { surah: 45, letters: "حم" }, { surah: 46, letters: "حم" }, { surah: 50, letters: "ق" },
-            { surah: 68, letters: "ن" }
-        ];
+        const currentFilteredNumbers = new Set(displayedResults.map(a => a.surah?.number).filter((n): n is number => !!n));
 
-        return FULL_29_MUQATTAAT.map(({ surah, letters }) => ({
-            surah,
-            letters,
-            isMentioned: surahNumbers.has(surah)
-        }));
-    }, [displayedResults]);
+        return FULL_29_MUQATTAAT_LIST.map(({ surah, name, letters }) => {
+            const count = sourceResults.filter(a => a.surah?.number === surah).length;
+            const isMentioned = count > 0;
+            const isDisplayed = currentFilteredNumbers.has(surah);
+            const isSurahFiltered = activeFiltersList.includes(`s:${surah}`);
+            const isFormulaFiltered = activeFiltersList.includes(letters);
+            const isFilterActive = isSurahFiltered || isFormulaFiltered;
+
+            return {
+                surah,
+                name,
+                letters,
+                count,
+                isMentioned,
+                isDisplayed,
+                isFilterActive,
+                isSurahFiltered,
+                isFormulaFiltered
+            };
+        });
+    }, [baseResults, displayedResults, activeFiltersList]);
 
     const hasAnyMuqattaatInResults = allMuqattaatStats.some(item => item.isMentioned);
 
@@ -117,7 +160,28 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
         try { return localStorage.getItem("qran_muqattaat_open") === "true"; } catch { return false; }
     });
 
-    
+    const [hoveredSurah, setHoveredSurah] = useState<(typeof allMuqattaatStats)[0] | null>(null);
+
+    const handleSurahClick = (item: (typeof allMuqattaatStats)[0]) => {
+        if (!setActiveMuqattaatFilter) return;
+        const currentFilters = (activeMuqattaatFilter || '').split(',').map(f => f.trim()).filter(Boolean);
+        const surahKey = `s:${item.surah}`;
+        
+        let nextFilters: string[];
+        if (currentFilters.includes(surahKey)) {
+            // Already filtered by this surah, toggle off
+            nextFilters = currentFilters.filter(f => f !== surahKey);
+        } else if (currentFilters.includes(item.letters)) {
+            // If the whole formula was active, switch to this specific surah
+            nextFilters = currentFilters.filter(f => f !== item.letters);
+            nextFilters.push(surahKey);
+        } else {
+            // Filter by this surah
+            nextFilters = [...currentFilters, surahKey];
+        }
+        setActiveMuqattaatFilter(nextFilters.join(','));
+    };
+
     const handleFormulaClick = (formula: string) => {
         if (!setActiveMuqattaatFilter) return;
         const currentFilters = (activeMuqattaatFilter || '').split(',').map(f => f.trim()).filter(Boolean);
@@ -125,7 +189,10 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
         if (currentFilters.includes(formula)) {
             nextFilters = currentFilters.filter(f => f !== formula);
         } else {
-            nextFilters = [...currentFilters, formula];
+            // Remove any specific surahs of this formula and add the formula
+            const formulaSurahKeys = FULL_29_MUQATTAAT_LIST.filter(s => s.letters === formula).map(s => `s:${s.surah}`);
+            nextFilters = currentFilters.filter(f => !formulaSurahKeys.includes(f));
+            nextFilters.push(formula);
         }
         setActiveMuqattaatFilter(nextFilters.join(','));
     };
@@ -134,6 +201,19 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
         const newState = !isMuqattaatOpen;
         setIsMuqattaatOpen(newState);
         try { localStorage.setItem("qran_muqattaat_open", String(newState)); } catch {}
+    };
+
+    const formatFilterLabel = (rawFilter: string) => {
+        const parts = rawFilter.split(',').map(f => f.trim()).filter(Boolean);
+        if (parts.length === 0) return '';
+        return parts.map(part => {
+            if (part.startsWith('s:')) {
+                const sNum = parseInt(part.replace('s:', ''), 10);
+                const sItem = FULL_29_MUQATTAAT_LIST.find(s => s.surah === sNum);
+                return sItem ? `سورة ${sItem.name}` : `سورة (${sNum})`;
+            }
+            return `فواتح [${part}]`;
+        }).join(' + ');
     };
 
     return (
@@ -158,8 +238,16 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                                 </span>
                             )}
                             {activeMuqattaatFilter && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                                    السور التي تبدأ بـ {activeMuqattaatFilter}
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                                    <span>{formatFilterLabel(activeMuqattaatFilter)}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveMuqattaatFilter?.('')}
+                                        className="hover:text-red-500 text-text-muted hover:bg-surface rounded px-1 transition-colors"
+                                        title="إلغاء التصفية"
+                                    >
+                                        ✕
+                                    </button>
                                 </span>
                             )}
                         </h3>
@@ -171,41 +259,51 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-500/20 text-text-primary shadow-sm cursor-help" title="إجمالي عدد الآيات التي تحتوي على كلمة البحث.">{displayedResultsCount} آيات</span>
                             {searchType === 'text' && (
-                              <>
-                                {isSingleWordSearch && !isRootSearch && (
-                                  <>
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-500/20 text-text-primary shadow-sm cursor-help" title="إجمالي عدد مرات ورود كلمة البحث في كل الآيات.">{generalOccurrences} تكراراً</span>
-                                    
-                                    <button
-                                        onClick={() => {
-                                            setExactMatch(!exactMatch);
-                                        }}
-                                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold shadow-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-subtle focus:ring-purple-500
-                                        ${exactMatch 
-                                            ? 'bg-purple-600 text-white' 
-                                            : 'bg-purple-500/20 text-text-primary hover:bg-purple-500/40'}`}
-                                        title="تفعيل/إلغاء تفعيل المطابقة التامة"
-                                        aria-pressed={exactMatch}
+                                <>
+                                  {isSingleWordSearch && !isRootSearch && (
+                                    <>
+                                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-500/20 text-text-primary shadow-sm cursor-help" title="إجمالي عدد مرات ورود كلمة البحث في كل الآيات.">{generalOccurrences} تكراراً</span>
+                                      
+                                      <button
+                                          onClick={() => {
+                                              setExactMatch(!exactMatch);
+                                          }}
+                                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold shadow-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-subtle focus:ring-purple-500
+                                          ${exactMatch 
+                                              ? 'bg-purple-600 text-white' 
+                                              : 'bg-purple-500/20 text-text-primary hover:bg-purple-500/40'}`}
+                                          title="تفعيل/إلغاء تفعيل المطابقة التامة"
+                                          aria-pressed={exactMatch}
+                                      >
+                                          {exactOccurrences} مطابقة
+                                      </button>
+                                    </>
+                                  )}
+                                  
+                                  <button
+                                      onClick={() => {
+                                          if (onToggleRootSearch) onToggleRootSearch(!isRootSearch);
+                                      }}
+                                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold shadow-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-subtle focus:ring-indigo-500
+                                      ${isRootSearch 
+                                          ? 'bg-indigo-600 text-white font-bold' 
+                                          : 'bg-indigo-500/20 text-text-primary hover:bg-indigo-500/40'}`}
+                                      title="البحث عن جميع الكلمات المرتبطة بنفس الجذر اللغوي"
+                                      aria-pressed={isRootSearch}
+                                  >
+                                      البحث بالجذر
+                                  </button>
+
+                                  {isSingleWordSearch && (
+                                    <a
+                                        href={`#/word-geometry/${encodeURIComponent(finalQueryForChecks)}`}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-text-primary hover:bg-emerald-500/30 transition-all shadow-sm border border-emerald-500/30"
+                                        title="دراسة قوة الكلمة ومركز ثقلها المصحفي وهندسة أرقام السور الحاضنة"
                                     >
-                                        {exactOccurrences} مطابقة
-                                    </button>
-                                  </>
-                                )}
-                                
-                                <button
-                                    onClick={() => {
-                                        if (onToggleRootSearch) onToggleRootSearch(!isRootSearch);
-                                    }}
-                                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold shadow-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-subtle focus:ring-indigo-500
-                                    ${isRootSearch 
-                                        ? 'bg-indigo-600 text-white font-bold' 
-                                        : 'bg-indigo-500/20 text-text-primary hover:bg-indigo-500/40'}`}
-                                    title="البحث عن جميع الكلمات المرتبطة بنفس الجذر اللغوي"
-                                    aria-pressed={isRootSearch}
-                                >
-                                    البحث بالجذر
-                                </button>
-                              </>
+                                        <span>⚖️ هندسة السور ومركز الثقل</span>
+                                    </a>
+                                  )}
+                                </>
                             )}
                         </div>
                     )}
@@ -222,34 +320,145 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
             )}
 
             {allMuqattaatStats && allMuqattaatStats.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border-default flex gap-2">
-                    <button 
-                        onClick={toggleMuqattaat}
-                        className={`p-1.5 rounded self-start transition-colors flex items-center justify-center shrink-0 ${isMuqattaatOpen ? 'bg-primary text-white' : 'bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary'}`}
-                        title="عرض/إخفاء"
-                    >
-                        <SparklesIcon className="w-4 h-4" />
-                    </button>
+                <div className="mt-3 pt-3 border-t border-border-default space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={toggleMuqattaat}
+                                className={`px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold shrink-0 ${
+                                    isMuqattaatOpen 
+                                        ? 'bg-primary text-white shadow-2xs' 
+                                        : 'bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-border-default'
+                                }`}
+                                title="عرض جدول السور ذات الفواتح النورانية الـ 29"
+                            >
+                                <SparklesIcon className="w-4 h-4" />
+                                <span>جدول السور النورانية (29 سورة)</span>
+                            </button>
+                            <span className="text-[11px] text-text-muted hidden sm:inline">
+                                تبيان ورود كلمة البحث في السور المفتتحة بالحروف المقطعة
+                            </span>
+                        </div>
+
+                        {activeMuqattaatFilter && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveMuqattaatFilter?.('')}
+                                className="text-xs text-red-500 hover:text-red-600 dark:text-red-400 hover:underline font-bold"
+                            >
+                                إلغاء تصفية السور ✕
+                            </button>
+                        )}
+                    </div>
+
                     {isMuqattaatOpen && (
-                        <div className="grid grid-cols-4 gap-[1px] bg-border-default border border-border-default rounded shrink-0 self-start w-max">
-                            {allMuqattaatStats.map((item, index) => (
-                                <button 
-                                    key={index}
-                                    onClick={() => handleFormulaClick(item.letters)}
-                                    className={`flex items-center justify-center px-1.5 py-1 text-[9px] leading-none font-amiri transition-all cursor-pointer ${
+                        <div className="p-3 bg-surface rounded-xl border border-border-default shadow-xs space-y-2.5 animate-in fade-in duration-200">
+                            {/* Live Hover Info Banner - Displays instantly on mouse move */}
+                            <div className="p-2 sm:p-2.5 rounded-lg bg-surface-subtle border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs min-h-[42px]">
+                                {hoveredSurah ? (
+                                    <>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-bold text-text-primary text-[13px]">
+                                                سورة {hoveredSurah.name}
+                                            </span>
+                                            <span className="text-[11px] text-text-muted font-mono bg-surface px-1.5 py-0.5 rounded border border-border-default/60">
+                                                رقم السورة: {hoveredSurah.surah}
+                                            </span>
+                                            <span className="font-amiri text-xs font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                                فاتحتها: [{hoveredSurah.letters}]
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {hoveredSurah.isMentioned ? (
+                                                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded">
+                                                    <span>✓</span>
+                                                    <span>وردت في هذه السورة ({hoveredSurah.count} {hoveredSurah.count === 1 ? 'آية' : hoveredSurah.count === 2 ? 'آيتان' : hoveredSurah.count <= 10 ? 'آيات' : 'آية'})</span>
+                                                </span>
+                                            ) : (
+                                                <span className="text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center gap-1 bg-rose-500/10 px-2 py-0.5 rounded">
+                                                    <span>✗</span>
+                                                    <span>لم ترد في هذه السورة إطلاقاً</span>
+                                                </span>
+                                            )}
+
+                                            {hoveredSurah.isMentioned && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSurahClick(hoveredSurah)}
+                                                    className="text-[11px] font-bold text-primary hover:underline px-1 cursor-pointer"
+                                                >
+                                                    {hoveredSurah.isFilterActive ? 'إلغاء التصفية' : `تصفية سورة ${hoveredSurah.name}`}
+                                                </button>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleFormulaClick(hoveredSurah.letters)}
+                                                className="text-[11px] text-text-secondary hover:text-text-primary hover:underline px-1 cursor-pointer"
+                                                title={`تصفية كافة السور المفتتحة بـ [${hoveredSurah.letters}]`}
+                                            >
+                                                تصفية كل سور [{hoveredSurah.letters}]
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="w-full flex items-center justify-between text-[11px] text-text-muted">
+                                        <span className="flex items-center gap-1.5">
+                                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            <span>أخضر: السور التي وردت فيها الكلمة</span>
+                                            <span className="mx-1">•</span>
+                                            <span className="inline-block w-2 h-2 rounded-full bg-slate-400"></span>
+                                            <span>رمادي: لم ترد في نتائج البحث</span>
+                                        </span>
+                                        <span className="font-medium text-text-secondary">
+                                            مرر الفأرة فوق أي سورة لمعرفة اسمها فوراً وحالة ورودها
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 29 Surahs Grid */}
+                            <div className="grid grid-cols-4 sm:grid-cols-7 md:grid-cols-10 lg:grid-cols-14 gap-1.5">
+                                {allMuqattaatStats.map((item, index) => {
+                                    const tooltipText = [
+                                        `سورة ${item.name} (رقم ${item.surah}) [فاتحة: ${item.letters}]`,
                                         item.isMentioned 
-                                            ? 'text-green-600 bg-green-500/10 hover:bg-green-500/20 font-bold' 
-                                            : 'text-gray-400 bg-surface opacity-60 hover:opacity-100 hover:bg-surface-hover'
-                                    } ${
-                                        (activeMuqattaatFilter || '').split(',').map(f=>f.trim()).includes(item.letters)
-                                            ? 'ring-1 ring-inset ring-green-500 bg-green-500/30 text-green-800 dark:text-green-200'
-                                            : ''
-                                    } ${index === 28 ? 'col-span-4' : ''}`}
-                                    title={`تصفية سورة/سور ${item.letters}`}
-                                >
-                                    {item.letters}
-                                </button>
-                            ))}
+                                            ? `✓ وردت كلمة البحث في هذه السورة (${item.count} ${item.count === 1 ? 'آية' : item.count === 2 ? 'آيتان' : item.count <= 10 ? 'آيات' : 'آية'})` 
+                                            : `✗ لم ترد كلمة البحث في هذه السورة (غير مذكورة في سورة ${item.name})`,
+                                        item.isMentioned 
+                                            ? (item.isFilterActive ? 'انقر لإلغاء التصفية' : `انقر لتصفية النتائج على سورة ${item.name}`)
+                                            : `غير مذكورة في نتائج البحث`
+                                    ].join('\n');
+
+                                    return (
+                                        <button 
+                                            key={index}
+                                            onClick={() => handleSurahClick(item)}
+                                            onMouseEnter={() => setHoveredSurah(item)}
+                                            onMouseLeave={() => setHoveredSurah(null)}
+                                            className={`flex flex-col items-center justify-center p-1.5 rounded-lg border transition-all text-center select-none cursor-pointer ${
+                                                item.isFilterActive
+                                                    ? 'border-primary ring-2 ring-primary/40 bg-primary/20 text-primary font-bold shadow-xs'
+                                                    : item.isMentioned 
+                                                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 hover:border-emerald-500/60 font-bold' 
+                                                    : 'text-text-muted bg-surface-subtle/50 opacity-60 hover:opacity-100 hover:bg-surface-subtle border-border-default/50 hover:border-border-default'
+                                            }`}
+                                            title={tooltipText}
+                                        >
+                                            <span className="text-xs font-bold leading-none font-amiri tracking-wide">
+                                                {item.letters}
+                                            </span>
+                                            <span className="text-[9px] font-sans leading-tight mt-1 truncate max-w-full text-text-secondary">
+                                                {item.name}
+                                            </span>
+                                            <span className="text-[8px] font-mono leading-none opacity-60 mt-0.5">
+                                                {item.surah}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>
