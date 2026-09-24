@@ -12,26 +12,49 @@ export const getGlobalAyahNumber = (surahNumber: number, numberInSurah: number):
   return globalNum + numberInSurah;
 };
 
+export const getSurahAndAyahFromGlobalNumber = (globalNum: number): { surahNumber: number, numberInSurah: number, surahName?: string } => {
+  let count = 0;
+  for (const surah of QURAN_INDEX) {
+    if (globalNum <= count + surah.numberOfAyahs) {
+      return {
+        surahNumber: surah.number,
+        numberInSurah: globalNum - count,
+        surahName: surah.name
+      };
+    }
+    count += surah.numberOfAyahs;
+  }
+  return { surahNumber: 1, numberInSurah: 1, surahName: 'الفاتحة' };
+};
+
 export const getAudioUrl = (ayah: Ayah, audioEditionDetails: QuranEdition): string | undefined => {
   const { sourceApi, reciterIdentifier, identifier } = audioEditionDetails;
-  const surahNum = ayah.surah?.number;
-  if (!surahNum) return undefined;
+  let surahNum = ayah.surah?.number;
+  let ayahNum = ayah.numberInSurah;
+
+  if ((!surahNum || !ayahNum) && ayah.number) {
+    const resolved = getSurahAndAyahFromGlobalNumber(ayah.number);
+    surahNum = resolved.surahNumber;
+    ayahNum = resolved.numberInSurah;
+  }
+
+  if (!surahNum || !ayahNum) return undefined;
 
   switch (sourceApi) {
     case 'versebyversequran.com': {
       if (!reciterIdentifier) return undefined;
       const surahNumPad = surahNum.toString().padStart(3, '0');
-      const ayahNumPad = ayah.numberInSurah.toString().padStart(3, '0');
+      const ayahNumPad = ayahNum.toString().padStart(3, '0');
       return `https://everyayah.com/data/${reciterIdentifier}/${surahNumPad}${ayahNumPad}.mp3`;
     }
     case 'islamic-network':
     case 'alquran.cloud': {
       if (ayah.audio) return String(ayah.audio).replace('http://', 'https://');
-      const globalNum = ayah.number || getGlobalAyahNumber(surahNum, ayah.numberInSurah);
+      const globalNum = ayah.number || getGlobalAyahNumber(surahNum, ayahNum);
       return `https://cdn.islamic.network/quran/audio/128/${identifier}/${globalNum}.mp3`;
     }
     default: {
-      const globalNum = ayah.number || getGlobalAyahNumber(surahNum, ayah.numberInSurah);
+      const globalNum = ayah.number || getGlobalAyahNumber(surahNum, ayahNum);
       return `https://cdn.islamic.network/quran/audio/128/${identifier || 'ar.alafasy'}/${globalNum}.mp3`;
     }
   }

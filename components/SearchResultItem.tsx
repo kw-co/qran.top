@@ -259,7 +259,12 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
     return (
         <li
             ref={itemRef}
-            className={`p-3 sm:p-4 rounded-xl shadow-sm transition-all duration-300 hover:shadow-lg w-full max-w-full overflow-hidden break-words ${isCurrentlyPlaying ? 'bg-yellow-300/60 dark:bg-yellow-400/30 ring-2 ring-yellow-500' : 'bg-surface-subtle'}`}
+            id={`search-result-ayah-${displayAyah.number}`}
+            className={`p-3 sm:p-4 rounded-xl shadow-sm transition-all duration-300 hover:shadow-lg w-full max-w-full overflow-hidden break-words ${
+                isCurrentlyPlaying 
+                    ? 'bg-amber-100/90 dark:bg-amber-950/40 ring-2 ring-primary dark:ring-primary shadow-md scale-[1.008]' 
+                    : 'bg-surface-subtle'
+            }`}
         >
             <div className="flex justify-between items-center mb-2 gap-4">
                 <div className="flex items-center gap-2 flex-wrap">

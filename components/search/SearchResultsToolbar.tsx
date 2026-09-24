@@ -1,11 +1,12 @@
 import React from 'react';
 import type { QuranEdition } from '../../types';
-import { BookmarkIcon, DocumentDuplicateIcon, DownloadIcon, CheckIcon, PlayIcon, SpinnerIcon, ShareIcon } from '../icons';
+import { BookmarkIcon, DocumentDuplicateIcon, DownloadIcon, CheckIcon, PlayIcon, SpinnerIcon, ShareIcon, DhikrIcon } from '../icons';
 
 interface SearchResultsToolbarProps {
     isPlaybackLoading: boolean;
     allAudioEditions: QuranEdition[];
     onPlayAll: () => void;
+    onPlayAllAsDhikr?: () => void;
     selectedAudioEdition: string;
     onAudioEditionChange: (id: string) => void;
     searchType: 'text' | 'number';
@@ -23,7 +24,7 @@ interface SearchResultsToolbarProps {
 }
 
 const SearchResultsToolbar: React.FC<SearchResultsToolbarProps> = ({
-    isPlaybackLoading, allAudioEditions, onPlayAll, searchType, onSaveSearch, onCopyAll, isAllCopied,
+    isPlaybackLoading, allAudioEditions, onPlayAll, onPlayAllAsDhikr, searchType, onSaveSearch, onCopyAll, isAllCopied,
     onShareSearch, isShareCopied, onDownloadAll
 }) => {
     return (
@@ -33,11 +34,23 @@ const SearchResultsToolbar: React.FC<SearchResultsToolbarProps> = ({
             <button 
                 onClick={onPlayAll} 
                 disabled={isPlaybackLoading || allAudioEditions.length === 0} 
-                className="flex items-center justify-center p-2 rounded-xl text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
-                title="تشغيل متتالي للنتائج"
+                className="flex items-center justify-center p-2 rounded-xl text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                title="تشغيل متتالي لآيات نتائج البحث"
             >
                 {isPlaybackLoading ? <SpinnerIcon className="w-5 h-5 animate-spin"/> : <PlayIcon className="w-5 h-5"/>}
             </button>
+
+            {onPlayAllAsDhikr && (
+                <button 
+                    onClick={onPlayAllAsDhikr} 
+                    disabled={isPlaybackLoading || allAudioEditions.length === 0} 
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all shadow-xs disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer font-bold text-xs"
+                    title="تشغيل نتائج البحث كذكر (تكرار الآيات بعدد محدد للحفظ والترديد)"
+                >
+                    <DhikrIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>تشغيل كذكر</span>
+                </button>
+            )}
 
             {onShareSearch && (
                 <button

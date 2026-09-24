@@ -163,6 +163,70 @@ export const FolderIcon = ({ className }: { className?: string }) => (
 export const TreeIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.03v.568c0 .334.148.65.405.864l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 0 1-1.161.886l-.143.048a1.107 1.107 0 0 0-.57 1.664c.369.555.169 1.307-.413 1.605-2.73.994-4.254 3.482-4.356 6.626Zm0 0c-.44-.009-.924-.01-1.452-.01-1.542 0-2.525.928-2.358 1.955.037.229.15.44.312.609l.677.693c.097.099.253.147.382.109l.632-.19a1.125 1.125 0 0 1 1.386 1.453l-.318.997a2.25 2.25 0 0 0-.25 1.076c.015.061.028.121.038.182.199 1.206.941 2.2 2.004 2.625l.23.096c.681.282 1.39.514 2.122.679a1.5 1.5 0 0 0 1.602-1.206.923.923 0 0 1 .492-.698l2.227-1.138a2.122 2.122 0 0 0 .56-3.38L15.98 7.8c-.39-.39-1.017-.39-1.406 0l-.3.3a1.008 1.008 0 0 0-.222 1.05c.166.391-.026.85-.43 1.014-.3.121-.632.064-.888-.138a.75.75 0 0 1-.169-1.072l.775-1.054a1.5 1.5 0 0 0 .114-1.752l-.307-.492a2.072 2.072 0 0 0-1.722-.993Z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" opacity="0" /> {/* Hidden path just to scale svg similar to mic/search if needed, but tree is primary */}
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" opacity="0" />
+    </svg>
+);
+
+export const UthmaniScriptIcon = ({ className }: { className?: string }) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        className={className || "w-5 h-5"}
+    >
+        {/* Quranic Decorative Rosette Medallion */}
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.2" strokeDasharray="2.5 1.5" opacity={0.6} />
+        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="0.8" opacity={0.3} />
+        {/* Calligraphic Arabic Letter 'Ayn' for Uthmani */}
+        <text 
+            x="12" 
+            y="16.2" 
+            textAnchor="middle" 
+            fontSize="12.5" 
+            fontWeight="bold" 
+            fontFamily="'Amiri', 'Traditional Arabic', 'Scheherazade New', 'Noto Naskh Arabic', serif" 
+            fill="currentColor"
+            stroke="none"
+        >
+            ع
+        </text>
+    </svg>
+);
+
+export const MadinahMushafIcon = ({ className }: { className?: string }) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth={1.5} 
+        className={className || "w-5 h-5"}
+    >
+        {/* Open Mushaf Pages */}
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            d="M12 6.5C10 4.8 6.8 4.2 3.5 4.5v13.2c3.3-.3 6.5.3 8.5 2 2-1.7 5.2-2.3 8.5-2V4.5c-3.3-.3-6.5.3-8.5 2Z" 
+        />
+        {/* Spine */}
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.5v13.2" />
+        {/* Page Inner Frames (Madinah Mushaf style) */}
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={1}
+            opacity={0.65}
+            d="M5.5 7.5h4v8h-4zm9 0h4v8h-4z" 
+        />
+        {/* Ribbon Bookmark */}
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={1.1}
+            d="M12 6.5v6.5l1.4-1.1 1.4 1.1v-6.5" 
+            fill="currentColor" 
+            fillOpacity={0.25} 
+        />
     </svg>
 );

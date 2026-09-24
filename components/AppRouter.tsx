@@ -24,6 +24,7 @@ const UniversalAlphabetMatrixView = lazyRetry(() => import('./UniversalAlphabetM
 const SyllableClusterView = lazyRetry(() => import('./SyllableClusterView'));
 const NooraniReverseCipherView = lazyRetry(() => import('./NooraniReverseCipherView'));
 const WordSurahGeometryView = lazyRetry(() => import('./WordSurahGeometryView'));
+const NooraniCipherLabView = lazyRetry(() => import('./NooraniCipherLabView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -221,8 +222,10 @@ const isSearchPage = pathParts[0] === 'search';
         } else if (route === 'word-geometry' || route === 'word-gravity' || route === 'surah-geometry') {
             const q = pathParts[1] ? decodeURIComponent(pathParts[1]) : '';
             title = q ? `⚖️ مركز ثقل: ${q}` : '⚖️ مركز ثقل المفردة وهندسة السور';
-        } else if (route === 'structure' || route === 'cipher-lab') {
-            title = '🏛️ بنية المصحف | مختبر التشفير وفك التشفير';
+        } else if (route === 'structure') {
+            title = '🏛️ بنية المصحف الشريف | فهرس الأقسام والبحوث';
+        } else if (route === 'cipher-lab') {
+            title = '🔐 مختبر التشفير وفك التشفير النوراني';
         }
 
         document.title = title;
@@ -311,13 +314,19 @@ const isSearchPage = pathParts[0] === 'search';
         }
         if (pathParts[0] === 'privacy-policy') return <PrivacyPolicyView />;
         if (pathParts[0] === 'research') return <ResearchView />;
-        if (pathParts[0] === 'structure' || pathParts[0] === 'cipher-lab') {
-            const requestedTab = queryParams.get('tab') as 'lab' | 'sections' | null;
+        if (pathParts[0] === 'cipher-lab') {
+            return (
+                <NooraniCipherLabView 
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])} 
+                    onSearch={handleSearch}
+                />
+            );
+        }
+        if (pathParts[0] === 'structure') {
             return (
                 <QuranStructureView 
                     simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])} 
                     onSearch={handleSearch}
-                    initialTab={pathParts[0] === 'cipher-lab' ? 'lab' : (requestedTab || 'lab')}
                 />
             );
         }

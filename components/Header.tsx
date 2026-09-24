@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { MenuIcon, LogoIcon, BookmarkIcon } from './icons';
+import { MenuIcon, LogoIcon, BookmarkIcon, UthmaniScriptIcon, MadinahMushafIcon } from './icons';
 import { QURAN_INDEX } from '../quranIndex';
 import { formatSurahNameForDisplay } from '../utils/text';
 import SearchForm from './SearchForm';
@@ -191,37 +191,37 @@ const Header: React.FC<HeaderProps> = ({
         return loadingEditions.includes('quran-uthmani-quran-academy');
     }, [loadingEditions]);
 
-    const handleStyleToggle = useCallback(() => {
-        if (fontStyle === 'uthmani' || fontStyle === 'imlai_1') {
-            // Next: mushaf
+    const handleUthmaniClick = useCallback(() => {
+        if (fontStyle !== 'mushaf') {
+            // Already in Uthmani, clicking it toggles to Mushaf
             if (!isMushafDownloaded) {
-                const hasSeenPrompt = localStorage.getItem('qran_mushaf_download_prompt_seen');
-                if (!hasSeenPrompt) {
-                    localStorage.setItem('qran_mushaf_download_prompt_seen', 'true');
-                    openDownloadMushafModal();
-                    return;
-                }
-                // If user has already seen the modal once, cycle directly back to uthmani
-                setFontStyle('uthmani');
-                setSelectedEdition('quran-uthmani-quran-academy');
+                openDownloadMushafModal();
                 return;
             }
             setFontStyle('mushaf');
             setSelectedEdition('quran-uthmani-quran-academy');
         } else {
-            // From mushaf -> uthmani
+            // Switch to Uthmani
             setFontStyle('uthmani');
             setSelectedEdition('quran-uthmani-quran-academy');
         }
     }, [fontStyle, isMushafDownloaded, setFontStyle, setSelectedEdition, openDownloadMushafModal]);
 
-    const getToggleLabel = () => {
-        switch (fontStyle) {
-            case 'uthmani': return 'عثماني';
-            case 'mushaf': return 'المصحف';
-            default: return 'عثماني';
+    const handleMushafClick = useCallback(() => {
+        if (fontStyle === 'mushaf') {
+            // Already in Mushaf, clicking it toggles to Uthmani
+            setFontStyle('uthmani');
+            setSelectedEdition('quran-uthmani-quran-academy');
+        } else {
+            // Switch to Mushaf
+            if (!isMushafDownloaded) {
+                openDownloadMushafModal();
+                return;
+            }
+            setFontStyle('mushaf');
+            setSelectedEdition('quran-uthmani-quran-academy');
         }
-    };
+    }, [fontStyle, isMushafDownloaded, setFontStyle, setSelectedEdition, openDownloadMushafModal]);
 
     const handleTitleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
@@ -240,7 +240,7 @@ const Header: React.FC<HeaderProps> = ({
                         {/* Menu Drawer Button */}
                         <button
                             onClick={() => setIsSidePanelOpen(true)}
-                            className="w-9 h-9 flex items-center justify-center text-text-muted hover:text-text-primary rounded-full bg-surface-subtle hover:bg-surface-hover transition-colors border border-border-default/60 shadow-xs active:scale-95"
+                            className="w-9 h-9 flex items-center justify-center text-text-muted hover:text-text-primary rounded-full bg-surface-subtle hover:bg-surface-hover transition-colors border border-border-default/60 shadow-xs active:scale-95 cursor-pointer"
                             aria-label="فتح القائمة"
                             title="القائمة الرئيسية"
                         >
@@ -250,20 +250,49 @@ const Header: React.FC<HeaderProps> = ({
                         {/* Theme Toggle Button */}
                         <ThemeToggleButton />
 
-                        {/* Mode Switcher Button (Only displayed after Madinah Mushaf is downloaded) */}
-                        {isRelevantPageForToggle && isMushafDownloaded && (
-                            <button 
-                                onClick={handleStyleToggle}
-                                disabled={fontStyle !== 'mushaf' && isUthmaniLoading}
-                                className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 text-xs font-semibold bg-surface-subtle text-text-primary hover:text-primary rounded-full hover:bg-surface-hover transition-all border border-border-default disabled:opacity-50 shadow-xs active:scale-95 cursor-pointer"
-                                title="التبديل بين الرسم العثماني ومصحف المدينة"
+                        {/* Mode Switcher: Uthmani Script & Madinah Mushaf (Always visible, intuitive icons) */}
+                        <div 
+                            className="flex items-center bg-surface-subtle p-0.5 rounded-full border border-border-default/80 shadow-xs" 
+                            role="group" 
+                            aria-label="التبديل بين الرسم العثماني ومصحف المدينة"
+                        >
+                            {/* زر الرسم العثماني */}
+                            <button
+                                type="button"
+                                onClick={handleUthmaniClick}
+                                disabled={isUthmaniLoading && fontStyle === 'mushaf'}
+                                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${
+                                    fontStyle !== 'mushaf'
+                                        ? 'bg-primary text-white shadow-xs font-bold'
+                                        : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
+                                }`}
+                                title="الرسم العثماني (نص رقمي متتابع)"
+                                aria-label="الرسم العثماني"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 text-primary">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
-                                </svg>
-                                <span>{getToggleLabel()}</span>
+                                <UthmaniScriptIcon className="w-4 h-4 flex-shrink-0" />
                             </button>
-                        )}
+
+                            {/* زر مصحف المدينة */}
+                            <button
+                                type="button"
+                                onClick={handleMushafClick}
+                                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 relative ${
+                                    fontStyle === 'mushaf'
+                                        ? 'bg-primary text-white shadow-xs font-bold'
+                                        : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
+                                }`}
+                                title={isMushafDownloaded ? "مصحف المدينة (مطابق للمصحف الورقي المطبوع)" : "مصحف المدينة (انقر للتنزيل والتفعيل)"}
+                                aria-label="مصحف المدينة"
+                            >
+                                <MadinahMushafIcon className="w-4 h-4 flex-shrink-0" />
+                                {!isMushafDownloaded && (
+                                    <span 
+                                        className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute top-1 left-1 ring-1 ring-surface" 
+                                        title="يتطلب تنزيل الخطوط" 
+                                    />
+                                )}
+                            </button>
+                        </div>
 
                         {/* Bookmark / Reading History Button */}
                         <a

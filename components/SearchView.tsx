@@ -12,6 +12,7 @@ import SearchResultsHeader from './search/SearchResultsHeader';
 import SearchResultsToolbar from './search/SearchResultsToolbar';
 import SearchFiltersDrawer from './search/SearchFiltersDrawer';
 import NeighboringWords from './search/NeighboringWords';
+import DhikrModal from './DhikrModal';
 
 
 interface SearchViewProps {
@@ -32,7 +33,7 @@ interface SearchViewProps {
   // --- Props for audio playback ---
   currentlyPlayingAyahGlobalNumber: number | null;
   isPlaybackLoading: boolean;
-  onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
+  onStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number, options?: any) => void;
   correctedQuery?: string;
   isRootSearch?: boolean;
   targetSurahNumber?: number;
@@ -53,6 +54,12 @@ export const SearchView: React.FC<SearchViewProps> = ({
   const [isHighlightedCopied, setIsHighlightedCopied] = useState(false);
   const [copyHighlightedMode, setCopyHighlightedMode] = useState<number>(0);
   const [copyHighlightedToast, setCopyHighlightedToast] = useState<string>('');
+  
+  // Dhikr State
+  const [isDhikrModalOpen, setIsDhikrModalOpen] = useState(false);
+  const [dhikrRepeatAyah, setDhikrRepeatAyah] = useState<number>(3);
+  const [dhikrRepeatPlaylist, setDhikrRepeatPlaylist] = useState<number>(1);
+  const [dhikrDelay, setDhikrDelay] = useState<number>(0);
   
   // Consume Settings from Context
   const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions, fontSize, copyTextFormat, copyCitationFormat, showMuqattaatInSearch } = useSettingsContext();
@@ -344,12 +351,35 @@ export const SearchView: React.FC<SearchViewProps> = ({
   };
   
   const handlePlayAll = () => {
-    if (displayedResults.length > 0) onStartPlayback(displayedResults, selectedAudioEdition);
+    if (displayedResults.length > 0) {
+      onStartPlayback(displayedResults, selectedAudioEdition, 0, {
+        isExplicitPlaylist: true,
+        repeatAyahTarget: 1,
+        repeatPlaylistTarget: 1,
+      });
+    }
+  };
+
+  const handlePlayAllAsDhikr = () => {
+    setIsDhikrModalOpen(true);
+  };
+
+  const handleStartDhikrPlayback = () => {
+    if (displayedResults.length > 0) {
+      onStartPlayback(displayedResults, selectedAudioEdition, 0, {
+        isExplicitPlaylist: true,
+        repeatAyahTarget: dhikrRepeatAyah,
+        repeatPlaylistTarget: dhikrRepeatPlaylist,
+        delaySeconds: dhikrDelay,
+      });
+    }
   };
 
   const handlePlaySingleAyah = useCallback((index: number) => {
     if (displayedResults.length > 0) {
-      onStartPlayback(displayedResults, selectedAudioEdition, index);
+      onStartPlayback(displayedResults, selectedAudioEdition, index, {
+        isExplicitPlaylist: true,
+      });
     }
   }, [displayedResults, onStartPlayback, selectedAudioEdition]);
 
@@ -407,9 +437,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
       (a.surah?.number === ayah.surah?.number && a.numberInSurah === ayah.numberInSurah)
     );
     if (startIndex !== -1) {
-      onStartPlayback(listToPlay, selectedAudioEdition, startIndex);
+      onStartPlayback(listToPlay, selectedAudioEdition, startIndex, { isExplicitPlaylist: true });
     } else {
-      onStartPlayback([ayah], selectedAudioEdition, 0);
+      onStartPlayback([ayah], selectedAudioEdition, 0, { isExplicitPlaylist: true });
     }
     setActivePopover(null);
   };
@@ -457,7 +487,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
             <SearchResultsToolbar
                 isPlaybackLoading={isPlaybackLoading} allAudioEditions={ALL_AUDIO_EDITIONS}
-                onPlayAll={handlePlayAll} selectedAudioEdition={selectedAudioEdition}
+                onPlayAll={handlePlayAll} 
+                onPlayAllAsDhikr={handlePlayAllAsDhikr}
+                selectedAudioEdition={selectedAudioEdition}
                 onAudioEditionChange={setSelectedAudioEdition} searchType={searchType}
                 onSaveSearch={handleSaveSearch} onCopyAll={handleCopyAll}
                 isAllCopied={isAllCopied}
@@ -550,6 +582,21 @@ export const SearchView: React.FC<SearchViewProps> = ({
       )}
 
        {activePopover && <AyahActionPopover activePopover={activePopover} onClose={() => setActivePopover(null)} onSave={handleSaveClick} onCopy={handleCopyAyah} onSearchText={handleSearchByAyahText} onSearchNumber={onSearchByAyahNumber} onPlayFrom={handlePlayFromAyah} copiedAyah={copiedAyah} />}
+
+       {isDhikrModalOpen && (
+         <DhikrModal
+           isOpen={isDhikrModalOpen}
+           onClose={() => setIsDhikrModalOpen(false)}
+           repeatAyahTarget={dhikrRepeatAyah}
+           setRepeatAyahTarget={setDhikrRepeatAyah}
+           repeatPlaylistTarget={dhikrRepeatPlaylist}
+           setRepeatPlaylistTarget={setDhikrRepeatPlaylist}
+           delaySeconds={dhikrDelay}
+           setDelaySeconds={setDhikrDelay}
+           onStartPlayback={handleStartDhikrPlayback}
+           playlistLength={displayedResults.length}
+         />
+       )}
     </div>
   );
 };

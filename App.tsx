@@ -44,7 +44,11 @@ const App: React.FC = () => {
 
     const {
         playbackInfo, currentlyPlayingAyahGlobalNumber, selectedAudioEditionDetails,
-        handleStartPlayback, handlePlayPause, handlePlay, handlePause, handleNext, handlePrev, handleClosePlayback
+        handleStartPlayback, handlePlayPause, handlePlay, handlePause, handleNext, handlePrev, 
+        handleAyahEnded, handleClosePlayback,
+        repeatAyahTarget, setRepeatAyahTarget, currentAyahRepeatCount,
+        repeatPlaylistTarget, setRepeatPlaylistTarget, currentPlaylistCycle,
+        delaySeconds, setDelaySeconds, playbackSpeed, setPlaybackSpeed
     } = useAudioPlayer(currentPath, allQuranData, selectedAudioEdition, setSelectedAudioEdition, fetchCustomEditionData);
 
     const {
@@ -284,7 +288,7 @@ const App: React.FC = () => {
                             handleSearchByAyahNumber={handleSearchByAyahNumber}
                             currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber}
                             playbackInfo={playbackInfo}
-                            handleStartPlayback={handleStartPlayback as (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void}
+                            handleStartPlayback={handleStartPlayback as (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number, options?: any) => void}
                             hizbQuarterStartMap={hizbQuarterStartMap}
                             setIsSearching={setIsSearching}
                             performSearchByAyahNumber={performSearchByAyahNumber}
@@ -328,11 +332,29 @@ const App: React.FC = () => {
                         onClose={settings.closeDownloadMushafModal} 
                     />
                     {playbackInfo && <AudioPlayerBar 
-                        playlist={playbackInfo.playlist} currentIndex={playbackInfo.currentIndex}
-                        isPlaying={playbackInfo.isPlaying} isLoading={!!playbackInfo?.trigger}
-                        onPlayPause={handlePlayPause} onPlay={handlePlay} onPause={handlePause} onNext={handleNext} onPrev={handlePrev}
-                        onEnded={handleNext} onClose={handleClosePlayback}
+                        playlist={playbackInfo.playlist} 
+                        currentIndex={playbackInfo.currentIndex}
+                        isPlaying={playbackInfo.isPlaying} 
+                        isLoading={!!playbackInfo?.trigger}
+                        onPlayPause={handlePlayPause} 
+                        onPlay={handlePlay} 
+                        onPause={handlePause} 
+                        onNext={handleNext} 
+                        onPrev={handlePrev}
+                        onEnded={handleNext} 
+                        onAyahEnded={handleAyahEnded}
+                        onClose={handleClosePlayback}
                         audioEdition={selectedAudioEditionDetails}
+                        repeatAyahTarget={repeatAyahTarget}
+                        setRepeatAyahTarget={setRepeatAyahTarget}
+                        currentAyahRepeatCount={currentAyahRepeatCount}
+                        repeatPlaylistTarget={repeatPlaylistTarget}
+                        setRepeatPlaylistTarget={setRepeatPlaylistTarget}
+                        currentPlaylistCycle={currentPlaylistCycle}
+                        delaySeconds={delaySeconds}
+                        setDelaySeconds={setDelaySeconds}
+                        playbackSpeed={playbackSpeed}
+                        setPlaybackSpeed={setPlaybackSpeed}
                     />}
                     {showScroll && (
                         <button 
