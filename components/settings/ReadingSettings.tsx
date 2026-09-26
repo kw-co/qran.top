@@ -103,7 +103,16 @@ const ReadingSettings: React.FC = () => {
         isMushafDownloaded,
         startFontDownload,
         cancelFontDownload,
-        removeMushafFonts
+        removeMushafFonts,
+        // Shamarly
+        mushafType, setMushafType,
+        isShamarlyDownloaded,
+        isDownloadingShamarly,
+        shamarlyDownloadProgress,
+        startShamarlyDownload,
+        cancelShamarlyDownload,
+        removeShamarlyMushaf,
+        enableShamarlyInHeader, setEnableShamarlyInHeader
     } = useSettingsContext();
 
     const handleDownloadFonts = async (e: React.MouseEvent) => {
@@ -119,6 +128,21 @@ const ReadingSettings: React.FC = () => {
     const handleCancelDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
         cancelFontDownload();
+    };
+
+    const handleDownloadShamarly = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        await startShamarlyDownload();
+    };
+
+    const handleDeleteShamarly = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        await removeShamarlyMushaf();
+    };
+
+    const handleCancelShamarlyDownload = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        cancelShamarlyDownload();
     };
 
     return (
@@ -212,6 +236,77 @@ const ReadingSettings: React.FC = () => {
                     })}
                 </div>
             </div>
+
+            {/* Mushaf Edition Selection (Madinah vs Shamarly) */}
+            {fontStyle === 'mushaf' && (
+                <div className="space-y-2.5 p-4 rounded-2xl bg-surface-subtle border border-border-default animate-fade-in">
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                            <span>طبعة المصحف الورقي</span>
+                        </label>
+                        <span className="text-[11px] text-text-muted">
+                            {mushafType === 'shamarly' ? 'مصحف الشمرلي (522 صفحة)' : 'مصحف المدينة (604 صفحة)'}
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {/* Madinah Mushaf Option */}
+                        <div
+                            onClick={() => setMushafType('madinah')}
+                            className={`p-3.5 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
+                                mushafType === 'madinah'
+                                    ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
+                                    : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="font-bold text-sm text-text-primary">مصحف المدينة المنورة</span>
+                                {mushafType === 'madinah' && (
+                                    <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+                                        <CheckIcon className="w-3 h-3" />
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-text-muted mt-1">
+                                مجمع الملك فهد (٦٠٤ صفحة) - التقسيم والترتيب القياسي المعتمد.
+                            </p>
+                        </div>
+
+                        {/* Shamarly Mushaf Option */}
+                        <div
+                            onClick={() => {
+                                setMushafType('shamarly');
+                                setEnableShamarlyInHeader(true);
+                            }}
+                            className={`p-3.5 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
+                                mushafType === 'shamarly'
+                                    ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
+                                    : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-sm text-text-primary">مصحف الشمرلي الشهير</span>
+                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                        ٥٢٢ صفحة
+                                    </span>
+                                </div>
+                                {mushafType === 'shamarly' && (
+                                    <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+                                        <CheckIcon className="w-3 h-3" />
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-text-muted mt-1">
+                                الطبعة المصرية الشهيرة بالخط العريض الواسع والتقسيم الخاص.
+                            </p>
+                            <div className="mt-2 pt-1.5 border-t border-border-subtle/50 flex items-center justify-between text-[11px] text-text-muted">
+                                <span>{isShamarlyDownloaded ? '✅ مثبت أوفلاين' : '🌐 متاح أونلاين وتنزيل اختياري'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 2. Font Size & Compact Live Preview */}
             <div className="space-y-2.5">

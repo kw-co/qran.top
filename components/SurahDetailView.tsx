@@ -1,4 +1,6 @@
 import { MushafPageView } from "./MushafPageView";
+import { ShamarlyPageView } from "./ShamarlyPageView";
+import { getShamarlyPageForAyah } from "../data/shamarlyIndex";
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { SurahData, SavedAyahItem, Ayah } from '../types';
 import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, SparklesIcon, ShareIcon, DocumentDuplicateIcon, DownloadIcon, ArrowUpTrayIcon } from './icons';
@@ -247,8 +249,23 @@ ${fullText}`;
   const prevHighlightAyahNumber = useRef<number | null>(null);
 
   // Consume Settings from Context
-  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar, mushafFrameStyle } = useSettingsContext();
+  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar, mushafFrameStyle, mushafType, setMushafType } = useSettingsContext();
   const researchData = useResearchData();
+
+  const [shamarlyCurrentPage, setShamarlyCurrentPage] = useState<number>(() => {
+    if (forcedPageNumber && forcedPageNumber <= 522) {
+      return forcedPageNumber;
+    }
+    const initialAyah = highlightAyahNumber || 1;
+    return getShamarlyPageForAyah(surah.number, initialAyah);
+  });
+
+  useEffect(() => {
+    if (mushafType === 'shamarly') {
+      const p = getShamarlyPageForAyah(surah.number, highlightAyahNumber || 1);
+      setShamarlyCurrentPage(p);
+    }
+  }, [surah.number, highlightAyahNumber, mushafType]);
 
   // Determine current page logic
   const { ayahsByPage, firstPage, lastPage, getPageForAyahNumber } = useMemo(() => {
@@ -705,9 +722,18 @@ ${fullText}`;
     <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
       <div className="overflow-hidden rounded-lg">
         {fontStyle === 'mushaf' ? (
-            <MushafPageView 
-              pageNumber={currentPage} 
-              onPageChange={navigateToPage}
+            mushafType === 'shamarly' ? (
+                <ShamarlyPageView
+                    pageNumber={shamarlyCurrentPage}
+                    onPageChange={(newPage) => {
+                        setShamarlyCurrentPage(newPage);
+                    }}
+                    currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber}
+                />
+            ) : (
+                <MushafPageView 
+                  pageNumber={currentPage} 
+                  onPageChange={navigateToPage}
               onWordClick={(wordText, surahNum, ayahNum, wordIndex) => {
                 onWordClick(wordText, 'quran-simple-clean', { surah: surahNum, ayah: ayahNum, wordIndex });
               }}
@@ -749,7 +775,8 @@ ${fullText}`;
               targetSurahNumber={surah.number}
               currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber}
             />
-          ) : (
+          )
+        ) : (
              <div>
                 <div className={`mushaf-page frame-${mushafFrameStyle || 'classic'} relative`}>
                     {pageInfo?.markers.map((marker, index) => (

@@ -230,3 +230,43 @@ export const MadinahMushafIcon = ({ className }: { className?: string }) => (
         />
     </svg>
 );
+
+export const ShamarlyMushafIcon = ({ className }: { className?: string }) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth={1.5} 
+        className={className || "w-5 h-5"}
+    >
+        {/* Book Outline with Egyptian / Ottoman Arch Style */}
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            d="M12 5.5C9.5 4 6 3.8 3 4.2v14.5c3-.4 6.5-.2 9 1.3 2.5-1.5 6-1.7 9-1.3V4.2c-3-.4-6.5-.2-9 1.3Z" 
+        />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5.5v14.5" />
+        {/* Arabic letter Sheen 'ش' for Shamarly */}
+        <text
+            x="7.5"
+            y="14.5"
+            fontSize="9"
+            fontWeight="bold"
+            fontFamily="sans-serif"
+            fill="currentColor"
+            stroke="none"
+            textAnchor="middle"
+        >
+            ش
+        </text>
+        {/* Arch ornament on right page */}
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={1}
+            d="M15 9.5c0-1.2 1.3-2 2-2s2 .8 2 2v4h-4v-4Z" 
+            opacity={0.7}
+        />
+    </svg>
+);

@@ -25,6 +25,8 @@ const HIGHLIGHT_HA_MEEM_KEY = 'qran_app_highlight_ha_meem';
 const HIGHLIGHT_NOORANI_KEY = 'qran_app_highlight_noorani';
 const HIGHLIGHT_NOORANI_INCLUDE_WAW_KEY = 'qran_app_highlight_noorani_include_waw';
 const HIGHLIGHT_NOORANI_INCLUDE_TAA_MARBUTA_KEY = 'qran_app_highlight_noorani_include_taa_marbuta';
+const SHAMARLY_ENABLED_HEADER_KEY = 'qran_app_shamarly_enabled_header';
+const DOWNLOADING_SHAMARLY_KEY = 'qran_app_downloading_shamarly';
 
 const DEFAULT_EDITIONS: QuranEdition[] = [
     { identifier: "quran-simple-clean", language: "ar", name: "المصحف المبسط", englishName: "Simple Clean", format: "text", type: "quran", direction: "rtl", sourceApi: "alquran.cloud" },
@@ -56,8 +58,98 @@ export const useSettings = () => {
         return 'uthmani';
     });
 
-    // Mushaf Type (only madinah)
-    const [mushafType, setMushafType] = useState<MushafType>('madinah');
+    // Mushaf Type: 'madinah' | 'shamarly'
+    const [mushafType, setMushafType] = useState<MushafType>(
+        () => safeGetItem(MUSHAF_TYPE_KEY, 'madinah') as MushafType
+    );
+
+    const [enableShamarlyInHeader, setEnableShamarlyInHeader] = useState<boolean>(() => {
+        return safeGetItem(SHAMARLY_ENABLED_HEADER_KEY, 'false') === 'true';
+    });
+
+    // Shamarly Download State
+    const [shamarlyDownloadProgress, setShamarlyDownloadProgress] = useState<number>(-1);
+    const [isDownloadingShamarly, setIsDownloadingShamarly] = useState<boolean>(
+        () => safeGetItem(DOWNLOADING_SHAMARLY_KEY, 'false') === 'true'
+    );
+    const [isShamarlyDownloaded, setIsShamarlyDownloaded] = useState<boolean>(false);
+    const shamarlyAbortRef = useRef<AbortController | null>(null);
+
+    const checkShamarly = useCallback(async () => {
+        try {
+            const { checkShamarlyDownloaded } = await import('../utils/shamarlyMushaf');
+            const res = await checkShamarlyDownloaded();
+            setIsShamarlyDownloaded(res.isDownloaded);
+            return res.isDownloaded;
+        } catch {
+            return false;
+        }
+    }, []);
+
+    useEffect(() => {
+        checkShamarly();
+    }, [checkShamarly]);
+
+    const cancelShamarlyDownload = useCallback(() => {
+        if (shamarlyAbortRef.current) {
+            shamarlyAbortRef.current.abort();
+            shamarlyAbortRef.current = null;
+        }
+        setIsDownloadingShamarly(false);
+        setShamarlyDownloadProgress(-1);
+        safeSetItem(DOWNLOADING_SHAMARLY_KEY, 'false');
+    }, []);
+
+    const startShamarlyDownload = useCallback(async () => {
+        setIsDownloadingShamarly(true);
+        safeSetItem(DOWNLOADING_SHAMARLY_KEY, 'true');
+        setShamarlyDownloadProgress(0);
+        shamarlyAbortRef.current = new AbortController();
+
+        try {
+            const { downloadAllShamarlyPages } = await import('../utils/shamarlyMushaf');
+            await downloadAllShamarlyPages(
+                (progress) => setShamarlyDownloadProgress(progress),
+                shamarlyAbortRef.current.signal
+            );
+            setIsDownloadingShamarly(false);
+            setShamarlyDownloadProgress(-1);
+            safeSetItem(DOWNLOADING_SHAMARLY_KEY, 'false');
+            setIsShamarlyDownloaded(true);
+            setEnableShamarlyInHeader(true);
+            safeSetItem(SHAMARLY_ENABLED_HEADER_KEY, 'true');
+        } catch (e: any) {
+            if (e.message !== 'Download cancelled') {
+                console.warn('Shamarly download failed:', e);
+                setIsDownloadingShamarly(false);
+                setShamarlyDownloadProgress(-1);
+                safeSetItem(DOWNLOADING_SHAMARLY_KEY, 'false');
+                checkShamarly();
+            }
+        }
+    }, [checkShamarly]);
+
+    const removeShamarlyMushaf = useCallback(async () => {
+        try {
+            const { deleteShamarlyCache } = await import('../utils/shamarlyMushaf');
+            await deleteShamarlyCache();
+            setIsShamarlyDownloaded(false);
+            setShamarlyDownloadProgress(-1);
+            safeSetItem(DOWNLOADING_SHAMARLY_KEY, 'false');
+            if (mushafType === 'shamarly') {
+                setMushafType('madinah');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }, [mushafType]);
+
+    // Resume Shamarly download on load if it was interrupted
+    useEffect(() => {
+        if (isDownloadingShamarly) {
+            startShamarlyDownload();
+        }
+    }, []);
 
     // Mushaf Frame Style: 'classic' | 'minimal' | 'borderless' | 'ornate'
     const [mushafFrameStyle, setMushafFrameStyle] = useState<MushafFrameStyle>(
@@ -228,6 +320,7 @@ export const useSettings = () => {
     useEffect(() => { safeSetItem(HIGHLIGHT_NOORANI_INCLUDE_WAW_KEY, String(highlightNooraniIncludeWaw)); }, [highlightNooraniIncludeWaw]);
     useEffect(() => { safeSetItem(HIGHLIGHT_NOORANI_INCLUDE_TAA_MARBUTA_KEY, String(highlightNooraniIncludeTaaMarbuta)); }, [highlightNooraniIncludeTaaMarbuta]);
     useEffect(() => { safeSetItem(MUSHAF_FRAME_STYLE_KEY, mushafFrameStyle); }, [mushafFrameStyle]);
+    useEffect(() => { safeSetItem(SHAMARLY_ENABLED_HEADER_KEY, String(enableShamarlyInHeader)); }, [enableShamarlyInHeader]);
 
     const displayEdition = useMemo(() => {
         const found = activeEditions.find(e => e.identifier === selectedEdition) || DEFAULT_EDITIONS[0];
@@ -278,6 +371,14 @@ export const useSettings = () => {
         highlightHaMeem, setHighlightHaMeem,
         highlightNoorani, setHighlightNoorani,
         highlightNooraniIncludeWaw, setHighlightNooraniIncludeWaw,
-        highlightNooraniIncludeTaaMarbuta, setHighlightNooraniIncludeTaaMarbuta
+        highlightNooraniIncludeTaaMarbuta, setHighlightNooraniIncludeTaaMarbuta,
+        isShamarlyDownloaded,
+        isDownloadingShamarly,
+        shamarlyDownloadProgress,
+        startShamarlyDownload,
+        cancelShamarlyDownload,
+        removeShamarlyMushaf,
+        checkShamarly,
+        enableShamarlyInHeader, setEnableShamarlyInHeader
     };
 };

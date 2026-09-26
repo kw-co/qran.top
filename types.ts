@@ -109,7 +109,7 @@ export type Collections = Record<string, Collection>;
 
 // --- Type for new settings ---
 export type FontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
-export type MushafType = 'madinah';
+export type MushafType = 'madinah' | 'shamarly';
 export type FontStyleType = 'imlai_1' | 'uthmani' | 'mushaf';
 export type MushafFrameStyle = 'classic' | 'minimal' | 'borderless' | 'ornate';
 export type PlaybackMode = 'continuous' | 'single' | 'selection_juz' | 'selection_surah';

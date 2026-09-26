@@ -45,6 +45,16 @@ interface SettingsContextType {
     removeMushafFonts: () => Promise<void>;
     cancelFontDownload: () => void;
     startFontDownload: () => Promise<void>;
+    // Shamarly Mushaf State & Methods
+    isShamarlyDownloaded: boolean;
+    isDownloadingShamarly: boolean;
+    shamarlyDownloadProgress: number;
+    startShamarlyDownload: () => Promise<void>;
+    cancelShamarlyDownload: () => void;
+    removeShamarlyMushaf: () => Promise<void>;
+    checkShamarly: () => Promise<boolean>;
+    enableShamarlyInHeader: boolean;
+    setEnableShamarlyInHeader: (enabled: boolean) => void;
     isDownloadMushafModalOpen: boolean;
     setIsDownloadMushafModalOpen: (open: boolean) => void;
     openDownloadMushafModal: () => void;

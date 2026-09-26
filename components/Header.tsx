@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { MenuIcon, LogoIcon, BookmarkIcon, UthmaniScriptIcon, MadinahMushafIcon } from './icons';
+import { MenuIcon, LogoIcon, BookmarkIcon, UthmaniScriptIcon, MadinahMushafIcon, ShamarlyMushafIcon } from './icons';
 import { QURAN_INDEX } from '../quranIndex';
 import { formatSurahNameForDisplay } from '../utils/text';
 import SearchForm from './SearchForm';
@@ -142,7 +142,9 @@ const Header: React.FC<HeaderProps> = ({
     // Consume Settings from Context
     const { 
         fontStyle, setFontStyle, selectedEdition, setSelectedEdition, selectedAudioEdition,
-        isMushafDownloaded, openDownloadMushafModal
+        mushafType, setMushafType,
+        isMushafDownloaded, openDownloadMushafModal,
+        isShamarlyDownloaded, enableShamarlyInHeader
     } = useSettingsContext();
 
     const { pageTitle, isSurahOrPage, isRelevantPageForToggle, isSearchPage, isHomePage, searchQuery } = useMemo(() => {
@@ -191,37 +193,30 @@ const Header: React.FC<HeaderProps> = ({
         return loadingEditions.includes('quran-uthmani-quran-academy');
     }, [loadingEditions]);
 
-    const handleUthmaniClick = useCallback(() => {
-        if (fontStyle !== 'mushaf') {
-            // Already in Uthmani, clicking it toggles to Mushaf
-            if (!isMushafDownloaded) {
-                openDownloadMushafModal();
-                return;
-            }
-            setFontStyle('mushaf');
-            setSelectedEdition('quran-uthmani-quran-academy');
-        } else {
-            // Switch to Uthmani
-            setFontStyle('uthmani');
-            setSelectedEdition('quran-uthmani-quran-academy');
-        }
-    }, [fontStyle, isMushafDownloaded, setFontStyle, setSelectedEdition, openDownloadMushafModal]);
+    const isUthmaniActive = fontStyle !== 'mushaf';
+    const isMadinahActive = fontStyle === 'mushaf' && mushafType === 'madinah';
+    const isShamarlyActive = fontStyle === 'mushaf' && mushafType === 'shamarly';
 
-    const handleMushafClick = useCallback(() => {
-        if (fontStyle === 'mushaf') {
-            // Already in Mushaf, clicking it toggles to Uthmani
-            setFontStyle('uthmani');
-            setSelectedEdition('quran-uthmani-quran-academy');
-        } else {
-            // Switch to Mushaf
-            if (!isMushafDownloaded) {
-                openDownloadMushafModal();
-                return;
-            }
-            setFontStyle('mushaf');
-            setSelectedEdition('quran-uthmani-quran-academy');
+    const handleUthmaniClick = useCallback(() => {
+        setFontStyle('uthmani');
+        setSelectedEdition('quran-uthmani-quran-academy');
+    }, [setFontStyle, setSelectedEdition]);
+
+    const handleMadinahClick = useCallback(() => {
+        if (!isMushafDownloaded) {
+            openDownloadMushafModal();
+            return;
         }
-    }, [fontStyle, isMushafDownloaded, setFontStyle, setSelectedEdition, openDownloadMushafModal]);
+        setMushafType('madinah');
+        setFontStyle('mushaf');
+        setSelectedEdition('quran-uthmani-quran-academy');
+    }, [isMushafDownloaded, setMushafType, setFontStyle, setSelectedEdition, openDownloadMushafModal]);
+
+    const handleShamarlyClick = useCallback(() => {
+        setMushafType('shamarly');
+        setFontStyle('mushaf');
+        setSelectedEdition('quran-uthmani-quran-academy');
+    }, [setMushafType, setFontStyle, setSelectedEdition]);
 
     const handleTitleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
@@ -250,11 +245,11 @@ const Header: React.FC<HeaderProps> = ({
                         {/* Theme Toggle Button */}
                         <ThemeToggleButton />
 
-                        {/* Mode Switcher: Uthmani Script & Madinah Mushaf (Always visible, intuitive icons) */}
+                        {/* Mode Switcher: Uthmani Script, Madinah Mushaf & Shamarly Mushaf (Always visible, intuitive icons) */}
                         <div 
                             className="flex items-center bg-surface-subtle p-0.5 rounded-full border border-border-default/80 shadow-xs" 
                             role="group" 
-                            aria-label="التبديل بين الرسم العثماني ومصحف المدينة"
+                            aria-label="التبديل بين أوضاع العرض والمصاحف"
                         >
                             {/* زر الرسم العثماني */}
                             <button
@@ -262,7 +257,7 @@ const Header: React.FC<HeaderProps> = ({
                                 onClick={handleUthmaniClick}
                                 disabled={isUthmaniLoading && fontStyle === 'mushaf'}
                                 className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${
-                                    fontStyle !== 'mushaf'
+                                    isUthmaniActive
                                         ? 'bg-primary text-white shadow-xs font-bold'
                                         : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
                                 }`}
@@ -275,13 +270,13 @@ const Header: React.FC<HeaderProps> = ({
                             {/* زر مصحف المدينة */}
                             <button
                                 type="button"
-                                onClick={handleMushafClick}
+                                onClick={handleMadinahClick}
                                 className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 relative ${
-                                    fontStyle === 'mushaf'
+                                    isMadinahActive
                                         ? 'bg-primary text-white shadow-xs font-bold'
                                         : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
                                 }`}
-                                title={isMushafDownloaded ? "مصحف المدينة (مطابق للمصحف الورقي المطبوع)" : "مصحف المدينة (انقر للتنزيل والتفعيل)"}
+                                title={isMushafDownloaded ? "مصحف المدينة (مطابق للمصحف الورقي المطبوع - 604 صفحة)" : "مصحف المدينة (انقر للتنزيل والتفعيل)"}
                                 aria-label="مصحف المدينة"
                             >
                                 <MadinahMushafIcon className="w-4 h-4 flex-shrink-0" />
@@ -292,6 +287,23 @@ const Header: React.FC<HeaderProps> = ({
                                     />
                                 )}
                             </button>
+
+                            {/* زر مصحف الشمرلي (يظهر في الشريط العلوي عند تفعيله أو تنزيله من الإعدادات) */}
+                            {(isShamarlyDownloaded || enableShamarlyInHeader) && (
+                                <button
+                                    type="button"
+                                    onClick={handleShamarlyClick}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 animate-fade-in ${
+                                        isShamarlyActive
+                                            ? 'bg-primary text-white shadow-xs font-bold'
+                                            : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
+                                    }`}
+                                    title="مصحف الشمرلي (الطبعة المصرية الشهيرة - 522 صفحة)"
+                                    aria-label="مصحف الشمرلي"
+                                >
+                                    <ShamarlyMushafIcon className="w-4 h-4 flex-shrink-0" />
+                                </button>
+                            )}
                         </div>
 
                         {/* Bookmark / Reading History Button */}
