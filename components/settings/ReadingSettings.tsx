@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSettingsContext } from '../../contexts/SettingsContext';
 import type { FontSize, FontStyleType, WordClickBehavior } from '../../types';
-import { CheckIcon } from '../icons';
+import { CheckIcon, SunIcon, MoonIcon } from '../icons';
 import { renderWordWithNoorani } from '../../utils/nooraniHighlight';
+import { safeLocalStorage } from '../../utils/storage';
 
 const FONT_SIZES: { id: FontSize; label: string; px: string }[] = [
     { id: 'xs', label: 'صغير جداً', px: '16px' },
@@ -145,165 +146,286 @@ const ReadingSettings: React.FC = () => {
         cancelShamarlyDownload();
     };
 
+    const [shamarlyColorMode, setShamarlyColorMode] = useState<string>(() => {
+        return safeLocalStorage.getItem('shamarly_page_color_mode') || 'auto';
+    });
+
+    const handleSetShamarlyColorMode = (mode: string) => {
+        setShamarlyColorMode(mode);
+        safeLocalStorage.setItem('shamarly_page_color_mode', mode);
+    };
+
+    const isUthmaniSelected = fontStyle === 'uthmani';
+    const isMadinahSelected = fontStyle === 'mushaf' && mushafType === 'madinah';
+    const isShamarlySelected = fontStyle === 'mushaf' && mushafType === 'shamarly';
+
     return (
         <div className="animate-fade-in space-y-6">
             {/* Header */}
             <div>
                 <h2 className="text-xl font-bold text-text-primary">إعدادات القراءة والمصحف</h2>
-                <p className="text-xs text-text-muted mt-0.5">خصص الخط، الحجم، وسلوك التفاعل مع الكلمات والآيات.</p>
+                <p className="text-xs text-text-muted mt-0.5">خصص طبعة المصحف، الخط، الحجم، وسلوك التفاعل مع الكلمات والآيات.</p>
             </div>
 
-            {/* 1. Font Style Selection */}
+            {/* 1. Primary Reading Mode & Mushaf Selection (Uthmani, Madinah, Shamarly) */}
             <div className="space-y-2.5">
-                <label className="text-xs font-bold text-text-muted uppercase tracking-wider block">
-                    نمط الخط والعرض
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                    {FONT_STYLES.map((style) => {
-                        const isSelected = fontStyle === style.id;
-                        const isMushafStyle = style.id === 'mushaf';
-                        const isDownloading = isMushafStyle && isDownloadingFonts;
+                <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider block">
+                        طريقة عرض وقراءة القرآن
+                    </label>
+                    <span className="text-[11px] text-text-muted font-medium">
+                        {isUthmaniSelected && 'الرسم العثماني القياسي'}
+                        {isMadinahSelected && 'مصحف المدينة (٦٠٤ صفحة)'}
+                        {isShamarlySelected && 'مصحف الشمرلي (٥٢٢ صفحة)'}
+                    </span>
+                </div>
 
-                        return (
-                            <div
-                                key={style.id}
-                                onClick={() => {
-                                    if (isDownloading) return;
-                                    setFontStyle(style.id);
-                                    setSelectedEdition('quran-uthmani-quran-academy');
-                                }}
-                                className={`p-3.5 rounded-xl border text-right transition-all select-none flex flex-col justify-between ${
-                                    isDownloading ? 'cursor-default opacity-80' : 'cursor-pointer'
-                                } ${
-                                    isSelected
-                                        ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
-                                        : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
-                                }`}
-                            >
-                                <div>
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="font-bold text-sm text-text-primary flex items-center gap-1.5">
-                                            {style.name}
-                                        </div>
-                                        {isSelected && (
-                                            <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
-                                                <CheckIcon className="w-3 h-3" />
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-text-muted mt-1 leading-normal">{style.desc}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Option 1: Uthmani Text */}
+                    <div
+                        onClick={() => {
+                            setFontStyle('uthmani');
+                            setSelectedEdition('quran-uthmani-quran-academy');
+                        }}
+                        className={`p-3.5 rounded-xl border text-right transition-all select-none flex flex-col justify-between cursor-pointer ${
+                            isUthmaniSelected
+                                ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
+                                : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
+                        }`}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="font-bold text-sm text-text-primary flex items-center gap-1.5">
+                                    <span>الرسم العثماني القياسي</span>
                                 </div>
-
-                                {/* Offline Download Controls for Madinah Mushaf */}
-                                {isMushafStyle && (
-                                    <div className="mt-3 pt-2.5 border-t border-border-subtle/60 flex items-center justify-between text-xs" onClick={(e) => e.stopPropagation()}>
-                                        {!isMushafDownloaded && !isDownloading && (
-                                            <button
-                                                type="button"
-                                                onClick={handleDownloadFonts}
-                                                className="w-full text-center py-1 px-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors"
-                                            >
-                                                ⬇️ تنزيل للأوفلاين (604 صفحة)
-                                            </button>
-                                        )}
-                                        {isMushafDownloaded && (
-                                            <div className="flex items-center justify-between w-full text-xs">
-                                                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                                                    <CheckIcon className="w-3.5 h-3.5" /> مثبت أوفلاين
-                                                </span>
-                                                <div className="flex items-center gap-2">
-                                                    <button type="button" onClick={handleDownloadFonts} className="text-primary hover:underline">تحديث</button>
-                                                    <span className="text-text-muted">•</span>
-                                                    <button type="button" onClick={handleDeleteFonts} className="text-red-500 hover:underline">حذف</button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {isDownloading && (
-                                            <div className="w-full space-y-1">
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="text-primary font-medium">جاري التحميل... {fontDownloadProgress}%</span>
-                                                    <button type="button" onClick={handleCancelDownload} className="text-red-500 hover:underline">إلغاء</button>
-                                                </div>
-                                                <div className="w-full bg-border-subtle rounded-full h-1.5 overflow-hidden">
-                                                    <div className="bg-primary h-1.5 transition-all duration-300" style={{ width: `${Math.max(0, fontDownloadProgress)}%` }} />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                {isUthmaniSelected && (
+                                    <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+                                        <CheckIcon className="w-3 h-3" />
+                                    </span>
                                 )}
                             </div>
-                        );
-                    })}
+                            <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.2 rounded bg-primary/10 text-primary">
+                                نص رقمي تفاعلي
+                            </span>
+                            <p className="text-xs text-text-muted mt-1 leading-normal">
+                                بالتشكيل وعلامات الوقف والضبط، مع التكبير والتفسير التفاعلي للآيات.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Option 2: Madinah Mushaf */}
+                    <div
+                        onClick={() => {
+                            if (isDownloadingFonts) return;
+                            setMushafType('madinah');
+                            setFontStyle('mushaf');
+                            setSelectedEdition('quran-uthmani-quran-academy');
+                        }}
+                        className={`p-3.5 rounded-xl border text-right transition-all select-none flex flex-col justify-between ${
+                            isDownloadingFonts ? 'cursor-default opacity-80' : 'cursor-pointer'
+                        } ${
+                            isMadinahSelected
+                                ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
+                                : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
+                        }`}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="font-bold text-sm text-text-primary flex items-center gap-1.5">
+                                    <span>مصحف المدينة المنورة</span>
+                                </div>
+                                {isMadinahSelected && (
+                                    <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+                                        <CheckIcon className="w-3 h-3" />
+                                    </span>
+                                )}
+                            </div>
+                            <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                                ٦٠٤ صفحة • مجمع الملك فهد
+                            </span>
+                            <p className="text-xs text-text-muted mt-1 leading-normal">
+                                مطابق لصفحات المصحف الورقي المطبوع، بخطوط عثمانية رقمية دقيقة.
+                            </p>
+                        </div>
+
+                        {/* Offline Controls for Madinah Mushaf */}
+                        <div className="mt-3 pt-2.5 border-t border-border-subtle/60 flex items-center justify-between text-xs" onClick={(e) => e.stopPropagation()}>
+                            {!isMushafDownloaded && !isDownloadingFonts && (
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadFonts}
+                                    className="w-full text-center py-1 px-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors cursor-pointer"
+                                >
+                                    ⬇️ تنزيل للأوفلاين (604 صفحة)
+                                </button>
+                            )}
+                            {isMushafDownloaded && (
+                                <div className="flex items-center justify-between w-full text-xs">
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                                        <CheckIcon className="w-3.5 h-3.5" /> مثبت أوفلاين
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button type="button" onClick={handleDownloadFonts} className="text-primary hover:underline cursor-pointer">تحديث</button>
+                                        <span className="text-text-muted">•</span>
+                                        <button type="button" onClick={handleDeleteFonts} className="text-red-500 hover:underline cursor-pointer">حذف</button>
+                                    </div>
+                                </div>
+                            )}
+                            {isDownloadingFonts && (
+                                <div className="w-full space-y-1">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-primary font-medium">جاري التحميل... {fontDownloadProgress}%</span>
+                                        <button type="button" onClick={handleCancelDownload} className="text-red-500 hover:underline cursor-pointer">إلغاء</button>
+                                    </div>
+                                    <div className="w-full bg-border-subtle rounded-full h-1.5 overflow-hidden">
+                                        <div className="bg-primary h-1.5 transition-all duration-300" style={{ width: `${Math.max(0, fontDownloadProgress)}%` }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Option 3: Shamarly Mushaf */}
+                    <div
+                        onClick={() => {
+                            if (isDownloadingShamarly) return;
+                            setMushafType('shamarly');
+                            setFontStyle('mushaf');
+                            setEnableShamarlyInHeader(true);
+                            setSelectedEdition('quran-uthmani-quran-academy');
+                        }}
+                        className={`p-3.5 rounded-xl border text-right transition-all select-none flex flex-col justify-between ${
+                            isDownloadingShamarly ? 'cursor-default opacity-80' : 'cursor-pointer'
+                        } ${
+                            isShamarlySelected
+                                ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
+                                : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
+                        }`}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="font-bold text-sm text-text-primary flex items-center gap-1.5">
+                                    <span>مصحف الشمرلي الشهير</span>
+                                </div>
+                                {isShamarlySelected && (
+                                    <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+                                        <CheckIcon className="w-3 h-3" />
+                                    </span>
+                                )}
+                            </div>
+                            <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                ٥٢٢ صفحة • الطبعة المصرية الشهيرة
+                            </span>
+                            <p className="text-xs text-text-muted mt-1 leading-normal">
+                                الخط العريض الواسع، صفحات مصورة عالية الدقة مع العرض الليلي والزوم الحر.
+                            </p>
+                        </div>
+
+                        {/* Offline Controls for Shamarly Mushaf */}
+                        <div className="mt-3 pt-2.5 border-t border-border-subtle/60 flex items-center justify-between text-xs" onClick={(e) => e.stopPropagation()}>
+                            {!isShamarlyDownloaded && !isDownloadingShamarly && (
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadShamarly}
+                                    className="w-full text-center py-1 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold text-xs transition-colors cursor-pointer"
+                                >
+                                    ⬇️ تنزيل للأوفلاين (48 ميجابايت)
+                                </button>
+                            )}
+                            {isShamarlyDownloaded && (
+                                <div className="flex items-center justify-between w-full text-xs">
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                                        <CheckIcon className="w-3.5 h-3.5" /> مثبت أوفلاين (٤٨ م.ب)
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button type="button" onClick={handleDownloadShamarly} className="text-primary hover:underline cursor-pointer">تحديث</button>
+                                        <span className="text-text-muted">•</span>
+                                        <button type="button" onClick={handleDeleteShamarly} className="text-red-500 hover:underline cursor-pointer">حذف</button>
+                                    </div>
+                                </div>
+                            )}
+                            {isDownloadingShamarly && (
+                                <div className="w-full space-y-1">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-primary font-medium">جاري التحميل... {shamarlyDownloadProgress}%</span>
+                                        <button type="button" onClick={handleCancelShamarlyDownload} className="text-red-500 hover:underline cursor-pointer">إلغاء</button>
+                                    </div>
+                                    <div className="w-full bg-border-subtle rounded-full h-1.5 overflow-hidden">
+                                        <div className="bg-primary h-1.5 transition-all duration-300" style={{ width: `${Math.max(0, shamarlyDownloadProgress)}%` }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Mushaf Edition Selection (Madinah vs Shamarly) */}
-            {fontStyle === 'mushaf' && (
-                <div className="space-y-2.5 p-4 rounded-2xl bg-surface-subtle border border-border-default animate-fade-in">
-                    <div className="flex items-center justify-between">
+            {/* Dedicated Shamarly Settings Panel (When Shamarly is selected) */}
+            {isShamarlySelected && (
+                <div className="space-y-3 p-4 rounded-2xl bg-surface-subtle border border-border-default animate-fade-in">
+                    <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
                         <label className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-                            <span>طبعة المصحف الورقي</span>
+                            <span>خيارات مصحف الشمرلي</span>
                         </label>
-                        <span className="text-[11px] text-text-muted">
-                            {mushafType === 'shamarly' ? 'مصحف الشمرلي (522 صفحة)' : 'مصحف المدينة (604 صفحة)'}
+                        <span className="text-[11px] text-text-muted font-medium">
+                            {isShamarlyDownloaded ? '✅ يعمل بدون إنترنت' : '🌐 تصفح أونلاين سريع'}
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {/* Madinah Mushaf Option */}
-                        <div
-                            onClick={() => setMushafType('madinah')}
-                            className={`p-3.5 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
-                                mushafType === 'madinah'
-                                    ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
-                                    : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between gap-2">
-                                <span className="font-bold text-sm text-text-primary">مصحف المدينة المنورة</span>
-                                {mushafType === 'madinah' && (
-                                    <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
-                                        <CheckIcon className="w-3 h-3" />
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-text-muted mt-1">
-                                مجمع الملك فهد (٦٠٤ صفحة) - التقسيم والترتيب القياسي المعتمد.
-                            </p>
+                    {/* Paper Appearance Mode */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-1">
+                        <div>
+                            <span className="text-xs font-bold text-text-primary">مظهر صفحة المصحف والعرض الليلي:</span>
+                            <p className="text-[11px] text-text-muted">الوضع الليلي يعتم الورق ويحول النص لأبيض مع الحفاظ على الألوان الذهبية.</p>
                         </div>
+                        <div className="flex items-center bg-surface rounded-xl border border-border-default p-1 shadow-2xs gap-1">
+                            <button
+                                type="button"
+                                onClick={() => handleSetShamarlyColorMode('dark')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                                    shamarlyColorMode === 'dark' 
+                                        ? 'bg-slate-800 text-amber-300 font-bold shadow-xs ring-1 ring-amber-400/30' 
+                                        : 'text-text-muted hover:text-text-primary'
+                                }`}
+                            >
+                                🌙 ليلي معتم
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSetShamarlyColorMode('light')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                                    shamarlyColorMode === 'light' 
+                                        ? 'bg-primary text-white font-bold shadow-xs' 
+                                        : 'text-text-muted hover:text-text-primary'
+                                }`}
+                            >
+                                ☀️ ورق أصلي
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSetShamarlyColorMode('sepia')}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                                    shamarlyColorMode === 'sepia' 
+                                        ? 'bg-amber-600 text-white font-bold shadow-xs' 
+                                        : 'text-text-muted hover:text-text-primary'
+                                }`}
+                            >
+                                📜 ورق دافئ
+                            </button>
+                        </div>
+                    </div>
 
-                        {/* Shamarly Mushaf Option */}
-                        <div
-                            onClick={() => {
-                                setMushafType('shamarly');
-                                setEnableShamarlyInHeader(true);
-                            }}
-                            className={`p-3.5 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
-                                mushafType === 'shamarly'
-                                    ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
-                                    : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-sm text-text-primary">مصحف الشمرلي الشهير</span>
-                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                                        ٥٢٢ صفحة
-                                    </span>
-                                </div>
-                                {mushafType === 'shamarly' && (
-                                    <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
-                                        <CheckIcon className="w-3 h-3" />
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-text-muted mt-1">
-                                الطبعة المصرية الشهيرة بالخط العريض الواسع والتقسيم الخاص.
-                            </p>
-                            <div className="mt-2 pt-1.5 border-t border-border-subtle/50 flex items-center justify-between text-[11px] text-text-muted">
-                                <span>{isShamarlyDownloaded ? '✅ مثبت أوفلاين' : '🌐 متاح أونلاين وتنزيل اختياري'}</span>
-                            </div>
-                        </div>
+                    {/* Header Switcher Toggle */}
+                    <div className="pt-2 border-t border-border-subtle/60">
+                        <SwitchItem
+                            id="enable-shamarly-header"
+                            checked={enableShamarlyInHeader}
+                            onChange={() => setEnableShamarlyInHeader(!enableShamarlyInHeader)}
+                            title="إظهار أيقونة مصحف الشمرلي في الشريط العلوي"
+                            subtitle="يتيح لك التبديل السريع بين الرسم العثماني ومصحف الشمرلي بنقرة واحدة من أعلى الشاشة"
+                            badge="وصول سريع"
+                            badgeColor="bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                        />
                     </div>
                 </div>
             )}

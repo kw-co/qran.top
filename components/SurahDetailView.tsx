@@ -720,7 +720,7 @@ ${fullText}`;
 
   return (
     <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
-      <div className="overflow-hidden rounded-lg">
+      <div className="rounded-lg">
         {fontStyle === 'mushaf' ? (
             mushafType === 'shamarly' ? (
                 <ShamarlyPageView
