@@ -1,9 +1,9 @@
 import type { QuranEdition } from '../types';
 
 export const ALL_AUDIO_EDITIONS: QuranEdition[] = [
-    { identifier: "ar.abdulbasitmurattal", language: "ar", name: "عبد الباسط عبد الصمد", englishName: "Abdul Basit 'Abdus Samad", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "alquran.cloud" },
-    { identifier: "ar.mahermuaiqly", language: "ar", name: "ماهر المعيقلي", englishName: "Maher Al Muaiqly", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "alquran.cloud" },
-    { identifier: "ar.alafasy", language: "ar", name: "مشاري راشد العفاسي", englishName: "Mishary Rashid Alafasy", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "alquran.cloud" },
+    { identifier: "ar.alafasy", language: "ar", name: "مشاري راشد العفاسي", englishName: "Mishary Rashid Alafasy", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Alafasy_128kbps" },
+    { identifier: "ar.abdulbasitmurattal", language: "ar", name: "عبد الباسط عبد الصمد", englishName: "Abdul Basit 'Abdus Samad", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Abdul_Basit_Murattal_192kbps" },
+    { identifier: "ar.mahermuaiqly", language: "ar", name: "ماهر المعيقلي", englishName: "Maher Al Muaiqly", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Maher_AlMuaiqly_64kbps" },
     { identifier: "ar.sudais", language: "ar", name: "عبدالرحمن السديس", englishName: "Abdurrahmaan As-Sudais", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Abdurrahmaan_As-Sudais_192kbps" },
     { identifier: "ar.shuraim", language: "ar", name: "سعود الشريم", englishName: "Saood Ash-Shuraym", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Saood_ash-Shuraym_128kbps" },
     { identifier: "ar.husarymujawwad", language: "ar", name: "محمود خليل الحصري (مجود)", englishName: "Mahmoud Khalil Al-Husary (Mujawwad)", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Husary_128kbps_Mujawwad" },
@@ -13,7 +13,7 @@ export const ALL_AUDIO_EDITIONS: QuranEdition[] = [
     { identifier: "ar.shaatree", language: "ar", name: "أبو بكر الشاطري", englishName: "Abu Bakr Ash-Shaatree", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Abu_Bakr_Ash-Shaatree_128kbps" },
     { identifier: "ar.jibreel", language: "ar", name: "محمد جبريل", englishName: "Mohammad Jibreel", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Muhammad_Jibreel_128kbps" },
     { identifier: "ar.dussary", language: "ar", name: "ياسر الدوسري", englishName: "Yasser Ad-Dussary", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Yasser_Ad-Dussary_128kbps" },
-    { identifier: "ar.ahmedajamy", language: "ar", name: "أحمد العجمي", englishName: "Ahmed Al-Ajmi", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "islamic-network" },
-    { identifier: "ar.muhammadayyoub", language: "ar", name: "محمد أيوب", englishName: "Muhammad Ayyub", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "islamic-network" },
+    { identifier: "ar.ahmedajamy", language: "ar", name: "أحمد العجمي", englishName: "Ahmed Al-Ajmi", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net" },
+    { identifier: "ar.muhammadayyoub", language: "ar", name: "محمد أيوب", englishName: "Muhammad Ayyub", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Muhammad_Ayyoub_128kbps" },
     { identifier: "ar.ghamdi.verse", language: "ar", name: "سعد الغامدي", englishName: "Saad Al Ghamdi", format: "audio", type: "versebyverse", direction: "rtl", sourceApi: "versebyversequran.com", reciterIdentifier: "Ghamadi_40kbps" },
 ];

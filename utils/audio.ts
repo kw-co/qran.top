@@ -74,12 +74,16 @@ export const getBismillahAudioUrl = (audioEditionDetails: QuranEdition): string 
 };
 
 export const getSecondaryAudioUrl = (ayah: Ayah, identifier: string): string | undefined => {
-    // Specific fallback for Muhammad Ayyub to EveryAyah
-    if (identifier === 'ar.muhammadayyoub' && ayah.surah) {
-        const surahPad = ayah.surah.number.toString().padStart(3, '0');
-        const ayahPad = ayah.numberInSurah.toString().padStart(3, '0');
-        // Using 128kbps source from EveryAyah
-        return `https://everyayah.com/data/Muhammad_Ayyoub_128kbps/${surahPad}${ayahPad}.mp3`;
+    let surahNum = ayah.surah?.number;
+    let ayahNum = ayah.numberInSurah;
+
+    if ((!surahNum || !ayahNum) && ayah.number) {
+        const resolved = getSurahAndAyahFromGlobalNumber(ayah.number);
+        surahNum = resolved.surahNumber;
+        ayahNum = resolved.numberInSurah;
     }
-    return undefined;
+
+    if (!surahNum || !ayahNum) return undefined;
+    const globalNum = ayah.number || getGlobalAyahNumber(surahNum, ayahNum);
+    return `https://cdn.islamic.network/quran/audio/128/${identifier || 'ar.alafasy'}/${globalNum}.mp3`;
 };

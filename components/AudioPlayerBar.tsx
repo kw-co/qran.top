@@ -7,6 +7,8 @@ import {
 import { formatSurahNameForDisplay } from '../utils/text';
 import RecitersModal from './RecitersModal';
 import DhikrModal from './DhikrModal';
+import { AudioDspModal } from './AudioDspModal';
+import { audioDspService, AudioDspConfig } from '../services/audioDspService';
 
 export interface AudioPlayerBarProps {
     playlist: Ayah[];
@@ -69,6 +71,22 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
     // UI Modals
     const [isRecitersModalOpen, setIsRecitersModalOpen] = useState(false);
     const [isDhikrModalOpen, setIsDhikrModalOpen] = useState(false);
+    const [isDspModalOpen, setIsDspModalOpen] = useState(false);
+    const [dspConfig, setDspConfig] = useState<AudioDspConfig>(audioDspService.getConfig());
+
+    // Subscribe to DSP updates
+    useEffect(() => {
+        return audioDspService.subscribe((cfg) => {
+            setDspConfig(cfg);
+        });
+    }, []);
+
+    // Attach audio element to DSP audio graph
+    useEffect(() => {
+        if (audioRef.current) {
+            audioDspService.attachAudioElement(audioRef.current);
+        }
+    }, []);
 
     // Audio playback state
     const [currentTime, setCurrentTime] = useState<number>(0);
@@ -102,6 +120,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
         }
 
         if (isPlaying) {
+            audioDspService.ensureContextRunning();
             audio.play().catch(e => {
                 if (e.name !== 'AbortError') {
                     console.error("Audio play failed:", e);
@@ -252,6 +271,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
         <div className="fixed bottom-0 left-0 right-0 bg-surface/95 dark:bg-neutral-900/95 backdrop-blur-md z-40 border-t border-border-default shadow-[0_-8px_30px_rgba(0,0,0,0.15)] animate-fade-in" dir="rtl">
             <audio 
                 ref={audioRef} 
+                crossOrigin="anonymous"
                 preload="auto" 
                 onError={handleAudioError}
                 onTimeUpdate={handleTimeUpdate}
@@ -396,8 +416,27 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
                         </button>
                     </div>
 
-                    {/* Right: Dhikr Mode, Speed & Close Controls */}
+                    {/* Right: DSP, Dhikr Mode, Speed & Close Controls */}
                     <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                        {/* Audio DSP (Vocal Mastering & Reverb) Button */}
+                        <button
+                            onClick={() => {
+                                audioDspService.ensureContextRunning();
+                                setIsDspModalOpen(true);
+                            }}
+                            className={`p-1.5 sm:p-2 rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
+                                dspConfig.enabled
+                                    ? 'bg-amber-500/15 border-amber-500/50 text-amber-600 dark:text-amber-400 font-bold shadow-xs'
+                                    : 'border-border-default text-text-secondary hover:text-amber-500 hover:bg-surface-subtle'
+                            }`}
+                            title="الهندسة الصوتية للتلاوة: عزل رنين 250Hz • إشعاع 3500Hz • صدى خفيف"
+                        >
+                            <SparklesIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${dspConfig.enabled ? 'animate-pulse text-amber-500' : ''}`} />
+                            <span className="text-xs hidden md:inline font-semibold">
+                                {dspConfig.enabled ? 'صدى ونقاء' : 'هندسة الصوت'}
+                            </span>
+                        </button>
+
                         {/* Dhikr / Repetition Button */}
                         <button
                             onClick={() => setIsDhikrModalOpen(true)}
@@ -458,6 +497,11 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
                     playlistLength={playlist.length}
                 />
             )}
+            {/* Audio DSP Modal */}
+            <AudioDspModal
+                isOpen={isDspModalOpen}
+                onClose={() => setIsDspModalOpen(false)}
+            />
         </div>
     );
 };
