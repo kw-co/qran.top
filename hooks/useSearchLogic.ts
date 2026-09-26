@@ -325,6 +325,10 @@ export const useSearchLogic = (
         return filtered;
     }, [activeResults, queryWords, exactMatch, searchType, activePhraseFilter, activeMuqattaatFilter, activeDiacriticFilter, isSingleWordSearch, isRootSearch, displayEditionData]);
 
+    const muqattaatSourceResults = useMemo(() => {
+        return applyFilters(activeResults, { skipMuqattaat: true });
+    }, [activeResults, exactMatch, searchType, activePhraseFilter, activeDiacriticFilter, isSingleWordSearch, isRootSearch, displayEditionData]);
+
             const diacriticVariants = useMemo(() => {
         if (searchType !== 'text' || queryWords.length === 0) return [];
 
@@ -530,6 +534,7 @@ export const useSearchLogic = (
         queryWords, isSingleWordSearch,
         phraseFilters,
         displayedResults,
+        muqattaatSourceResults,
         occurrencesMap, totalOccurrences,
         generalOccurrences, exactOccurrences,
         neighboringWords,

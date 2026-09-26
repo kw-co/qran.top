@@ -117,6 +117,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     queryWords, isSingleWordSearch,
     phraseFilters,
     displayedResults,
+    muqattaatSourceResults,
     occurrencesMap, totalOccurrences,
     generalOccurrences, exactOccurrences,
     neighboringWords,
@@ -469,7 +470,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
           />
         )}
         <SearchResultsHeader 
-            searchType={searchType} query={query} correctedQuery={correctedQuery} targetSurahNumber={targetSurahNumber} activeMuqattaatFilter={activeMuqattaatFilter} setActiveMuqattaatFilter={setActiveMuqattaatFilter} showMuqattaatInSearch={showMuqattaatInSearch} baseResults={results}
+            searchType={searchType} query={query} correctedQuery={correctedQuery} targetSurahNumber={targetSurahNumber} activeMuqattaatFilter={activeMuqattaatFilter} setActiveMuqattaatFilter={setActiveMuqattaatFilter} showMuqattaatInSearch={showMuqattaatInSearch} baseResults={muqattaatSourceResults}
             displayedResultsCount={displayedResults.length} resultsCount={displayedResults.length}
             isSingleWordSearch={isSingleWordSearch} generalOccurrences={generalOccurrences}
             exactOccurrences={exactOccurrences} exactMatch={exactMatch} setExactMatch={setExactMatch}
@@ -479,6 +480,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
             onToggleRootSearch={(val) => onNewSearch(query, undefined, undefined, val)}
             displayedResults={displayedResults}
             simpleCleanData={simpleCleanData}
+            activePhraseFilter={activePhraseFilter}
+            activeDiacriticFilter={activeDiacriticFilter}
+            displayEditionData={effectiveEditionData}
         />
         
         {results.length > 0 && (

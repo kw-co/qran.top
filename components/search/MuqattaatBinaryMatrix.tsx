@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { Ayah, SurahData } from '../../types';
-import { copyToClipboard } from '../../utils/text';
+import { copyToClipboard, normalizeArabicText } from '../../utils/text';
 import { findWordsByFingerprint, FingerprintMatch } from '../../utils/reverseSearch';
 import { 
     CopyIcon, 
@@ -116,13 +116,39 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
 
     // Construct the 29-bit binary string (1 for present, 0 for absent)
     const { binaryString, items, presentCount } = useMemo(() => {
+        const sourceAyahs = (displayedResults && displayedResults.length > 0 ? displayedResults : baseResults || []);
+        const transformedQuery = normalizeArabicText(String(query || '')).replace(/"/g, '').trim();
+        const searchWords = transformedQuery ? transformedQuery.split(/\s+/).filter(Boolean) : [];
+
         const list = [...MUQATTAAT_29_SURAHS].reverse().map(s => {
             const isPresent = presentSurahs.has(s.surahNumber);
             const isAvailable = availableSurahs.has(s.surahNumber);
+
+            const surahAyahs = sourceAyahs.filter(a => a.surah?.number === s.surahNumber);
+            let occurrences = 0;
+            if (searchWords.length > 0) {
+                for (const ayah of surahAyahs) {
+                    if (!ayah.text) {
+                        occurrences++;
+                        continue;
+                    }
+                    const ayahNorm = normalizeArabicText(ayah.text);
+                    const words = ayahNorm.split(/\s+/).filter(Boolean);
+                    for (let i = 0; i <= words.length - searchWords.length; i++) {
+                        const slice = words.slice(i, i + searchWords.length);
+                        if (slice.join(' ') === searchWords.join(' ')) {
+                            occurrences++;
+                        }
+                    }
+                }
+            }
+            const count = occurrences > 0 ? occurrences : surahAyahs.length;
+
             return {
                 ...s,
                 isPresent,
                 isAvailable,
+                count,
                 bit: isPresent ? '1' : '0'
             };
         });
@@ -131,7 +157,7 @@ export const MuqattaatBinaryMatrix: React.FC<MuqattaatBinaryMatrixProps> = ({
         const count = list.filter(item => item.isPresent).length;
 
         return { binaryString: bits, items: list, presentCount: count };
-    }, [presentSurahs, availableSurahs]);
+    }, [presentSurahs, availableSurahs, displayedResults, baseResults, query]);
 
     // Normal Grid Layout (3 rows: 9 + 9 + 11)
     const row1 = useMemo(() => items.slice(0, 9), [items]);
@@ -308,12 +334,12 @@ ${breakdown}
                     {s.letters}
                 </span>
 
-                {/* Surah Name & Number */}
+                {/* Surah Name & Occurrences */}
                 <span className="text-[7.5px] text-text-secondary truncate px-0.5 leading-tight font-sans mt-0.5" title={`سورة ${s.surahName}`}>
                     {s.surahName}
                 </span>
-                <span className="text-[7px] text-text-muted font-mono leading-none pb-0.5">
-                    {s.surahNumber}
+                <span className={`text-[8px] font-mono font-bold leading-none pb-0.5 px-0.5 ${s.isPresent ? 'text-primary' : 'text-text-muted/60'}`} title={`تكرار الورود: ${s.count} (رقم السورة: ${s.surahNumber})`}>
+                    {s.count}
                 </span>
 
                 {/* Bottom row: Presence bit 1 or 0 */}

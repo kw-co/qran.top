@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Ayah } from '../../types';
 import { SparklesIcon } from '../icons';
 import { QURAN_INDEX } from '../../quranIndex';
+import { normalizeArabicText } from '../../utils/text';
 
 // Complete list of all 14 unique Muqatta'at (fawatih) formulas across the 29 surahs in the Holy Quran
 const ALL_MUQATTAAT_CONFIG: { letters: string; allSurahs: number[] }[] = [
@@ -110,6 +111,9 @@ interface SearchResultsHeaderProps {
     displayedResults?: Ayah[];
     showMuqattaatInSearch?: boolean;
     simpleCleanData?: any[]; // Allow importing SurahData if needed or just any[]
+    activePhraseFilter?: string;
+    activeDiacriticFilter?: string;
+    displayEditionData?: any[];
 }
 
 const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
@@ -117,7 +121,8 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
     isSingleWordSearch, generalOccurrences, exactOccurrences, exactMatch,
     setExactMatch, totalOccurrences, onJumpToOccurrence, 
     cachedAnalysisExists, onNewSearch, isRootSearch = false, onToggleRootSearch,
-    displayedResults = [], showMuqattaatInSearch = true, simpleCleanData
+    displayedResults = [], showMuqattaatInSearch = true, simpleCleanData,
+    activePhraseFilter, activeDiacriticFilter, displayEditionData
 }) => {
     const finalQueryForChecks = correctedQuery || query;
     const shouldShowAnalysisButton = finalQueryForChecks.trim().split(/\s+/).filter(Boolean).length === 1 && searchType === 'text';
@@ -127,13 +132,95 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
     }, [activeMuqattaatFilter]);
 
     const allMuqattaatStats = React.useMemo(() => {
-        const sourceResults = (baseResults && baseResults.length > 0) ? baseResults : displayedResults;
-        if (!sourceResults || sourceResults.length === 0) return [];
+        const sourceResults = (baseResults !== undefined) ? baseResults : displayedResults;
+        if (!sourceResults && !displayedResults) return [];
+        if ((!sourceResults || sourceResults.length === 0) && resultsCount === 0 && displayedResults.length === 0) return [];
 
         const currentFilteredNumbers = new Set(displayedResults.map(a => a.surah?.number).filter((n): n is number => !!n));
 
+        const transformedQuery = normalizeArabicText(String(finalQueryForChecks || '')).replace(/"/g, '').trim();
+        const searchWords = transformedQuery ? transformedQuery.split(/\s+/).filter(Boolean) : [];
+
+        const hasDiacriticFilter = Boolean(activeDiacriticFilter && activeDiacriticFilter.trim() !== '');
+        const dFilters = hasDiacriticFilter ? activeDiacriticFilter!.split(',').map(f => f.trim()).filter(Boolean) : [];
+
+        const hasPhraseFilter = Boolean(activePhraseFilter && activePhraseFilter !== 'all' && activePhraseFilter.trim() !== '');
+        const pFilters = hasPhraseFilter ? activePhraseFilter!.split(',').map(f => f.trim()).filter(Boolean) : [];
+
         return FULL_29_MUQATTAAT_LIST.map(({ surah, name, letters }) => {
-            const count = sourceResults.filter(a => a.surah?.number === surah).length;
+            const surahAyahs = (sourceResults || []).filter(a => a.surah?.number === surah);
+            const ayahsCount = surahAyahs.length;
+
+            let occurrences = 0;
+            if (ayahsCount > 0) {
+                if (hasDiacriticFilter && dFilters.length > 0) {
+                    for (const ayah of surahAyahs) {
+                        const displaySurah = displayEditionData?.find((s: any) => s.number === ayah.surah?.number);
+                        const displayAyah = displaySurah?.ayahs.find((a: any) => a.numberInSurah === ayah.numberInSurah);
+                        const targetText = String(displayAyah?.text || ayah.text || '');
+                        const cleanAyahText = targetText.replace(/[\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ');
+                        const words = cleanAyahText.split(/\s+/).filter(Boolean);
+                        
+                        let matchedInAyah = 0;
+                        for (const df of dFilters) {
+                            for (const w of words) {
+                                if (w === df || (!exactMatch && w.includes(df))) {
+                                    matchedInAyah++;
+                                }
+                            }
+                        }
+                        occurrences += (matchedInAyah > 0 ? matchedInAyah : 1);
+                    }
+                } else if (hasPhraseFilter && pFilters.length > 0) {
+                    for (const ayah of surahAyahs) {
+                        const ayahNorm = normalizeArabicText(ayah.text || '');
+                        let matchedInAyah = 0;
+                        for (const pf of pFilters) {
+                            const normPf = normalizeArabicText(pf);
+                            let idx = ayahNorm.indexOf(normPf);
+                            while (idx !== -1) {
+                                matchedInAyah++;
+                                idx = ayahNorm.indexOf(normPf, idx + Math.max(1, normPf.length));
+                            }
+                        }
+                        occurrences += (matchedInAyah > 0 ? matchedInAyah : 1);
+                    }
+                } else if (searchWords.length > 0) {
+                    for (const ayah of surahAyahs) {
+                        if (!ayah.text) {
+                            occurrences++;
+                            continue;
+                        }
+                        const ayahNorm = normalizeArabicText(ayah.text);
+                        const words = ayahNorm.split(/\s+/).filter(Boolean);
+
+                        if (exactMatch) {
+                            for (let i = 0; i <= words.length - searchWords.length; i++) {
+                                const slice = words.slice(i, i + searchWords.length);
+                                if (slice.join(' ') === searchWords.join(' ')) {
+                                    occurrences++;
+                                }
+                            }
+                        } else if (searchWords.length === 1) {
+                            const target = searchWords[0];
+                            for (const w of words) {
+                                if (w.includes(target)) {
+                                    occurrences++;
+                                }
+                            }
+                        } else {
+                            for (let i = 0; i <= words.length - searchWords.length; i++) {
+                                const slice = words.slice(i, i + searchWords.length);
+                                if (slice.join(' ') === searchWords.join(' ')) {
+                                    occurrences++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            const count = occurrences > 0 ? occurrences : ayahsCount;
             const isMentioned = count > 0;
             const isDisplayed = currentFilteredNumbers.has(surah);
             const isSurahFiltered = activeFiltersList.includes(`s:${surah}`);
@@ -145,6 +232,7 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                 name,
                 letters,
                 count,
+                ayahsCount,
                 isMentioned,
                 isDisplayed,
                 isFilterActive,
@@ -152,7 +240,17 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                 isFormulaFiltered
             };
         });
-    }, [baseResults, displayedResults, activeFiltersList]);
+    }, [
+        baseResults, 
+        displayedResults, 
+        activeFiltersList, 
+        finalQueryForChecks, 
+        exactMatch, 
+        activePhraseFilter, 
+        activeDiacriticFilter, 
+        displayEditionData, 
+        resultsCount
+    ]);
 
     const hasAnyMuqattaatInResults = allMuqattaatStats.some(item => item.isMentioned);
 
@@ -373,12 +471,17 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                                             {hoveredSurah.isMentioned ? (
                                                 <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded">
                                                     <span>✓</span>
-                                                    <span>وردت في هذه السورة ({hoveredSurah.count} {hoveredSurah.count === 1 ? 'آية' : hoveredSurah.count === 2 ? 'آيتان' : hoveredSurah.count <= 10 ? 'آيات' : 'آية'})</span>
+                                                    <span>
+                                                        تكرار الورود: {hoveredSurah.count}
+                                                        {hoveredSurah.ayahsCount && hoveredSurah.ayahsCount !== hoveredSurah.count 
+                                                            ? ` (في ${hoveredSurah.ayahsCount} آيات)` 
+                                                            : ''}
+                                                    </span>
                                                 </span>
                                             ) : (
                                                 <span className="text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center gap-1 bg-rose-500/10 px-2 py-0.5 rounded">
                                                     <span>✗</span>
-                                                    <span>لم ترد في هذه السورة إطلاقاً</span>
+                                                    <span>لم ترد في هذه السورة (0)</span>
                                                 </span>
                                             )}
 
@@ -422,10 +525,10 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                             <div className="grid grid-cols-4 sm:grid-cols-7 md:grid-cols-10 lg:grid-cols-14 gap-1.5">
                                 {allMuqattaatStats.map((item, index) => {
                                     const tooltipText = [
-                                        `سورة ${item.name} (رقم ${item.surah}) [فاتحة: ${item.letters}]`,
+                                        `سورة ${item.name} [فاتحة: ${item.letters}] (رقم السورة: ${item.surah})`,
                                         item.isMentioned 
-                                            ? `✓ وردت كلمة البحث في هذه السورة (${item.count} ${item.count === 1 ? 'آية' : item.count === 2 ? 'آيتان' : item.count <= 10 ? 'آيات' : 'آية'})` 
-                                            : `✗ لم ترد كلمة البحث في هذه السورة (غير مذكورة في سورة ${item.name})`,
+                                            ? `✓ تكرار الورود: ${item.count}${item.ayahsCount && item.ayahsCount !== item.count ? ` (في ${item.ayahsCount} آيات)` : ''}` 
+                                            : `✗ لم ترد في سورة ${item.name} (0)`,
                                         item.isMentioned 
                                             ? (item.isFilterActive ? 'انقر لإلغاء التصفية' : `انقر لتصفية النتائج على سورة ${item.name}`)
                                             : `غير مذكورة في نتائج البحث`
@@ -452,8 +555,15 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                                             <span className="text-[9px] font-sans leading-tight mt-1 truncate max-w-full text-text-secondary">
                                                 {item.name}
                                             </span>
-                                            <span className="text-[8px] font-mono leading-none opacity-60 mt-0.5">
-                                                {item.surah}
+                                            <span 
+                                                className={`text-[9.5px] font-mono font-bold leading-tight mt-0.5 truncate max-w-full px-0.5 ${
+                                                    item.isMentioned 
+                                                        ? 'text-emerald-700 dark:text-emerald-300' 
+                                                        : 'text-text-muted/60'
+                                                }`}
+                                                title={`تكرار الورود: ${item.count} (رقم السورة: ${item.surah})`}
+                                            >
+                                                {item.count}
                                             </span>
                                         </button>
                                     );
