@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSettingsContext } from '../../contexts/SettingsContext';
 import type { FontSize, FontStyleType, WordClickBehavior } from '../../types';
-import { CheckIcon, SunIcon, MoonIcon } from '../icons';
+import { CheckIcon, SunIcon, MoonIcon, SparklesIcon } from '../icons';
 import { renderWordWithNoorani } from '../../utils/nooraniHighlight';
 import { safeLocalStorage } from '../../utils/storage';
 
@@ -144,15 +144,6 @@ const ReadingSettings: React.FC = () => {
     const handleCancelShamarlyDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
         cancelShamarlyDownload();
-    };
-
-    const [shamarlyColorMode, setShamarlyColorMode] = useState<string>(() => {
-        return safeLocalStorage.getItem('shamarly_page_color_mode') || 'auto';
-    });
-
-    const handleSetShamarlyColorMode = (mode: string) => {
-        setShamarlyColorMode(mode);
-        safeLocalStorage.setItem('shamarly_page_color_mode', mode);
     };
 
     const isUthmaniSelected = fontStyle === 'uthmani';
@@ -372,46 +363,16 @@ const ReadingSettings: React.FC = () => {
                         </span>
                     </div>
 
-                    {/* Paper Appearance Mode */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-1">
-                        <div>
-                            <span className="text-xs font-bold text-text-primary">مظهر صفحة المصحف والعرض الليلي:</span>
-                            <p className="text-[11px] text-text-muted">الوضع الليلي يعتم الورق ويحول النص لأبيض مع الحفاظ على الألوان الذهبية.</p>
+                    {/* Automatic Theme Integration Notice */}
+                    <div className="flex items-center gap-3 py-1 bg-surface p-3 rounded-xl border border-border-default/60">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                            <SparklesIcon className="w-4 h-4" />
                         </div>
-                        <div className="flex items-center bg-surface rounded-xl border border-border-default p-1 shadow-2xs gap-1">
-                            <button
-                                type="button"
-                                onClick={() => handleSetShamarlyColorMode('dark')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                                    shamarlyColorMode === 'dark' 
-                                        ? 'bg-slate-800 text-amber-300 font-bold shadow-xs ring-1 ring-amber-400/30' 
-                                        : 'text-text-muted hover:text-text-primary'
-                                }`}
-                            >
-                                🌙 ليلي معتم
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleSetShamarlyColorMode('light')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                                    shamarlyColorMode === 'light' 
-                                        ? 'bg-primary text-white font-bold shadow-xs' 
-                                        : 'text-text-muted hover:text-text-primary'
-                                }`}
-                            >
-                                ☀️ ورق أصلي
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleSetShamarlyColorMode('sepia')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                                    shamarlyColorMode === 'sepia' 
-                                        ? 'bg-amber-600 text-white font-bold shadow-xs' 
-                                        : 'text-text-muted hover:text-text-primary'
-                                }`}
-                            >
-                                📜 ورق دافئ
-                            </button>
+                        <div>
+                            <span className="text-xs font-bold text-text-primary block">اندماج تلقائي كامل مع ثيم وإطار التطبيق:</span>
+                            <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
+                                يتكيف مظهر صفحة مصحف الشمرلي وإطارها تلقائياً وبشكل انسيابي مع الثيم المختار للتطبيق (النهاري، الليلي، الضحى، العشاء) ونمط إطار المصحف المحدد أدناه بدون الحاجة لضبط يدوي.
+                            </p>
                         </div>
                     </div>
 

@@ -906,19 +906,31 @@ ${fullText}`;
       {showBottomNavBar && (
           <div className="mt-6 flex items-center justify-between p-2 bg-surface rounded-full shadow-md border border-border-default">
               <button 
-                  onClick={() => navigateToPage(currentPage - 1)}
-                  disabled={currentPage <= 1}
+                  onClick={() => {
+                      if (fontStyle === 'mushaf' && mushafType === 'shamarly') {
+                          if (shamarlyCurrentPage > 1) setShamarlyCurrentPage(prev => prev - 1);
+                      } else {
+                          navigateToPage(currentPage - 1);
+                      }
+                  }}
+                  disabled={fontStyle === 'mushaf' && mushafType === 'shamarly' ? shamarlyCurrentPage <= 1 : currentPage <= 1}
                   className="flex items-center gap-2 px-4 py-2 rounded-full text-text-secondary hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                   <ArrowRightIcon className="w-5 h-5" />
                   <span className="font-semibold hidden sm:inline">الصفحة السابقة</span>
               </button>
               <div className="font-bold text-lg text-text-primary font-mono select-none">
-                  {currentPage}
+                  {fontStyle === 'mushaf' && mushafType === 'shamarly' ? shamarlyCurrentPage : currentPage}
               </div>
               <button 
-                  onClick={() => navigateToPage(currentPage + 1)} 
-                  disabled={currentPage >= 604}
+                  onClick={() => {
+                      if (fontStyle === 'mushaf' && mushafType === 'shamarly') {
+                          if (shamarlyCurrentPage < 522) setShamarlyCurrentPage(prev => prev + 1);
+                      } else {
+                          navigateToPage(currentPage + 1);
+                      }
+                  }} 
+                  disabled={fontStyle === 'mushaf' && mushafType === 'shamarly' ? shamarlyCurrentPage >= 522 : currentPage >= 604}
                   className="flex items-center gap-2 px-4 py-2 rounded-full text-text-secondary hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                   <span className="font-semibold hidden sm:inline">الصفحة التالية</span>
