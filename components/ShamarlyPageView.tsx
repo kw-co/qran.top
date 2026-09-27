@@ -35,6 +35,42 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
     const [jumpInput, setJumpInput] = useState<string>('');
     const [showSurahPicker, setShowSurahPicker] = useState(false);
 
+    // Instant & reactive dark theme detection:
+    // Tracks documentElement class changes immediately whenever user cycles or changes theme.
+    const [isDarkDOM, setIsDarkDOM] = useState(() => {
+        if (typeof document !== 'undefined') {
+            return document.documentElement.classList.contains('dark') || 
+                   document.documentElement.classList.contains('theme-dark') || 
+                   document.documentElement.classList.contains('theme-isha');
+        }
+        return false;
+    });
+
+    useEffect(() => {
+        const updateDarkMode = () => {
+            if (typeof document !== 'undefined') {
+                const dark = document.documentElement.classList.contains('dark') || 
+                             document.documentElement.classList.contains('theme-dark') || 
+                             document.documentElement.classList.contains('theme-isha');
+                setIsDarkDOM(dark);
+            }
+        };
+
+        updateDarkMode();
+
+        const observer = new MutationObserver(updateDarkMode);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+        window.addEventListener('app-theme-changed', updateDarkMode);
+        window.addEventListener('storage', updateDarkMode);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('app-theme-changed', updateDarkMode);
+            window.removeEventListener('storage', updateDarkMode);
+        };
+    }, []);
+
     const safePage = Math.min(Math.max(1, pageNumber), SHAMARLY_TOTAL_PAGES);
     const pageInfo = getShamarlyPageInfo(safePage);
     const primarySurahData = QURAN_INDEX.find(s => s.number === pageInfo.primarySurah);
@@ -172,22 +208,24 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
 
     // Dynamic, automatic appearance blending tailored to the app's native theme:
     // Zero custom themes or foreign toggles.
-    const isDarkTheme = theme === 'dark' || theme === 'isha';
-    let imageFilter = 'none';
-    let blendMode: React.CSSProperties['mixBlendMode'] = undefined;
+    // If the theme is dark (dark, isha, or any dark DOM class): INVERT page paper to dark slate/black & text to ivory!
+    const isEffectiveDark = isDarkDOM || theme === 'dark' || theme === 'isha' || (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'));
+    const isIshaTheme = theme === 'isha' || (typeof document !== 'undefined' && document.documentElement.classList.contains('theme-isha'));
 
-    if (theme === 'dark') {
-        // Slate Charcoal Navy: Invert white paper to dark slate, text to readable ivory,
-        // preserving warm golden surah banners via hue-rotate(180deg).
-        imageFilter = 'invert(0.92) hue-rotate(180deg) brightness(0.95) contrast(1.15)';
-    } else if (theme === 'isha') {
-        // Deep Olive Forest: Invert with olive-adjusted hues
-        imageFilter = 'invert(0.92) hue-rotate(140deg) brightness(0.93) contrast(1.15)';
-    } else if (theme === 'light') {
-        // Warm Paper (نهاري 1): Multiply blend mode seamlessly dissolves scanned white paper
-        // directly into the warm parchment surface of the app without any boxy edge clashing.
-        imageFilter = 'contrast(1.04) brightness(0.99)';
-        blendMode = 'multiply';
+    let imageFilter = 'contrast(1.04) brightness(0.99)';
+    let blendMode: React.CSSProperties['mixBlendMode'] = 'multiply';
+
+    if (isEffectiveDark) {
+        // High-fidelity dark mode inversion:
+        // White paper becomes deep dark slate/black matching the theme surface,
+        // black text becomes crisp, radiant ivory.
+        // Hue rotation preserves gold surah banners and red waqf markers!
+        blendMode = 'normal';
+        if (isIshaTheme) {
+            imageFilter = 'invert(0.92) hue-rotate(140deg) brightness(0.93) contrast(1.15)';
+        } else {
+            imageFilter = 'invert(0.92) hue-rotate(180deg) brightness(0.95) contrast(1.15)';
+        }
     } else if (theme === 'duha') {
         // Cool Academic Light (نهاري 2): Crisp clear reproduction
         imageFilter = 'contrast(1.05)';
@@ -432,9 +470,9 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
                             transform: zoomLevel < 1 ? `scale(${zoomLevel})` : undefined,
                             transformOrigin: 'top center'
                         }}
-                        className={`transition-opacity duration-300 object-contain ${
+                        className={`shamarly-page-img transition-opacity duration-300 object-contain ${
                             imageLoading ? 'opacity-0' : 'opacity-100'
-                        } ${isDarkTheme ? 'ring-1 ring-white/10 rounded-sm' : ''}`}
+                        } ${isEffectiveDark ? 'ring-1 ring-white/10 rounded-sm' : ''}`}
                         onLoad={() => setImageLoading(false)}
                         onError={() => {
                             if (!useFallbackUrl) {

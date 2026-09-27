@@ -285,6 +285,27 @@ html.dark .animate-highlight-pulse {
   overflow-x: hidden;
 }
 
+/* --- Shamarly Mushaf Scanned Page Image Theme Adaptation --- */
+.shamarly-page-img {
+  transition: filter 0.3s ease, opacity 0.3s ease;
+  mix-blend-mode: multiply;
+  filter: contrast(1.04) brightness(0.99);
+}
+
+/* Automatic Inversion on ANY dark theme (dark, isha, or any .dark class) */
+html.dark .shamarly-page-img,
+html.theme-dark .shamarly-page-img,
+html.theme-isha .shamarly-page-img,
+.dark .shamarly-page-img {
+  mix-blend-mode: normal !important;
+  filter: invert(0.92) hue-rotate(180deg) brightness(0.95) contrast(1.15) !important;
+}
+
+html.theme-isha .shamarly-page-img {
+  mix-blend-mode: normal !important;
+  filter: invert(0.92) hue-rotate(140deg) brightness(0.93) contrast(1.15) !important;
+}
+
 /* 1. Classic Gold-Trimmed Frame (الإطار الكلاسيكي المذهب) */
 .mushaf-page.frame-classic {
   padding: 2.25rem 2.5rem;

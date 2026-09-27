@@ -38,16 +38,35 @@ export const useTheme = () => {
     if (themeDetails[newTheme].isDark) {
         document.documentElement.classList.add('dark');
     }
+
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app-theme-changed', { detail: newTheme }));
+    }
   }, []);
 
-  // This useEffect was removed as it can cause a theme "flash" on load.
-  // The inline script in index.html handles the initial theme setting perfectly before any content renders.
-  // React's state is initialized correctly and will be in sync.
-  /* 
+  // Synchronize state across all components using useTheme
   useEffect(() => {
-    applyTheme(theme);
-  }, []); 
-  */
+    const handleThemeChange = (e: Event) => {
+        const customEvent = e as CustomEvent<Theme>;
+        if (customEvent.detail && themes.includes(customEvent.detail)) {
+            setThemeState(customEvent.detail);
+        }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'theme' && e.newValue && themes.includes(e.newValue as Theme)) {
+            setThemeState(e.newValue as Theme);
+        }
+    };
+
+    window.addEventListener('app-theme-changed', handleThemeChange);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+        window.removeEventListener('app-theme-changed', handleThemeChange);
+        window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const cycleTheme = useCallback(() => {
     const currentIndex = themes.indexOf(theme);
