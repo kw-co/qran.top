@@ -350,12 +350,14 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                             )}
                         </h3>
                     ) : (
-                        <h3 className="text-lg font-semibold text-text-secondary">الآيات التي تحمل الرقم "<span className="font-bold text-primary-text-strong">{query}</span>"</h3>
+                        <h3 className="text-lg font-semibold text-text-secondary">الآيات التي تحمل الرقم "<span className="font-bold text-primary-text-strong">{query}</span>" في جميع سور القرآن الكريم</h3>
                     )}
                     
                     {resultsCount > 0 && (
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-500/20 text-text-primary shadow-sm cursor-help" title="إجمالي عدد الآيات التي تحتوي على كلمة البحث.">{displayedResultsCount} آيات</span>
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-500/20 text-text-primary shadow-sm cursor-help" title="إجمالي عدد الآيات المطابقة.">
+                                {searchType === 'number' ? `${displayedResultsCount} آية في ${displayedResultsCount} سورة` : `${displayedResultsCount} آيات`}
+                            </span>
                             {searchType === 'text' && (
                                 <>
                                   {isSingleWordSearch && !isRootSearch && (

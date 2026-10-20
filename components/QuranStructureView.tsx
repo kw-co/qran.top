@@ -43,6 +43,22 @@ export const QuranStructureView: React.FC<QuranStructureViewProps> = () => {
 
     const sections: StructureSection[] = useMemo(() => [
         {
+            id: 'mizan-waw',
+            title: "ميزان الحرف الأوسط (ميزان الواو وسائر الحروف الـ 28)",
+            description: "البحث في جميع مفردات القرآن الكريم الثلاثية واعتماد حرف الوسط (كالواو أو الألف أو الياء أو أي حرف هجائي) كميزان يكافئ الحرفين الجانبيين (مثل: هود ⟵ هـ = د، قال ⟵ ق = ل)، مع تجميع شبكة المقابلات للأحرف النورانية الـ 14.",
+            icon: <span className="text-2xl font-bold">⚖️</span>,
+            href: "#/mizan-waw",
+            category: 'noorani',
+            categoryName: 'الحروف النورانية',
+            badge: "ميزان قرآني جديد ⚡",
+            highlights: ["ميزان الواو والألف والياء والـ 28 حرفاً", "معادلات التكافؤ الثلاثي", "شبكة الحروف النورانية الـ 14"],
+            bg: "bg-amber-500/10 dark:bg-amber-900/15",
+            borderColor: "border-amber-500/40 dark:border-amber-600/50",
+            hoverBorder: "hover:border-amber-500",
+            accentColor: "text-amber-800 dark:text-amber-300",
+            buttonText: "دخول ميزان الأحرف ⟵"
+        },
+        {
             id: 'cipher-lab',
             title: "مختبر التشفير وفك التشفير النوراني",
             description: "تشفير أي كلمة أو نص إلى كود الحروف النورانية وفك تشفير أي كود إلى كلمات ومفردات قرآنية موثقة وفق الجدول التفضيلي المعتمد (14 ⟷ 28).",

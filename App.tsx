@@ -20,6 +20,7 @@ import { ArrowUpIcon, RefreshIcon, WifiOffIcon, ArrowRightIcon, HomeIcon, CheckI
 import Header from './components/Header';
 import ExternalLinkModal from './components/ExternalLinkModal';
 import DownloadMushafModal from './components/DownloadMushafModal';
+import { tryParseSingleAyahNumber, normalizeDigits, cleanAyahSearchQuery } from './utils/text';
 
 
 const App: React.FC = () => {
@@ -130,8 +131,17 @@ const App: React.FC = () => {
             window.location.hash = `#/surah/${ayahRef.surah}?ayah=${ayahRef.ayah}`;
             return;
         }
+
+        // If the query is an ayah number (Arabic or English digits, e.g. "5", "٥", "آية 5", "الآية ٥", "رقم 5"), search across all surahs
+        const singleAyahNum = tryParseSingleAyahNumber(query);
+        if (singleAyahNum !== null && !position && !isRootSearch && !targetSurahNumber) {
+            handleSearchByAyahNumber(singleAyahNum);
+            return;
+        }
+
         setIsSearching(true);
-        let url = `#/search/${encodeURIComponent(query)}?search_edition=${sourceEdition || 'quran-simple-clean'}`;
+        const cleanedQuery = cleanAyahSearchQuery(query);
+        let url = `#/search/${encodeURIComponent(cleanedQuery || query)}?search_edition=${sourceEdition || 'quran-simple-clean'}`;
         if (isRootSearch) url += `&mode=root`;
         if (targetSurahNumber) url += `&ts=${targetSurahNumber}`;
         if (position) url += `&s=${position.surah}&a=${position.ayah}&w=${position.wordIndex}`;
@@ -139,9 +149,12 @@ const App: React.FC = () => {
         window.location.hash = url;
     };
 
-    const handleSearchByAyahNumber = (ayahNumber: number) => {
-        setIsSearching(true);
-        window.location.hash = `#/search/number/${ayahNumber}`;
+    const handleSearchByAyahNumber = (ayahNumber: number | string) => {
+        const num = typeof ayahNumber === 'number' ? ayahNumber : parseInt(normalizeDigits(String(ayahNumber)), 10);
+        if (!isNaN(num) && num > 0) {
+            setIsSearching(true);
+            window.location.hash = `#/search/number/${num}`;
+        }
     };
 
 

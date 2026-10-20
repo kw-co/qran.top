@@ -7,7 +7,7 @@ const SURAH_MUQATTAAT_MAP: Record<number, string> = {
     36: "يس", 38: "ص", 40: "حم", 41: "حم", 42: "حم عسق", 43: "حم", 44: "حم", 45: "حم", 46: "حم",
     50: "ق", 68: "ن"
 };
-import { normalizeArabicText } from '../utils/text';
+import { normalizeArabicText, normalizeDigits, cleanAyahSearchQuery } from '../utils/text';
 import { levenshtein } from '../utils/levenshtein';
 import { findWordsByRoot } from '../utils/roots';
 
@@ -63,7 +63,7 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
     }, [simpleSearchableAyahs]);
 
     const tryParseAyahReference = useCallback((query: string): { surah: number; ayah: number } | null => {
-        const cleanedQuery = String(query).trim().replace(/[أإآ]/g, 'ا').replace(/[آا]ية/g, '').replace(/سورة/g, '');
+        const cleanedQuery = normalizeDigits(String(query).trim().replace(/[أإآ]/g, 'ا').replace(/[آا]ية/g, '').replace(/سورة/g, ''));
         const nameMatch = cleanedQuery.match(/^\s*([^\d\s:]+(?:\s+[^\d\s:]+)*)\s*[:\s]\s*(\d+)\s*$/);
         if (nameMatch) {
             const surahName = normalizeArabicText(nameMatch[1].trim());
@@ -82,7 +82,7 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
     const performSearch = useCallback((query: string, isRootSearch?: boolean, overrideTargetSurah?: number, targetMuqattaat?: string, hawameemOnly?: boolean): { results: Ayah[], finalSearchEdition: string, correctedQuery?: string, targetSurahNumber?: number, targetMuqattaat?: string, parsedQuery?: string } => {
         if (!allQuranData) return { results: [], finalSearchEdition: 'quran-simple-clean', targetSurahNumber: undefined, targetMuqattaat: undefined, parsedQuery: undefined };
         
-        let finalQuery = query;
+        let finalQuery = cleanAyahSearchQuery(query);
         let targetSurahNumber: number | null = overrideTargetSurah || null;
 
         let syntaxMatch = query.match(/^(.*?)\s*@\s*(.+)$/);
@@ -174,10 +174,15 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         
         const executeSearch = (searchQuery: string) => {
             const isExactPhrase = searchQuery.startsWith('"') && searchQuery.endsWith('"');
-            const content = isExactPhrase ? searchQuery.substring(1, searchQuery.length - 1) : searchQuery;
+            const rawContent = isExactPhrase ? searchQuery.substring(1, searchQuery.length - 1) : searchQuery;
+            const content = cleanAyahSearchQuery(rawContent);
             if (!content) return { results: [], finalSearchEdition: 'quran-simple-clean' };
 
-            const searchWords = content.split(/\s+/).filter(Boolean).map(normalizeArabicText);
+            const searchWords = content
+                .split(/\s+/)
+                .map(normalizeArabicText)
+                .filter(w => w.length > 0);
+            if (searchWords.length === 0) return { results: [], finalSearchEdition: 'quran-simple-clean' };
             const hasDiacritics = /[\u064B-\u065F]/.test(content);
             
             const doSearch = (editionId: string): number[] => {
@@ -293,10 +298,12 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         return { ...resultObj, targetSurahNumber: undefined, targetMuqattaat: undefined, parsedQuery: finalQuery };
     }, [allQuranData, simpleSearchableAyahs, quranicWordList]);
 
-    const performSearchByAyahNumber = useCallback((ayahNumber: number, hawameemOnly?: boolean): Ayah[] => {
+    const performSearchByAyahNumber = useCallback((ayahNumber: number | string, hawameemOnly?: boolean): Ayah[] => {
         if (!simpleSearchableAyahs) return [];
+        const num = typeof ayahNumber === 'number' ? ayahNumber : parseInt(normalizeDigits(String(ayahNumber)), 10);
+        if (isNaN(num) || num <= 0) return [];
         return simpleSearchableAyahs.filter(ayah => 
-            ayah.numberInSurah === ayahNumber && 
+            ayah.numberInSurah === num && 
             (!hawameemOnly || HAWAMEEM_SURAH_NUMBERS.includes(ayah.surah.number))
         );
     }, [simpleSearchableAyahs]);

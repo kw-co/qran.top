@@ -1,5 +1,91 @@
 import type { CopyTextFormat, CopyCitationFormat, CopyMultiFormat } from '../types';
 
+// Normalizes Arabic-Indic digits (٠-٩) and Eastern Arabic-Indic digits (۰-۹) to standard ASCII digits (0-9)
+export const normalizeDigits = (str: string | undefined | null | number): string => {
+    if (str === undefined || str === null) return '';
+    return String(str)
+        .replace(/[٠۰]/g, '0')
+        .replace(/[١۱]/g, '1')
+        .replace(/[٢۲]/g, '2')
+        .replace(/[٣۳]/g, '3')
+        .replace(/[٤۴]/g, '4')
+        .replace(/[٥۵]/g, '5')
+        .replace(/[٦۶]/g, '6')
+        .replace(/[٧۷]/g, '7')
+        .replace(/[٨۸]/g, '8')
+        .replace(/[٩۹]/g, '9');
+};
+
+// Escapes special characters for safely creating dynamic Regular Expressions
+export const escapeRegExp = (string: string): string => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// Safely decodes URI components without throwing URIError on malformed characters
+export const safeDecodeURIComponent = (str: string | undefined | null): string => {
+    if (!str) return '';
+    try {
+        return decodeURIComponent(str);
+    } catch {
+        try {
+            return decodeURI(str);
+        } catch {
+            return String(str);
+        }
+    }
+};
+
+// Cleans search queries containing Quranic ayah stars (نجمة الآية), brackets, and appended ayah numbers
+export const cleanAyahSearchQuery = (query: string | undefined | null): string => {
+    if (!query) return '';
+    let cleaned = String(query).trim();
+
+    // Remove wrapping or inner ornate Quranic brackets, quotes, and standard parentheses
+    cleaned = cleaned.replace(/[«»﴿﴾\(\)\[\]"']/g, ' ');
+
+    // Strip trailing or leading ayah markers with optional numbers (e.g., ۝١, ۝ 1, *1*, (1), ﴿١﴾)
+    cleaned = cleaned.replace(/[۝۞۩*٭★☆✪✦✧𖣔܍֍]?\s*[0-9٠-٩۰-۹]+\s*[۝۞۩*٭★☆✪✦✧𖣔܍֍]?\s*$/, ' ');
+    cleaned = cleaned.replace(/^\s*[۝۞۩*٭★☆✪✦✧𖣔܍֍]?\s*[0-9٠-٩۰-۹]+\s*[۝۞۩*٭★☆✪✦✧𖣔܍֍]?/, ' ');
+
+    // Strip any standalone ayah star / rosette / decoration characters
+    cleaned = cleaned.replace(/[۝۞۩*٭★☆✪✦✧𖣔܍֍]/g, ' ');
+
+    return cleaned.replace(/\s+/g, ' ').trim();
+};
+
+// Checks if a search query is asking for an ayah number across all surahs (e.g. 5, ٥, آية 5, الآية ٥, رقم 5, رقم ٥, #5)
+export const tryParseSingleAyahNumber = (rawQuery: string | undefined | null): number | null => {
+    if (!rawQuery) return null;
+    let q = String(rawQuery).trim();
+    q = q.replace(/^[«"'\(\[﴿]\s*/, '').replace(/\s*[»"'\)\]﴾]$/, '').trim();
+    if (!q) return null;
+
+    // Convert Arabic-Indic and Eastern Arabic-Indic numerals to ASCII digits
+    const norm = normalizeDigits(q);
+
+    // 1. Pure number: "5", " 255 "
+    if (/^\d+$/.test(norm)) {
+        const val = parseInt(norm, 10);
+        if (val >= 1 && val <= 286) return val;
+    }
+
+    // 2. Prefix variations: آية 5, الآية 5, اية 5, الاية 5, رقم 5, الرقم 5, آية رقم 5, #5
+    const match = norm.match(/^(?:(?:ال)?[آاأإ]ية(?:\s*(?:ال)?رقم)?|(?:ال)?رقم|[#№]|ayah|aya)\s*[:#-]?\s*(\d+)$/i);
+    if (match) {
+        const val = parseInt(match[1], 10);
+        if (val >= 1 && val <= 286) return val;
+    }
+
+    // 3. Postfix variations: 5 آية, 5 الآية
+    const postfixMatch = norm.match(/^(\d+)\s*(?:ال)?[آاأإ]ية$/i);
+    if (postfixMatch) {
+        const val = parseInt(postfixMatch[1], 10);
+        if (val >= 1 && val <= 286) return val;
+    }
+
+    return null;
+};
+
 // This helper is used to normalize both user input and source text for consistent searching.
 export const normalizeArabicText = (word: string | undefined | null | number): string => {
     if (!word) return '';
@@ -21,6 +107,9 @@ export const normalizeArabicText = (word: string | undefined | null | number): s
     // Remove dagger alif and other non-letter marks that can affect matching.
     // U+0670 is Dagger Alif.
     cleaned = cleaned.replace(/[\u0670ٰ]/g, '');
+
+    // Remove Quranic stars, symbols, and ornamental brackets (نجمة الآية ۝, ۞, ۩, *, etc.)
+    cleaned = cleaned.replace(/[۝۞۩*٭★☆✪✦✧𖣔܍֍«»﴿﴾\(\)\[\]"']/g, '');
 
     // Remove diacritics (Tashkeel) and other Quranic annotation marks.
     // This range covers most common diacritics.

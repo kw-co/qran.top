@@ -1,7 +1,7 @@
 // FIX: Import useEffect from 'react' to resolve 'Cannot find name' error.
 import { useState, useMemo, useCallback, useEffect, useDeferredValue } from 'react';
 import type { Ayah } from '../types';
-import { normalizeArabicText, formatSurahNameForDisplay } from '../utils/text';
+import { normalizeArabicText, formatSurahNameForDisplay, escapeRegExp, cleanAyahSearchQuery } from '../utils/text';
 import { safeLocalStorage } from '../utils/storage';
 const SURAH_MUQATTAAT_MAP: Record<number, string> = {
     2: "الم", 3: "الم", 7: "المص", 10: "الر", 11: "الر", 12: "الر", 13: "المر", 14: "الر", 15: "الر",
@@ -45,7 +45,8 @@ const getNormalizedWords = (ayah: any): string[] => {
 };
 
 const findNeighboringWords = (results: Ayah[], query: string): string[] => {
-    const normalizedQueryWords = normalizeArabicText(query).trim().split(' ').filter(w => w.length > 0);
+    const cleaned = cleanAyahSearchQuery(query);
+    const normalizedQueryWords = normalizeArabicText(cleaned).trim().split(/\s+/).filter(w => w.length > 0);
     const numQueryWords = normalizedQueryWords.length;
 
     if (numQueryWords === 0 || numQueryWords > 6) {
@@ -152,8 +153,13 @@ export const useSearchLogic = (
     }, [initialFilters?.exact]);
 
     const queryWords = useMemo(() => {
-        const finalQuery = correctedQuery || query || '';
-        return String(finalQuery).trim().replace(/"/g, '').split(/\s+/).filter(Boolean).map(normalizeArabicText);
+        const finalQuery = correctedQuery || cleanAyahSearchQuery(query) || '';
+        return String(finalQuery)
+            .trim()
+            .replace(/"/g, '')
+            .split(/\s+/)
+            .map(normalizeArabicText)
+            .filter(w => w.length > 0);
     }, [query, correctedQuery]);
 
     const isSingleWordSearch = queryWords.length === 1;
@@ -170,9 +176,10 @@ export const useSearchLogic = (
         let baseResults = results;
         
         // Exact match applies to Text Mode only (base text filtering)
-        if (searchType === 'text' && exactMatch && isSingleWordSearch && !isRootSearch) {
+        if (searchType === 'text' && exactMatch && isSingleWordSearch && !isRootSearch && queryWords.length === 1 && queryWords[0].length > 0) {
             const normalizedQuery = queryWords.join(' ');
-            const regex = new RegExp(`(^|\\s)${normalizedQuery}(\\s|$)`);
+            const escaped = escapeRegExp(normalizedQuery);
+            const regex = new RegExp(`(^|\\s)${escaped}(\\s|$)`);
             baseResults = baseResults.filter(ayah => regex.test(getNormalizedText(ayah)));
         }
         
@@ -188,7 +195,8 @@ export const useSearchLogic = (
                     const targetText = String(displayAyah?.text || ayah.text || '');
                     const cleanAyahText = targetText.replace(/[\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ');
                     return dFilters.some(df => {
-                        const regex = new RegExp(`(^|\\s)${df}(\\s|$)`);
+                        const escapedDf = escapeRegExp(df);
+                        const regex = new RegExp(`(^|\\s)${escapedDf}(\\s|$)`);
                         return regex.test(cleanAyahText);
                     });
                 });
@@ -259,7 +267,7 @@ export const useSearchLogic = (
             return wordCounts;
         }
         
-        if (isSingleWordSearch) {
+        if (isSingleWordSearch && queryWords[0]) {
             const queryWord = queryWords[0];
             const wordMap = new Map<string, number>();
             currentResults.forEach(ayah => {
@@ -330,7 +338,7 @@ export const useSearchLogic = (
     }, [activeResults, exactMatch, searchType, activePhraseFilter, activeDiacriticFilter, isSingleWordSearch, isRootSearch, displayEditionData]);
 
             const diacriticVariants = useMemo(() => {
-        if (searchType !== 'text' || queryWords.length === 0) return [];
+        if (searchType !== 'text' || queryWords.length === 0 || !queryWords[0]) return [];
 
         const variantsMap = new Map<string, number>();
         const numQueryWords = queryWords.length;

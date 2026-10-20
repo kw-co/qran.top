@@ -219,16 +219,19 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
             }
 
             let isMatch = false;
-            if (searchType === 'text') {
-                if (isImlaeiSearch) {
-                    const iWord = alignmentInfo[index]?.imlaeiWord;
-                    if (iWord) {
-                        const iNorm = normalizeArabicText(iWord);
-                        isMatch = queryWords.some(q => iNorm.includes(normalizeArabicText(q)));
+            if (searchType === 'text' && queryWords.length > 0) {
+                const validQueryWords = queryWords.map(normalizeArabicText).filter(q => q.length > 0);
+                if (validQueryWords.length > 0) {
+                    if (isImlaeiSearch) {
+                        const iWord = alignmentInfo[index]?.imlaeiWord;
+                        if (iWord) {
+                            const iNorm = normalizeArabicText(iWord);
+                            isMatch = iNorm.length > 0 && validQueryWords.some(q => iNorm.includes(q));
+                        }
+                    } else {
+                        const uNorm = normalizeArabicText(word);
+                        isMatch = uNorm.length > 0 && validQueryWords.some(q => uNorm.includes(q));
                     }
-                } else {
-                    const uNorm = normalizeArabicText(word);
-                    isMatch = queryWords.some(q => uNorm.includes(normalizeArabicText(q)));
                 }
             }
 

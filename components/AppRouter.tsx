@@ -25,10 +25,11 @@ const SyllableClusterView = lazyRetry(() => import('./SyllableClusterView'));
 const NooraniReverseCipherView = lazyRetry(() => import('./NooraniReverseCipherView'));
 const WordSurahGeometryView = lazyRetry(() => import('./WordSurahGeometryView'));
 const NooraniCipherLabView = lazyRetry(() => import('./NooraniCipherLabView'));
+const MizanWawView = lazyRetry(() => import('./MizanWawView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
-import { formatSurahNameForDisplay } from '../utils/text';
+import { formatSurahNameForDisplay, safeDecodeURIComponent, normalizeDigits, tryParseSingleAyahNumber, cleanAyahSearchQuery } from '../utils/text';
 import { useSettingsContext } from '../contexts/SettingsContext';
 
 interface AppRouterProps {
@@ -132,16 +133,24 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
         }
     }, [currentlyPlayingAyahGlobalNumber, playbackInfo?.isPlaying, pathParts, allQuranData]);
 
-const isSearchPage = pathParts[0] === 'search';
-    const isSearchNumber = isSearchPage && pathParts[1] === 'number' && !!pathParts[2];
-    const searchNumberVal = isSearchNumber ? parseInt(pathParts[2], 10) : 0;
-    const searchQueryVal = isSearchPage && !isSearchNumber ? (pathParts[1] ? decodeURIComponent(pathParts[1]) : "") : "";
+    const isSearchPage = pathParts[0] === 'search';
+    const rawSearchArg1 = pathParts[1] ? safeDecodeURIComponent(pathParts[1]) : "";
+    const rawSearchArg2 = pathParts[2] ? safeDecodeURIComponent(pathParts[2]) : "";
+
+    // Check if the route is explicit #/search/number/:num OR implicit #/search/:num (or #/search/آية 5, #/search/٥)
+    const isExplicitSearchNumber = isSearchPage && rawSearchArg1 === 'number' && !!rawSearchArg2;
+    const singleNumFromArg1 = isSearchPage && !isExplicitSearchNumber ? tryParseSingleAyahNumber(rawSearchArg1) : null;
+    const isSearchNumber = isExplicitSearchNumber || singleNumFromArg1 !== null;
+    const searchNumberVal = isExplicitSearchNumber 
+        ? parseInt(normalizeDigits(rawSearchArg2), 10) 
+        : (singleNumFromArg1 || 0);
+
+    const searchQueryVal = isSearchPage && !isSearchNumber ? cleanAyahSearchQuery(rawSearchArg1) : "";
     const isRootSearchVal = isSearchPage && !isSearchNumber && queryParams.get('mode') === 'root';
-    const targetSurahNumberVal = isSearchPage && queryParams.has('ts') ? parseInt(queryParams.get('ts')!) : undefined;
-    
+    const targetSurahNumberVal = isSearchPage && queryParams.has('ts') ? parseInt(normalizeDigits(queryParams.get('ts')!), 10) : undefined;
 
     const searchNumberResults = React.useMemo(() => {
-        if (!isSearchNumber) return [] as Ayah[];
+        if (!isSearchNumber || !searchNumberVal) return [] as Ayah[];
         return performSearchByAyahNumber(searchNumberVal);
     }, [performSearchByAyahNumber, isSearchNumber, searchNumberVal]);
 
@@ -152,12 +161,16 @@ const isSearchPage = pathParts[0] === 'search';
 
     // Hawameem ("حم") search route handling
     const isHmPage = pathParts[0] === 'hm' || pathParts[0] === 'hawameem';
-    const isHmNumber = isHmPage && pathParts[1] === 'number' && !!pathParts[2];
-    const hmNumberVal = isHmNumber ? parseInt(pathParts[2], 10) : 0;
-    const hmQueryVal = isHmPage && !isHmNumber ? (pathParts[1] ? decodeURIComponent(pathParts[1]) : (queryParams.get('q') ? decodeURIComponent(queryParams.get('q')!) : '')) : '';
+    const rawHmArg1 = pathParts[1] ? safeDecodeURIComponent(pathParts[1]) : "";
+    const rawHmArg2 = pathParts[2] ? safeDecodeURIComponent(pathParts[2]) : "";
+    const isExplicitHmNumber = isHmPage && rawHmArg1 === 'number' && !!rawHmArg2;
+    const singleHmNumFromArg1 = isHmPage && !isExplicitHmNumber ? tryParseSingleAyahNumber(rawHmArg1) : null;
+    const isHmNumber = isExplicitHmNumber || singleHmNumFromArg1 !== null;
+    const hmNumberVal = isExplicitHmNumber ? parseInt(normalizeDigits(rawHmArg2), 10) : (singleHmNumFromArg1 || 0);
+    const hmQueryVal = isHmPage && !isHmNumber ? (rawHmArg1 || (queryParams.get('q') ? safeDecodeURIComponent(queryParams.get('q')!) : '')) : '';
     const isHmRootSearchVal = isHmPage && !isHmNumber && queryParams.get('mode') === 'root';
     const targetHmSurahNumberVal = isHmPage && (queryParams.has('ts') || queryParams.has('surah')) 
-        ? parseInt(queryParams.get('ts') || queryParams.get('surah')!, 10) 
+        ? parseInt(normalizeDigits(queryParams.get('ts') || queryParams.get('surah')!), 10) 
         : undefined;
 
     const hmNumberResults = React.useMemo(() => {
@@ -226,6 +239,8 @@ const isSearchPage = pathParts[0] === 'search';
             title = '🏛️ بنية المصحف الشريف | فهرس الأقسام والبحوث';
         } else if (route === 'cipher-lab') {
             title = '🔐 مختبر التشفير وفك التشفير النوراني';
+        } else if (route === 'mizan-waw' || route === 'waw-balance' || route === 'mizan') {
+            title = '⚖️ ميزان الواو في الكلمات الثلاثية';
         }
 
         document.title = title;
@@ -233,6 +248,16 @@ const isSearchPage = pathParts[0] === 'search';
 
     const renderRoute = () => {
         if (isInitialLoading) return null;
+        if (pathParts[0] === 'mizan-waw' || pathParts[0] === 'waw-balance' || pathParts[0] === 'mizan') {
+            return (
+                <MizanWawView 
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])}
+                    onSearch={handleSearch}
+                    onStartPlayback={handleStartPlayback as any}
+                    currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber}
+                />
+            );
+        }
         if (pathParts[0] === 'noorani-cipher' || pathParts[0] === 'cipher-reverse' || pathParts[0] === 'reverse-cipher') {
             return (
                 <NooraniReverseCipherView 
@@ -513,10 +538,10 @@ const isSearchPage = pathParts[0] === 'search';
                 onStartPlayback: handleStartPlayback,
                 queryParams: queryParams,
             };
-            if (pathParts[1] === 'number' && pathParts[2]) {
-                return <SearchView {...commonProps} query={pathParts[2]} results={searchNumberResults} searchEdition={'quran-simple-clean'} searchType="number" />;
+            if (isSearchNumber) {
+                return <SearchView {...commonProps} query={String(searchNumberVal)} results={searchNumberResults} searchEdition={'quran-simple-clean'} searchType="number" />;
             }
-            const query = pathParts[1] ? decodeURIComponent(pathParts[1]) : "";
+            const query = cleanAyahSearchQuery(rawSearchArg1);
             const isRootSearch = queryParams.get('mode') === 'root';
             const isExactMatch = queryParams.get('exact') === '1';
             const position = queryParams.get('s') ? { surah: parseInt(queryParams.get('s')!), ayah: parseInt(queryParams.get('a')!), wordIndex: parseInt(queryParams.get('w')!) } : undefined;
