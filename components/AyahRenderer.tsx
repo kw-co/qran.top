@@ -9,6 +9,8 @@ import { LightBulbIcon } from './icons';
 import { renderWordWithHaMeem, hasHaMeem } from '../utils/haMeemHighlight';
 import { renderWordWithNoorani } from '../utils/nooraniHighlight';
 import * as textUtils from '../utils/text';
+import { findSajdahByAyah, getHizbQuarterLabel, openQuranSymbolModal } from '../data/quranSymbolsData';
+import QuranSymbolPopover from './QuranSymbolPopover';
 
 interface AyahRendererProps {
     ayahsToRender: Ayah[];
@@ -26,6 +28,7 @@ interface AyahRendererProps {
     isSelectionMode?: boolean;
     selectedAyahKeys?: string[];
     onAyahClick?: (e: React.MouseEvent, surahNum: number, ayahNum: number, text: string, surahName: string) => void;
+    hizbQuarterStartMap?: Map<number, number>;
 }
 
 const cleanTajweedHtml = (html: string | undefined): string => {
@@ -72,7 +75,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
     ayahsToRender, surah, highlightAyahNumber, onWordClick,
     currentlyPlayingAyahGlobalNumber, simpleCleanData, wordPopoverState, setWordPopoverState,
     setActivePopover, playingAyahRef, highlightRef, firstAyahInfo,
-    isSelectionMode, selectedAyahKeys, onAyahClick
+    isSelectionMode, selectedAyahKeys, onAyahClick, hizbQuarterStartMap
 }) => {
     
     // Consume Settings from Context
@@ -108,6 +111,16 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
         surahNumber: number;
         surahName?: string;
         ayahNumberInSurah: number;
+    } | null>(null);
+
+    const [activeSymbolPopover, setActiveSymbolPopover] = useState<{
+        type: 'hizb' | 'sajdah';
+        surahNumber: number;
+        surahName?: string;
+        ayahNumberInSurah: number;
+        quarterNumber?: number;
+        juzNumber?: number;
+        triggerElement: HTMLElement;
     } | null>(null);
 
     // Fetch Tajweed data from Quran.com API v4 if enableTajweed is true
@@ -163,6 +176,24 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
 
         const cleanWordDisplay = String(word).replace(/<[^>]*>/g, '').replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '').trim();
 
+        // Intercept Quran Symbols (Rub-el-Hizb star ۞ or Sajdah ۩) so they open the symbol modal instead of the word search/morphology popover
+        const isHizbSymbol = cleanWordDisplay.includes('۞') || cleanWordDisplay === '*';
+        const isSajdahSymbol = cleanWordDisplay.includes('۩');
+
+        if (isHizbSymbol || isSajdahSymbol) {
+            const currentAyah = ayahsToRender.find(a => a.numberInSurah === ayahNumInSurah);
+            setActiveSymbolPopover({
+                type: isHizbSymbol ? 'hizb' : 'sajdah',
+                surahNumber: surah.number,
+                surahName: surah.name,
+                ayahNumberInSurah: ayahNumInSurah,
+                quarterNumber: currentAyah?.hizbQuarter,
+                juzNumber: currentAyah?.juz,
+                triggerElement: event.currentTarget
+            });
+            return;
+        }
+
         const shouldSearchDirectly = wordClickBehavior === 'direct_search';
 
         if (shouldSearchDirectly) {
@@ -198,10 +229,19 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                 // Find matching v4 tajweed ayah if available
                 const tajweedVerse = enableTajweed ? v4TajweedData.find(v => v.verse_number === ayah.numberInSurah) : null;
 
-                // Clean trailing numbers/end markers from plain text to prevent duplicate numbers
-                const cleanedTextToDisplay = textToDisplay ? textToDisplay.replace(/[\s\u0660-\u0669\u06F0-\u06F9\u06DD\uFD3E\uFD3F]+$/, '').trim() : '';
+                // Clean trailing numbers/end markers and normalize symbols so ۞ and ۩ are separated
+                const cleanedTextToDisplay = textToDisplay 
+                    ? textToDisplay
+                        .replace(/[\s\u0660-\u0669\u06F0-\u06F9\u06DD\uFD3E\uFD3F]+$/, '')
+                        .replace(/([۞۩])/g, ' $1 ')
+                        .replace(/\s+/g, ' ')
+                        .trim() 
+                    : '';
 
                 const isSelected = selectedAyahKeys?.includes(`${surah.number}:${ayah.numberInSurah}`);
+                const sajdahInfo = findSajdahByAyah(surah.number, ayah.numberInSurah);
+                const isHizbQuarterStart = ayah.hizbQuarter && hizbQuarterStartMap?.get(ayah.hizbQuarter) === ayah.number;
+                const hizbQuarterInfo = isHizbQuarterStart ? getHizbQuarterLabel(ayah.hizbQuarter) : null;
 
                 return (
                     <span key={ayah.number} className="inline">
@@ -213,10 +253,78 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                             {/* If Tajweed is enabled and v4 tajweed data is loaded */}
                             {enableTajweed && tajweedVerse && tajweedVerse.text_uthmani_tajweed ? (
                                 <span className="quran-tajweed inline">
-                                    {splitTajweedHtmlIntoWords(cleanTajweedHtml(tajweedVerse.text_uthmani_tajweed)).map((wordHtml, wIdx) => {
+                                    {splitTajweedHtmlIntoWords(cleanTajweedHtml(tajweedVerse.text_uthmani_tajweed).replace(/([۞۩])/g, ' $1 ').replace(/\s+/g, ' ').trim()).map((wordHtml, wIdx) => {
                                         const plainWord = wordHtml.replace(/<[^>]*>/g, '').trim();
                                         const wordKey = `${surah.number}:${ayah.numberInSurah}:${wIdx + 1}`;
                                         const isWordPlaying = playingWordKey === wordKey;
+
+                                        const isHizb = plainWord.includes('۞') || plainWord === '*';
+                                        const isSajdah = plainWord.includes('۩');
+
+                                        if (isHizb) {
+                                            const hInfo = ayah.hizbQuarter ? getHizbQuarterLabel(ayah.hizbQuarter) : null;
+                                            const tooltip = hInfo 
+                                                ? `${hInfo.fullLabel} - اضغط لمعرفة ملخص الرمز` 
+                                                : 'علامة ربع الحزب ۞ (النجمة القرآنية) - اضغط لملخص الرمز';
+
+                                            return (
+                                                <React.Fragment key={wIdx}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveSymbolPopover({
+                                                                type: 'hizb',
+                                                                surahNumber: surah.number,
+                                                                surahName: surah.name,
+                                                                ayahNumberInSurah: ayah.numberInSurah,
+                                                                quarterNumber: ayah.hizbQuarter,
+                                                                juzNumber: ayah.juz,
+                                                                triggerElement: e.currentTarget
+                                                            });
+                                                        }}
+                                                        className="quran-symbol-trigger inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-lg text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 font-bold transition-all hover:scale-110 active:scale-95 cursor-pointer shadow-xs align-middle select-none text-base sm:text-lg font-serif"
+                                                        title={tooltip}
+                                                        aria-label={tooltip}
+                                                    >
+                                                        ۞
+                                                    </button>
+                                                    {' '}
+                                                </React.Fragment>
+                                            );
+                                        }
+
+                                        if (isSajdah) {
+                                            const tooltip = sajdahInfo 
+                                                ? `سجدة تلاوة (السجدة رقم ${sajdahInfo.sajdahNumber} من 15) - اضغط لملخص السجدة` 
+                                                : 'علامة سجدة التلاوة ۩ - اضغط لملخص السجدة';
+
+                                            return (
+                                                <React.Fragment key={wIdx}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveSymbolPopover({
+                                                                type: 'sajdah',
+                                                                surahNumber: surah.number,
+                                                                surahName: surah.name,
+                                                                ayahNumberInSurah: ayah.numberInSurah,
+                                                                quarterNumber: ayah.hizbQuarter,
+                                                                juzNumber: ayah.juz,
+                                                                triggerElement: e.currentTarget
+                                                            });
+                                                        }}
+                                                        className="quran-symbol-trigger inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 font-bold transition-all hover:scale-110 active:scale-95 cursor-pointer shadow-xs align-middle select-none text-base sm:text-lg font-serif"
+                                                        title={tooltip}
+                                                        aria-label={tooltip}
+                                                    >
+                                                        ۩
+                                                    </button>
+                                                    {' '}
+                                                </React.Fragment>
+                                            );
+                                        }
 
                                         return (
                                             <React.Fragment key={wIdx}>
@@ -238,6 +346,75 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                     const wordKey = `${surah.number}:${ayah.numberInSurah}:${wordIndex + 1}`;
                                     const isWordPlaying = playingWordKey === wordKey;
 
+                                    const cleanWord = word.replace(/<[^>]*>/g, '').replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '').trim();
+                                    const isHizb = cleanWord.includes('۞') || word.includes('۞') || cleanWord === '*';
+                                    const isSajdah = cleanWord.includes('۩') || word.includes('۩');
+
+                                    if (isHizb) {
+                                        const hInfo = ayah.hizbQuarter ? getHizbQuarterLabel(ayah.hizbQuarter) : null;
+                                        const tooltip = hInfo 
+                                            ? `${hInfo.fullLabel} - اضغط لمعرفة ملخص الرمز` 
+                                            : 'علامة ربع الحزب ۞ (النجمة القرآنية) - اضغط لملخص الرمز';
+
+                                        return (
+                                            <React.Fragment key={wordIndex}>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveSymbolPopover({
+                                                            type: 'hizb',
+                                                            surahNumber: surah.number,
+                                                            surahName: surah.name,
+                                                            ayahNumberInSurah: ayah.numberInSurah,
+                                                            quarterNumber: ayah.hizbQuarter,
+                                                            juzNumber: ayah.juz,
+                                                            triggerElement: e.currentTarget
+                                                        });
+                                                    }}
+                                                    className="quran-symbol-trigger inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-lg text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 font-bold transition-all hover:scale-110 active:scale-95 cursor-pointer shadow-xs align-middle select-none text-base sm:text-lg font-serif"
+                                                    title={tooltip}
+                                                    aria-label={tooltip}
+                                                >
+                                                    ۞
+                                                </button>
+                                                {wordIndex < arr.length - 1 && ' '}
+                                            </React.Fragment>
+                                        );
+                                    }
+
+                                    if (isSajdah) {
+                                        const tooltip = sajdahInfo 
+                                            ? `سجدة تلاوة (السجدة رقم ${sajdahInfo.sajdahNumber} من 15) - اضغط لملخص السجدة` 
+                                            : 'علامة سجدة التلاوة ۩ - اضغط لملخص السجدة';
+
+                                        return (
+                                            <React.Fragment key={wordIndex}>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveSymbolPopover({
+                                                            type: 'sajdah',
+                                                            surahNumber: surah.number,
+                                                            surahName: surah.name,
+                                                            ayahNumberInSurah: ayah.numberInSurah,
+                                                            quarterNumber: ayah.hizbQuarter,
+                                                            juzNumber: ayah.juz,
+                                                            triggerElement: e.currentTarget
+                                                        });
+                                                    }}
+                                                    className="quran-symbol-trigger inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 font-bold transition-all hover:scale-110 active:scale-95 cursor-pointer shadow-xs align-middle select-none text-base sm:text-lg font-serif"
+                                                    title={tooltip}
+                                                    aria-label={tooltip}
+                                                >
+                                                    ۩
+                                                </button>
+                                                {wordIndex < arr.length - 1 && ' '}
+                                            </React.Fragment>
+                                        );
+                                    }
+
                                     return (
                                         <React.Fragment key={wordIndex}>
                                             <button
@@ -258,7 +435,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                             )}
                         </span>
 
-                        <span className="relative inline-block align-middle">
+                        <span className="relative inline-flex items-center align-middle">
                             <button
                                 onClick={(e) => {
                                     if (isSelectionMode || e.ctrlKey || e.metaKey) {
@@ -276,6 +453,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                             >
                                 {ayah.numberInSurah}
                             </button>
+
                         </span>
                     </span>
                 );
@@ -329,6 +507,19 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                             wordIndex: 0
                         });
                     }}
+                />
+            )}
+            {/* Quran Symbol Popover */}
+            {activeSymbolPopover && (
+                <QuranSymbolPopover 
+                    type={activeSymbolPopover.type}
+                    surahNumber={activeSymbolPopover.surahNumber}
+                    surahName={activeSymbolPopover.surahName}
+                    ayahNumberInSurah={activeSymbolPopover.ayahNumberInSurah}
+                    quarterNumber={activeSymbolPopover.quarterNumber}
+                    juzNumber={activeSymbolPopover.juzNumber}
+                    triggerElement={activeSymbolPopover.triggerElement}
+                    onClose={() => setActiveSymbolPopover(null)}
                 />
             )}
         </>

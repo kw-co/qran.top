@@ -5,6 +5,7 @@ import { useSettingsContext } from '../contexts/SettingsContext';
 import { renderWordWithHaMeem, hasHaMeem } from '../utils/haMeemHighlight';
 import { renderWordWithNoorani, isWordPureNoorani } from '../utils/nooraniHighlight';
 import { injectMushafFontFaces, ensurePageFontLoaded, preloadAdjacentPageFonts } from '../utils/mushafFonts';
+import { openQuranSymbolModal } from '../data/quranSymbolsData';
 
 interface MushafPageViewProps {
   pageNumber: number;
@@ -193,11 +194,27 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         {isOddPage ? (
             <>
                 <span>{showSurahName ? `سورة ${surahName}` : ''}</span>
-                <span>الجزء {juzNumber.toLocaleString('ar-EG')}</span>
+                <button
+                    type="button"
+                    onClick={() => openQuranSymbolModal({ type: 'juz', juzNumber: juzNumber })}
+                    className="hover:text-amber-900 dark:hover:text-amber-300 hover:underline transition-colors cursor-pointer flex items-center gap-1 font-bold"
+                    title={`شرح وتفاصيل الجزء ${juzNumber} - اضغط لمعرفة التفاصيل`}
+                >
+                    <span>📖</span>
+                    <span>الجزء {juzNumber.toLocaleString('ar-EG')}</span>
+                </button>
             </>
         ) : (
             <>
-                <span>الجزء {juzNumber.toLocaleString('ar-EG')}</span>
+                <button
+                    type="button"
+                    onClick={() => openQuranSymbolModal({ type: 'juz', juzNumber: juzNumber })}
+                    className="hover:text-amber-900 dark:hover:text-amber-300 hover:underline transition-colors cursor-pointer flex items-center gap-1 font-bold"
+                    title={`شرح وتفاصيل الجزء ${juzNumber} - اضغط لمعرفة التفاصيل`}
+                >
+                    <span>📖</span>
+                    <span>الجزء {juzNumber.toLocaleString('ar-EG')}</span>
+                </button>
                 <span>{showSurahName ? `سورة ${surahName}` : ''}</span>
             </>
         )}

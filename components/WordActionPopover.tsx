@@ -1,6 +1,7 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { SearchIcon, SpeakerWaveIcon, SparklesIcon, ClearIcon } from './icons';
+import { openQuranSymbolModal } from '../data/quranSymbolsData';
 
 interface WordActionPopoverProps {
     word: string;
@@ -97,62 +98,99 @@ const WordActionPopover: React.FC<WordActionPopoverProps> = ({
                 </button>
             </div>
 
-            {/* Actions List */}
-            <div className="space-y-1 text-xs">
-                {/* 1. Direct Search */}
-                <button
-                    onClick={() => {
-                        onSearchWord(cleanWordForSearch);
-                        onClose();
-                    }}
-                    className="w-full flex items-center gap-2.5 p-2 rounded-xl text-right hover:bg-primary/10 hover:text-primary transition-colors font-medium cursor-pointer"
-                >
-                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                        <SearchIcon className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <div className="font-bold">بحث عن الكلمة والمثاني</div>
-                        <div className="text-[10px] text-text-muted">البحث عن تكرارات الكلمة في القرآن الكريم</div>
-                    </div>
-                </button>
+            {/* Symbol Handling vs Regular Words */}
+            {(() => {
+                const isHizbSymbol = cleanWordForSearch.includes('۞') || cleanWordForSearch === '*';
+                const isSajdahSymbol = cleanWordForSearch.includes('۩');
 
-                {/* 2. Grammar & Morphology */}
-                {enableMorphology && (
-                    <button
-                        onClick={() => {
-                            onOpenMorphology();
-                            onClose();
-                        }}
-                        className="w-full flex items-center gap-2.5 p-2 rounded-xl text-right hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium cursor-pointer"
-                    >
-                        <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                            <SparklesIcon className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <div className="font-bold">التحليل الصرفي والإعراب</div>
-                            <div className="text-[10px] text-text-muted">عرض الجذر ونوع الكلمة والإعراب التفصيلي</div>
-                        </div>
-                    </button>
-                )}
+                if (isHizbSymbol || isSajdahSymbol) {
+                    return (
+                        <div className="space-y-2.5 text-xs p-1">
+                            <div className={`${isHizbSymbol ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'} border rounded-xl p-3 text-right space-y-2`}>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-xl font-serif leading-none ${isHizbSymbol ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                        {isHizbSymbol ? '۞' : '۩'}
+                                    </span>
+                                    <span className={`font-bold text-sm ${isHizbSymbol ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>
+                                        {isHizbSymbol ? 'علامة ربع الحزب (النجمة القرآنية)' : 'علامة سجدة التلاوة'}
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-text-secondary leading-relaxed">
+                                    {isHizbSymbol 
+                                        ? 'النجمة الثمانية (۞) هي علامة تقسيم اصطلاحية في رسم المصحف الشريف تشير إلى بداية ربع حزب (أو نصف أو حزب كامل). قُسّم المصحف إلى 30 جزءاً، وكل جزء إلى حزبين (60 حزباً)، وكل حزب إلى 4 أرباع (240 ربعاً) لتيسير الحفظ والورد اليومي، وليست كلمة لغوية للبحث أو الإعراب.' 
+                                        : 'هذا الرمز ۩ يشير إلى موضع سجدة تلاوة مشروعة، يُسن للقارئ والمستمع أن يكبر ويسجد سجدة واحدة ويقول: «سَجَدَ وَجْهِي لِلَّذِي خَلَقَهُ وَصَوَّرَهُ، وَشَقَّ سَمْعَهُ وَبَصَرَهُ، بِحَوْلِهِ وَقُوَّتِهِ».'}
+                                </p>
+                            </div>
 
-                {/* 3. Audio Pronunciation */}
-                {enableWordAudio && (
-                    <button
-                        onClick={() => {
-                            onPlayAudio();
-                        }}
-                        className="w-full flex items-center gap-2.5 p-2 rounded-xl text-right hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium cursor-pointer"
-                    >
-                        <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                            <SpeakerWaveIcon className="w-4 h-4" />
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="w-full py-1.5 px-3 rounded-xl bg-surface-hover hover:bg-surface-active text-text-secondary hover:text-text-primary text-xs font-semibold transition-colors cursor-pointer text-center"
+                            >
+                                إغلاق
+                            </button>
                         </div>
-                        <div>
-                            <div className="font-bold">استماع لنطق الكلمة المرتل</div>
-                            <div className="text-[10px] text-text-muted">نطق بصوت واضح ومرتل للكلمة المفردة</div>
-                        </div>
-                    </button>
-                )}
-            </div>
+                    );
+                }
+
+                return (
+                    <div className="space-y-1 text-xs">
+                        {/* 1. Direct Search */}
+                        <button
+                            onClick={() => {
+                                onSearchWord(cleanWordForSearch);
+                                onClose();
+                            }}
+                            className="w-full flex items-center gap-2.5 p-2 rounded-xl text-right hover:bg-primary/10 hover:text-primary transition-colors font-medium cursor-pointer"
+                        >
+                            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                <SearchIcon className="w-4 h-4" />
+                            </div>
+                            <div>
+                                <div className="font-bold">بحث عن الكلمة والمثاني</div>
+                                <div className="text-[10px] text-text-muted">البحث عن تكرارات الكلمة في القرآن الكريم</div>
+                            </div>
+                        </button>
+
+                        {/* 2. Grammar & Morphology */}
+                        {enableMorphology && (
+                            <button
+                                onClick={() => {
+                                    onOpenMorphology();
+                                    onClose();
+                                }}
+                                className="w-full flex items-center gap-2.5 p-2 rounded-xl text-right hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium cursor-pointer"
+                            >
+                                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                    <SparklesIcon className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <div className="font-bold">التحليل الصرفي والإعراب</div>
+                                    <div className="text-[10px] text-text-muted">عرض الجذر ونوع الكلمة والإعراب التفصيلي</div>
+                                </div>
+                            </button>
+                        )}
+
+                        {/* 3. Audio Pronunciation */}
+                        {enableWordAudio && (
+                            <button
+                                onClick={() => {
+                                    onPlayAudio();
+                                }}
+                                className="w-full flex items-center gap-2.5 p-2 rounded-xl text-right hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium cursor-pointer"
+                            >
+                                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                    <SpeakerWaveIcon className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <div className="font-bold">استماع لنطق الكلمة المرتل</div>
+                                    <div className="text-[10px] text-text-muted">نطق بصوت واضح ومرتل للكلمة المفردة</div>
+                                </div>
+                            </button>
+                        )}
+                    </div>
+                );
+            })()}
         </div>,
         document.body
     );

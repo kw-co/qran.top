@@ -10,6 +10,7 @@ import { renderWordWithNoorani } from '../utils/nooraniHighlight';
 import { playSmartWordAudio } from '../services/quranApiV4';
 import WordActionPopover from './WordActionPopover';
 import WordMorphologyModal from './WordMorphologyModal';
+import { findSajdahByAyah, openQuranSymbolModal } from '../data/quranSymbolsData';
 
 interface SearchResultItemProps {
   ayah: Ayah;
@@ -278,6 +279,56 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                     >
                         <span className="font-quran-title">{displayAyah.surah?.name} - الآية {displayAyah.numberInSurah}</span>
                     </a>
+
+                    {(() => {
+                        const sNum = displayAyah.surah?.number || 0;
+                        const sajdah = findSajdahByAyah(sNum, displayAyah.numberInSurah);
+                        if (!sajdah) return null;
+                        return (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    openQuranSymbolModal({ type: 'sajdah', sajdahNumber: sajdah.sajdahNumber });
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition-all cursor-pointer shadow-xs"
+                                title={`سجدة تلاوة رقم ${sajdah.sajdahNumber} من 15 (${sajdah.agreementType}) - اضغط لمعرفة التفاصيل`}
+                            >
+                                <span className="text-sm font-serif leading-none">۩</span>
+                                <span>سجدة {sajdah.sajdahNumber}</span>
+                            </button>
+                        );
+                    })()}
+
+                    {displayAyah.juz && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openQuranSymbolModal({ type: 'juz', juzNumber: displayAyah.juz });
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-surface text-text-secondary border border-border-default hover:text-primary hover:border-primary/40 transition-all cursor-pointer"
+                            title={`الجزء ${displayAyah.juz} - اضغط لمعرفة تفاصيل وسور هذا الجزء`}
+                        >
+                            <span>📖</span>
+                            <span>الجزء {displayAyah.juz}</span>
+                        </button>
+                    )}
+
+                    {displayAyah.hizbQuarter && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openQuranSymbolModal({ type: 'hizb', quarterNumber: displayAyah.hizbQuarter });
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all cursor-pointer"
+                            title={`الربع ${displayAyah.hizbQuarter} من 240 - اضغط لعرض التفاصيل`}
+                        >
+                            <span>۞</span>
+                            <span>ربع {displayAyah.hizbQuarter}</span>
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">

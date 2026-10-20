@@ -13,6 +13,7 @@ import {
 import { QURAN_INDEX } from '../quranIndex';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { useTheme } from '../hooks/useTheme';
+import { openQuranSymbolModal } from '../data/quranSymbolsData';
 
 interface ShamarlyPageViewProps {
     pageNumber: number;
@@ -301,12 +302,28 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
                         </div>
 
                         {/* Left: Juz Number */}
-                        <span>الجزء {pageInfo.juzNumber.toLocaleString('ar-EG')}</span>
+                        <button
+                            type="button"
+                            onClick={() => openQuranSymbolModal({ type: 'juz', juzNumber: pageInfo.juzNumber })}
+                            className="hover:text-amber-900 dark:hover:text-amber-300 hover:underline transition-colors cursor-pointer flex items-center gap-1 font-bold"
+                            title={`شرح ومعلومات الجزء ${pageInfo.juzNumber} - اضغط لمعرفة التفاصيل`}
+                        >
+                            <span>📖</span>
+                            <span>الجزء {pageInfo.juzNumber.toLocaleString('ar-EG')}</span>
+                        </button>
                     </>
                 ) : (
                     <>
                         {/* Right: Juz Number */}
-                        <span>الجزء {pageInfo.juzNumber.toLocaleString('ar-EG')}</span>
+                        <button
+                            type="button"
+                            onClick={() => openQuranSymbolModal({ type: 'juz', juzNumber: pageInfo.juzNumber })}
+                            className="hover:text-amber-900 dark:hover:text-amber-300 hover:underline transition-colors cursor-pointer flex items-center gap-1 font-bold"
+                            title={`شرح ومعلومات الجزء ${pageInfo.juzNumber} - اضغط لمعرفة التفاصيل`}
+                        >
+                            <span>📖</span>
+                            <span>الجزء {pageInfo.juzNumber.toLocaleString('ar-EG')}</span>
+                        </button>
 
                         {/* Center: Integrated Subtle Zoom Controls */}
                         <div className="flex items-center gap-1.5 opacity-70 hover:opacity-100 transition-opacity">

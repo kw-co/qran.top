@@ -9,6 +9,7 @@ import {
   PaperIcon,
 } from './icons';
 import { useSettingsContext } from '../contexts/SettingsContext';
+import { openQuranSymbolModal } from '../data/quranSymbolsData';
 
 interface HomeViewProps {
   surahList: SurahReference[];
@@ -100,6 +101,16 @@ const HomeView: React.FC<HomeViewProps> = ({ surahList, juzList, hizbList }) => 
           <TabButton tab="pages" label="صفحات" icon={<PaperIcon className="w-5 h-5" />} />
           <TabButton tab="juz" label="الأجزاء" icon={<JuzOneIcon className="w-5 h-5" />} />
           <TabButton tab="hizbs" label="الأحزاب" icon={<QueueListIcon className="w-5 h-5" />} />
+          <button
+            type="button"
+            onClick={() => openQuranSymbolModal({ type: 'sajdah' })}
+            className="flex items-center justify-center gap-1.5 px-3 py-3 text-xs md:text-sm font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border-r border-border-default cursor-pointer transition-colors shrink-0"
+            title="دليل علامات المصحف: سجدات التلاوة (۩)، الأحزاب (۞)، والأجزاء (📖)"
+          >
+            <span className="text-base font-serif">۩</span>
+            <span className="text-base font-serif">۞</span>
+            <span className="whitespace-nowrap">دليل العلامات</span>
+          </button>
         </div>
       </div>
 

@@ -13,6 +13,7 @@ import { getQuranTextStyle } from '../utils/font';
 import { useResearchData } from '../hooks/useResearchData';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { IslamicSectionDivider } from './IslamicDecorations';
+import { openQuranSymbolModal } from '../data/quranSymbolsData';
 
 interface SurahDetailViewProps {
   surah: SurahData;
@@ -64,14 +65,12 @@ const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string; resea
             <div className="flex items-center justify-between gap-3 w-full">
                 {/* Right Info: Surah Order in Quran */}
                 <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[110px]">
-                  <span className="text-primary text-lg">۞</span>
                   <span>ترتيبها:</span>
                   <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{surahNumber}</span>
                 </div>
       
                 {/* Center Title Banner with Decorative Rosettes */}
                 <div className="flex-1 text-center flex items-center justify-center gap-2 sm:gap-3">
-                  <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
                   <span className="text-primary text-xl font-serif opacity-75">﴿</span>
                   <a 
                     href={`#/surah/${surahNumber}`}
@@ -83,14 +82,12 @@ const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string; resea
                     </h2>
                   </a>
                   <span className="text-primary text-xl font-serif opacity-75">﴾</span>
-                  <span className="text-primary text-xl font-serif opacity-75 hidden sm:inline">۞</span>
                 </div>
       
                 {/* Left Info: Ayahs Count */}
                 <div className="hidden sm:flex items-center justify-end gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[140px]">
                   <span>آياتها:</span>
                   <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{ayahsCount}</span>
-                  <span className="text-primary text-lg">۞</span>
                 </div>
             </div>
 
@@ -419,13 +416,13 @@ ${fullText}`;
     const juzNumber = firstAyah.juz;
     const hizbNumber = firstAyah.hizbQuarter ? Math.floor((firstAyah.hizbQuarter - 1) / 4) + 1 : null;
     
-    const markers: {label: string}[] = [];
+    const markers: { label: string; quarterIndex?: number; hizbNumber?: number }[] = [];
     const processedQuarters = new Set<number>();
     
     if (hizbNumber) {
         const startOfHizbQuarter = (hizbNumber - 1) * 4 + 1;
         if(hizbQuarterStartMap.get(startOfHizbQuarter) === firstAyah.number) {
-            markers.push({ label: `الحزب ${hizbNumber}`});
+            markers.push({ label: `الحزب ${hizbNumber}`, hizbNumber, quarterIndex: startOfHizbQuarter });
         }
     }
     
@@ -436,9 +433,10 @@ ${fullText}`;
                 if (processedQuarters.has(ayah.hizbQuarter)) continue;
                 
                 const quarterType = (ayah.hizbQuarter - 1) % 4;
-                if (quarterType === 1) markers.push({ label: 'ربع الحزب'});
-                else if (quarterType === 2) markers.push({ label: 'نصف الحزب'});
-                else if (quarterType === 3) markers.push({ label: 'ثلاثة أرباع الحزب'});
+                const hNum = Math.floor((ayah.hizbQuarter - 1) / 4) + 1;
+                if (quarterType === 1) markers.push({ label: 'ربع الحزب', hizbNumber: hNum, quarterIndex: ayah.hizbQuarter });
+                else if (quarterType === 2) markers.push({ label: 'نصف الحزب', hizbNumber: hNum, quarterIndex: ayah.hizbQuarter });
+                else if (quarterType === 3) markers.push({ label: 'ثلاثة أرباع الحزب', hizbNumber: hNum, quarterIndex: ayah.hizbQuarter });
 
                 processedQuarters.add(ayah.hizbQuarter);
             }
@@ -780,10 +778,32 @@ ${fullText}`;
              <div>
                 <div className={`mushaf-page frame-${mushafFrameStyle || 'classic'} relative`}>
                     {pageInfo?.markers.map((marker, index) => (
-                         <div key={index} className={`hizb-marker ${pageInfo.side}`}>{marker.label}</div>
+                         <button
+                             key={index}
+                             type="button"
+                             onClick={() => openQuranSymbolModal({
+                                 type: 'hizb',
+                                 hizbNumber: marker.hizbNumber,
+                                 quarterNumber: marker.quarterIndex
+                             })}
+                             className={`hizb-marker ${pageInfo.side} cursor-pointer hover:scale-105 active:scale-95 transition-all text-primary font-bold shadow-xs hover:bg-primary/10 select-none`}
+                             title={`۞ ${marker.label} - اضغط لمعرفة الشرح والتفاصيل`}
+                         >
+                             <span className="font-serif">۞</span> {marker.label}
+                         </button>
                     ))}
-                    <header className="mushaf-header">
-                        <span>{pageInfo?.juzNumber && `الجزء ${pageInfo.juzNumber}`}</span>
+                    <header className="mushaf-header flex items-center justify-between">
+                        {pageInfo?.juzNumber ? (
+                            <button
+                                type="button"
+                                onClick={() => openQuranSymbolModal({ type: 'juz', juzNumber: pageInfo.juzNumber })}
+                                className="hover:text-primary hover:underline transition-colors cursor-pointer flex items-center gap-1 font-bold"
+                                title={`شرح ومعلومات الجزء ${pageInfo.juzNumber} - اضغط لعرض السور والأحزاب`}
+                            >
+                                <span>📖</span>
+                                <span>الجزء {pageInfo.juzNumber}</span>
+                            </button>
+                        ) : <span />}
                         {pageInfo?.surahName && (
                             <a 
                                 href={`#/surah/${pageInfo.surahNumber}`}
@@ -867,6 +887,7 @@ ${fullText}`;
                                         isSelectionMode={isSelectionMode}
                                         selectedAyahKeys={selectedAyahKeys}
                                         onAyahClick={handleAyahSelection}
+                                        hizbQuarterStartMap={hizbQuarterStartMap}
                                     />
                                 </React.Fragment>
                             );

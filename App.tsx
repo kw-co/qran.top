@@ -20,6 +20,8 @@ import { ArrowUpIcon, RefreshIcon, WifiOffIcon, ArrowRightIcon, HomeIcon, CheckI
 import Header from './components/Header';
 import ExternalLinkModal from './components/ExternalLinkModal';
 import DownloadMushafModal from './components/DownloadMushafModal';
+import QuranSymbolInfoModal from './components/QuranSymbolInfoModal';
+import { OpenQuranSymbolModalOptions, findSajdahByAyah } from './data/quranSymbolsData';
 import { tryParseSingleAyahNumber, normalizeDigits, cleanAyahSearchQuery } from './utils/text';
 
 
@@ -91,6 +93,15 @@ const App: React.FC = () => {
         return () => window.removeEventListener('app-toast', handleToastEvent);
     }, []);
 
+    const [symbolModalState, setSymbolModalState] = useState<{
+        isOpen: boolean;
+        initialType?: 'sajdah' | 'hizb' | 'juz';
+        initialSajdahNumber?: number;
+        initialHizbNumber?: number;
+        initialQuarterNumber?: number;
+        initialJuzNumber?: number;
+    }>({ isOpen: false });
+
     useEffect(() => {
         const handleShowModal = (e: Event) => {
             const customEvent = e as CustomEvent<{ url: string }>;
@@ -100,6 +111,28 @@ const App: React.FC = () => {
         };
         window.addEventListener('show-external-link-modal', handleShowModal);
         return () => window.removeEventListener('show-external-link-modal', handleShowModal);
+    }, []);
+
+    useEffect(() => {
+        const handleOpenSymbolModal = (e: Event) => {
+            const customEvent = e as CustomEvent<OpenQuranSymbolModalOptions>;
+            const detail = customEvent.detail || {};
+            let sajdahNum = detail.sajdahNumber;
+            if (!sajdahNum && detail.surahNumber && detail.ayahNumberInSurah) {
+                const sInfo = findSajdahByAyah(detail.surahNumber, detail.ayahNumberInSurah);
+                if (sInfo) sajdahNum = sInfo.sajdahNumber;
+            }
+            setSymbolModalState({
+                isOpen: true,
+                initialType: detail.type || 'sajdah',
+                initialSajdahNumber: sajdahNum,
+                initialHizbNumber: detail.hizbNumber,
+                initialQuarterNumber: detail.quarterNumber,
+                initialJuzNumber: detail.juzNumber,
+            });
+        };
+        window.addEventListener('open-quran-symbol-modal', handleOpenSymbolModal);
+        return () => window.removeEventListener('open-quran-symbol-modal', handleOpenSymbolModal);
     }, []);
     
     // --- UI Effects ---
@@ -343,6 +376,23 @@ const App: React.FC = () => {
                     <DownloadMushafModal 
                         isOpen={settings.isDownloadMushafModalOpen} 
                         onClose={settings.closeDownloadMushafModal} 
+                    />
+                    <QuranSymbolInfoModal
+                        isOpen={symbolModalState.isOpen}
+                        onClose={() => setSymbolModalState(prev => ({ ...prev, isOpen: false }))}
+                        initialType={symbolModalState.initialType}
+                        initialSajdahNumber={symbolModalState.initialSajdahNumber}
+                        initialHizbNumber={symbolModalState.initialHizbNumber}
+                        initialQuarterNumber={symbolModalState.initialQuarterNumber}
+                        initialJuzNumber={symbolModalState.initialJuzNumber}
+                        onNavigateToAyah={(surah, ayah) => {
+                            setSymbolModalState(prev => ({ ...prev, isOpen: false }));
+                            window.location.hash = `#/surah/${surah}?ayah=${ayah}`;
+                        }}
+                        onNavigateToPage={(page) => {
+                            setSymbolModalState(prev => ({ ...prev, isOpen: false }));
+                            window.location.hash = `#/page/${page}`;
+                        }}
                     />
                     {playbackInfo && <AudioPlayerBar 
                         playlist={playbackInfo.playlist} 

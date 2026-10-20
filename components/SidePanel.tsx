@@ -3,6 +3,7 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, UserCircleIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, CheckIcon, LightBulbIcon, SparklesIcon } from './icons';
 import { openExternalLink } from '../utils/navigation';
 import { useSettingsContext } from '../contexts/SettingsContext';
+import { openQuranSymbolModal } from '../data/quranSymbolsData';
 
 interface SidePanelProps {
     isOpen: boolean;
@@ -154,6 +155,19 @@ const SidePanel: React.FC<SidePanelProps> = ({
 
                             <NavLink href="#/khatmah" icon={<BookOpenIcon className="w-5 h-5 text-emerald-500" />} label="الختمة الجماعية" onNavigate={onNavigate} isActive={currentPath.startsWith('#/khatmah') || currentPath.startsWith('#/khatmiyah')} />
                             <NavLink href="#/structure" icon={<SparklesIcon className="w-5 h-5 text-amber-500" />} label="بنية المصحف الشريف" onNavigate={onNavigate} isActive={currentPath.startsWith('#/structure') || currentPath.startsWith('#/mizan') || currentPath.startsWith('#/cipher-lab') || currentPath.startsWith('#/word-geometry') || currentPath.startsWith('#/noorani')} />
+                            
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onClose();
+                                    openQuranSymbolModal({ type: 'sajdah' });
+                                }}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-lg text-base transition-colors text-text-secondary hover:bg-surface-hover hover:text-primary cursor-pointer text-right group"
+                            >
+                                <span className="text-lg font-serif text-amber-500 group-hover:scale-110 transition-transform">۩</span>
+                                <span className="whitespace-nowrap font-medium text-text-primary">دليل علامات المصحف</span>
+                            </button>
+
                             <NavLink href="#/saved" icon={<BookmarkIcon className="w-5 h-5" />} label="الدفتر" onNavigate={onNavigate} isActive={currentPath.startsWith('#/saved')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />
                             <NavLink href="#/settings" icon={<CogIcon className="w-5 h-5" />} label="الإعدادات" onNavigate={onNavigate} isActive={currentPath.startsWith('#/settings')} />

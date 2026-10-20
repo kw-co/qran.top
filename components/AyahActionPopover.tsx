@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { Ayah } from '../types';
 import { BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpeakerWaveIcon, LightBulbIcon } from './icons';
 import { useResearchData } from '../hooks/useResearchData';
+import { findSajdahByAyah, openQuranSymbolModal } from '../data/quranSymbolsData';
 
 const AyahActionPopover: React.FC<{
     activePopover: { ayah: Ayah; triggerElement: HTMLElement };
@@ -107,6 +108,45 @@ const AyahActionPopover: React.FC<{
                     <div className="hidden sm:block w-px h-5 bg-border-default"></div>
                 </>
             )}
+
+            {(() => {
+                const sajdahInfo = findSajdahByAyah(currentSurahNum, activePopover.ayah.numberInSurah);
+                if (!sajdahInfo) return null;
+                return (
+                    <>
+                        <button 
+                            onClick={() => { 
+                                openQuranSymbolModal({ type: 'sajdah', sajdahNumber: sajdahInfo.sajdahNumber }); 
+                                onClose(); 
+                            }} 
+                            className="p-1.5 sm:p-2.5 rounded-xl text-amber-700 dark:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 transition-colors flex items-center gap-1.5 cursor-pointer font-bold" 
+                            title={`سجدة تلاوة رقم ${sajdahInfo.sajdahNumber} - اضغط لمعرفة الشرح الكامل والأدعية`}
+                        >
+                            <span className="text-base font-serif">۩</span>
+                            <span className="text-xs">سجدة {sajdahInfo.sajdahNumber}</span>
+                        </button>
+                        <div className="hidden sm:block w-px h-5 bg-border-default"></div>
+                    </>
+                );
+            })()}
+
+            {activePopover.ayah.juz && (
+                <>
+                    <button 
+                        onClick={() => { 
+                            openQuranSymbolModal({ type: 'juz', juzNumber: activePopover.ayah.juz }); 
+                            onClose(); 
+                        }} 
+                        className="p-1.5 sm:p-2.5 rounded-xl text-text-subtle hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-1 cursor-pointer font-semibold" 
+                        title={`شرح وتفاصيل الجزء ${activePopover.ayah.juz}`}
+                    >
+                        <span className="text-sm">📖</span>
+                        <span className="text-xs">الجزء {activePopover.ayah.juz}</span>
+                    </button>
+                    <div className="hidden sm:block w-px h-5 bg-border-default"></div>
+                </>
+            )}
+
 
             <button onClick={() => { onCopy(activePopover.ayah); }} className="p-1.5 sm:p-2.5 rounded-xl text-text-subtle hover:bg-surface-hover hover:text-primary transition-colors flex items-center gap-1 cursor-pointer" title="نسخ الآية مع المرجع">
               {copiedAyah === activePopover.ayah.number ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4" />}

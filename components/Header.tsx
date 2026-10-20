@@ -4,6 +4,7 @@ import { QURAN_INDEX } from '../quranIndex';
 import { formatSurahNameForDisplay } from '../utils/text';
 import SearchForm from './SearchForm';
 import ThemeToggleButton from './ThemeToggleButton';
+import { openQuranSymbolModal } from '../data/quranSymbolsData';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import type { Ayah } from '../types';
@@ -315,6 +316,17 @@ const Header: React.FC<HeaderProps> = ({
                         >
                             <BookmarkIcon className="w-4 h-4 text-primary" />
                         </a>
+
+                        {/* Quran Symbols Guide Button */}
+                        <button
+                            type="button"
+                            onClick={() => openQuranSymbolModal({ type: 'sajdah' })}
+                            className="w-9 h-9 rounded-full transition-all border border-border-default text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-surface-hover bg-surface-subtle shadow-xs flex items-center justify-center cursor-pointer active:scale-95 font-serif text-lg leading-none"
+                            title="دليل علامات المصحف: سجدات التلاوة (۩)، الأحزاب (۞)، والأجزاء (📖)"
+                            aria-label="دليل علامات المصحف"
+                        >
+                            ۩
+                        </button>
                     </div>
 
                     {/* Center Group: Desktop Search */}
