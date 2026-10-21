@@ -447,11 +447,40 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                     }
                                     setActivePopover({ ayah: ayah, triggerElement: e.currentTarget });
                                 }}
-                                className={`popover-trigger mx-1 select-none cursor-pointer hover:opacity-80 transition-opacity ayah-marker ${matchingResearch.length > 0 ? 'text-orange-600 dark:text-orange-400 font-bold' : ''}`}
+                                className={`popover-trigger mx-1 select-none cursor-pointer ayah-marker ${matchingResearch.length > 0 ? 'text-orange-600 dark:text-orange-400 font-bold' : ''}`}
                                 aria-label={`إجراءات للآية ${ayah.numberInSurah}`}
                                 aria-haspopup="true"
+                                title={`الآية ${textUtils.toEasternArabicDigits(ayah.numberInSurah)}`}
                             >
-                                {ayah.numberInSurah}
+                                {/* Model 4: Double-Ring Medallion with Crown Finials */}
+                                <svg 
+                                    viewBox="0 0 40 40" 
+                                    className="ayah-marker-medallion absolute inset-0 w-full h-full text-primary pointer-events-none stroke-current fill-none overflow-visible"
+                                    aria-hidden="true"
+                                >
+                                    {/* Outer Ring */}
+                                    <circle cx="20" cy="20" r="14.2" strokeWidth="1.2" />
+                                    {/* Inner Concentric Ring */}
+                                    <circle cx="20" cy="20" r="11.8" strokeWidth="0.8" strokeOpacity="0.7" />
+                                    {/* Top Crown Finial (تاج علوي ثلاثي الرؤوس) */}
+                                    <path d="M16.5 6 C17 3.2 18.5 1.2 20 1.2 C21.5 1.2 23 3.2 23.5 6 Z" fill="currentColor" strokeWidth="0.4" />
+                                    <circle cx="20" cy="1" r="1" fill="currentColor" />
+                                    <circle cx="16.5" cy="4.8" r="0.7" fill="currentColor" />
+                                    <circle cx="23.5" cy="4.8" r="0.7" fill="currentColor" />
+                                    {/* Bottom Crown Finial (تاج سفلي ثلاثي الرؤوس) */}
+                                    <path d="M16.5 34 C17 36.8 18.5 38.8 20 38.8 C21.5 38.8 23 36.8 23.5 34 Z" fill="currentColor" strokeWidth="0.4" />
+                                    <circle cx="20" cy="39" r="1" fill="currentColor" />
+                                    <circle cx="16.5" cy="35.2" r="0.7" fill="currentColor" />
+                                    <circle cx="23.5" cy="35.2" r="0.7" fill="currentColor" />
+                                    {/* Side Accent Jewel Pips (حبتان زخرفيتان على الجانبين) */}
+                                    <circle cx="4.5" cy="20" r="0.85" fill="currentColor" />
+                                    <circle cx="35.5" cy="20" r="0.85" fill="currentColor" />
+                                </svg>
+                                <span className="ayah-marker-number-container">
+                                    <span className={`ayah-marker-number-text ${ayah.numberInSurah > 99 ? 'text-[0.62em] tracking-tighter' : 'text-[0.76em]'}`}>
+                                        {textUtils.toEasternArabicDigits(ayah.numberInSurah)}
+                                    </span>
+                                </span>
                             </button>
 
                         </span>

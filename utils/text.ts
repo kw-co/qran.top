@@ -16,6 +16,13 @@ export const normalizeDigits = (str: string | undefined | null | number): string
         .replace(/[٩۹]/g, '9');
 };
 
+// Converts ASCII digits (0-9) to Eastern Arabic numerals (٠-٩)
+export const toEasternArabicDigits = (num: number | string | undefined | null): string => {
+    if (num === undefined || num === null) return '';
+    const easternDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return String(num).replace(/[0-9]/g, (d) => easternDigits[+d]);
+};
+
 // Escapes special characters for safely creating dynamic Regular Expressions
 export const escapeRegExp = (string: string): string => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
