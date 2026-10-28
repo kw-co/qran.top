@@ -130,22 +130,6 @@ const AyahActionPopover: React.FC<{
                 );
             })()}
 
-            {activePopover.ayah.juz && (
-                <>
-                    <button 
-                        onClick={() => { 
-                            openQuranSymbolModal({ type: 'juz', juzNumber: activePopover.ayah.juz }); 
-                            onClose(); 
-                        }} 
-                        className="p-1.5 sm:p-2.5 rounded-xl text-text-subtle hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-1 cursor-pointer font-semibold" 
-                        title={`شرح وتفاصيل الجزء ${activePopover.ayah.juz}`}
-                    >
-                        <span className="text-sm">📖</span>
-                        <span className="text-xs">الجزء {activePopover.ayah.juz}</span>
-                    </button>
-                    <div className="hidden sm:block w-px h-5 bg-border-default"></div>
-                </>
-            )}
 
 
             <button onClick={() => { onCopy(activePopover.ayah); }} className="p-1.5 sm:p-2.5 rounded-xl text-text-subtle hover:bg-surface-hover hover:text-primary transition-colors flex items-center gap-1 cursor-pointer" title="نسخ الآية مع المرجع">

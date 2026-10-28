@@ -14,6 +14,8 @@ import { useResearchData } from '../hooks/useResearchData';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { IslamicSectionDivider } from './IslamicDecorations';
 import { openQuranSymbolModal } from '../data/quranSymbolsData';
+import { CopyPageModal, PageAyahForCopy } from './CopyPageModal';
+import { SurahHeaderBanner } from './SurahHeaderBanner';
 
 interface SurahDetailViewProps {
   surah: SurahData;
@@ -33,92 +35,7 @@ interface SurahDetailViewProps {
   continuousPlaylist?: Ayah[];
 }
 
-const SurahHeaderStrip: React.FC<{ surahNumber: number; surahName: string; researchInfo?: { bookName: string, prophet: string } | null }> = ({ surahNumber, surahName, researchInfo }) => {
-  const info = QURAN_INDEX.find(s => s.number === surahNumber);
-  const ayahsCount = info?.numberOfAyahs || '';
-  const formattedName = formatSurahNameForDisplay(surahName);
-
-  return (
-    <div className="my-6 w-full select-none">
-      {/* Outer Traditional Islamic Frame Container - Theme Adaptive */}
-      <div className="relative border-2 border-primary/40 rounded-xl p-1.5 sm:p-2.5 bg-gradient-to-r from-primary/15 via-primary/5 to-primary/15 shadow-md overflow-hidden transition-colors duration-300">
-        
-        {/* Fine Geometric Background Pattern (Inherits theme primary color) */}
-        <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none text-primary" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id={`header-pattern-${surahNumber}`} width="32" height="32" patternUnits="userSpaceOnUse">
-              <path d="M16 0 L32 16 L16 32 L0 16 Z M16 4 L28 16 L16 28 L4 16 Z" fill="none" stroke="currentColor" strokeWidth="0.75" />
-              <circle cx="16" cy="16" r="2.5" fill="currentColor" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill={`url(#header-pattern-${surahNumber})`} />
-        </svg>
-
-        {/* Decorative Corner Ornaments */}
-        <div className="absolute top-1 right-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
-        <div className="absolute top-1 left-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
-        <div className="absolute bottom-1 right-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
-        <div className="absolute bottom-1 left-1.5 text-primary opacity-60 text-xs select-none pointer-events-none">❖</div>
-
-        {/* Inner Border Box */}
-        <div className="relative border border-primary/30 rounded-lg px-3 py-2 sm:px-6 sm:py-3 flex flex-col bg-surface/90 backdrop-blur-xs transition-colors duration-300">
-            <div className="flex items-center justify-between gap-3 w-full">
-                {/* Right Info: Surah Order in Quran */}
-                <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[110px]">
-                  <span>ترتيبها:</span>
-                  <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{surahNumber}</span>
-                </div>
-      
-                {/* Center Title Banner with Decorative Rosettes */}
-                <div className="flex-1 text-center flex items-center justify-center gap-2 sm:gap-3">
-                  <span className="text-primary text-xl font-serif opacity-75">﴿</span>
-                  <a 
-                    href={`#/surah/${surahNumber}`}
-                    className="inline-block transition-transform duration-200 hover:scale-105 cursor-pointer"
-                    title={`فتح سورة ${formattedName}`}
-                  >
-                    <h2 className="font-quran-title text-2.5xl sm:text-3xl font-bold text-primary-text-strong hover:text-primary transition-colors tracking-wide">
-                      {formattedName}
-                    </h2>
-                  </a>
-                  <span className="text-primary text-xl font-serif opacity-75">﴾</span>
-                </div>
-      
-                {/* Left Info: Ayahs Count */}
-                <div className="hidden sm:flex items-center justify-end gap-2 text-xs sm:text-sm font-semibold text-text-secondary min-w-[140px]">
-                  <span>آياتها:</span>
-                  <span className="font-mono font-bold text-primary-text px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">{ayahsCount}</span>
-                </div>
-            </div>
-
-            {/* Research Data (if available) */}
-            {researchInfo && (
-                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-primary/20 w-full flex flex-col items-center justify-center text-center">
-                    <span className="text-xs sm:text-sm font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-3 py-1 rounded-full border border-orange-200 dark:border-orange-800/50 inline-block">
-                        {researchInfo.bookName}
-                    </span>
-                    <span className="text-[10px] sm:text-xs font-medium text-text-secondary mt-1.5">
-                        الرسول المخاطب: <strong className="text-text-primary font-bold">{researchInfo.prophet}</strong>
-                    </span>
-                </div>
-            )}
-
-            {/* Mobile Info Bar below center title on small screens */}
-            <div className="sm:hidden mt-2 pt-2 border-t border-primary/20 flex justify-between items-center text-[12px] text-text-secondary px-2 font-medium">
-                <div className="flex items-center gap-1.5">
-                  <span>ترتيبها:</span>
-                  <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{surahNumber}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span>آياتها:</span>
-                  <span className="font-mono font-bold text-primary-text px-1.5 py-0.2 rounded bg-primary/10">{ayahsCount}</span>
-                </div>
-            </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+const SurahHeaderStrip = SurahHeaderBanner;
 
 const SurahDetailView: React.FC<SurahDetailViewProps> = ({ 
   surah, pageSurahs, highlightAyahNumber, onWordClick,
@@ -134,6 +51,7 @@ const SurahDetailView: React.FC<SurahDetailViewProps> = ({
   const [copiedAyah, setCopiedAyah] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [copiedWholeSurah, setCopiedWholeSurah] = useState(false);
+  const [isCopyPageModalOpen, setIsCopyPageModalOpen] = useState(false);
 
   
   const [selectedAyahs, setSelectedAyahs] = useState<{surahNum: number, ayahNum: number, text: string, surahName: string}[]>([]);
@@ -399,6 +317,28 @@ ${fullText}`;
   const contentToRender = useMemo(() => {
       return pageSurahs || (ayahsByPage.get(currentPage) ? [{...surah, ayahs: ayahsByPage.get(currentPage)!}] : []);
   }, [ayahsByPage, currentPage, surah, pageSurahs]);
+
+  const currentPageAyahsForCopy = useMemo<PageAyahForCopy[]>(() => {
+    if (!contentToRender || contentToRender.length === 0) return [];
+    return contentToRender.flatMap(segment =>
+      segment.ayahs.map(a => {
+        let simpleText = '';
+        if (simpleCleanData && simpleCleanData.length > 0) {
+          const foundSurah = simpleCleanData.find(s => s.number === segment.number);
+          const foundAyah = foundSurah?.ayahs?.find(item => item.numberInSurah === a.numberInSurah);
+          if (foundAyah?.text) simpleText = foundAyah.text;
+        }
+        return {
+          surahNumber: segment.number,
+          surahName: segment.name,
+          ayahNumberInSurah: a.numberInSurah,
+          textUthmani: a.text || '',
+          textSimple: simpleText || undefined,
+          juz: a.juz
+        };
+      })
+    );
+  }, [contentToRender, simpleCleanData]);
 
   const pageInfo = useMemo(() => {
     if (!hizbQuarterStartMap || contentToRender.length === 0) return null;
@@ -906,7 +846,16 @@ ${fullText}`;
                                 </button>
                             )}
                         </div>
-                        <span className="font-bold text-xl">{currentPage}</span>
+                        <button
+                            type="button"
+                            onClick={() => setIsCopyPageModalOpen(true)}
+                            className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/5 hover:bg-primary/15 text-primary transition-all cursor-pointer shadow-xs hover:shadow hover:scale-105"
+                            title="انقر لنسخ الصفحة الحالية كنص مع خيارات التشكيل والتوثيق"
+                            aria-label={`نسخ الصفحة ${currentPage} كنص`}
+                        >
+                            <CopyIcon className="w-4 h-4 opacity-75 group-hover:opacity-100 transition-opacity" />
+                            <span className="font-bold text-xl">{currentPage}</span>
+                        </button>
                         <div className="w-16">
                             {currentPage < 604 && (
                                 <button 
@@ -1090,6 +1039,15 @@ ${fullText}`;
               <span className="font-bold text-sm">تم نسخ الآيات المحددة بنجاح</span>
           </div>
       )}
+
+      {/* Copy Page Modal */}
+      <CopyPageModal
+        isOpen={isCopyPageModalOpen}
+        onClose={() => setIsCopyPageModalOpen(false)}
+        pageNumber={currentPage}
+        juzNumber={pageInfo?.juzNumber}
+        ayahs={currentPageAyahsForCopy}
+      />
 
     </div>
   );

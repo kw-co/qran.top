@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { fetchPageVersesV4, QuranV4Verse } from '../services/quranApiV4';
 import { QURAN_INDEX } from '../quranIndex';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -6,6 +6,8 @@ import { renderWordWithHaMeem, hasHaMeem } from '../utils/haMeemHighlight';
 import { renderWordWithNoorani, isWordPureNoorani } from '../utils/nooraniHighlight';
 import { injectMushafFontFaces, ensurePageFontLoaded, preloadAdjacentPageFonts } from '../utils/mushafFonts';
 import { openQuranSymbolModal } from '../data/quranSymbolsData';
+import { CopyPageModal, PageAyahForCopy } from './CopyPageModal';
+import { CopyIcon } from './icons';
 
 interface MushafPageViewProps {
   pageNumber: number;
@@ -34,10 +36,27 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 }) => {
   const [verses, setVerses] = useState<QuranV4Verse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCopyPageModalOpen, setIsCopyPageModalOpen] = useState(false);
   const { fontStyle, mushafFrameStyle, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta } = useSettingsContext();
   const [isFontReady, setIsFontReady] = useState(false);
 
   const totalPages = 604;
+
+  const pageAyahsForCopy = useMemo<PageAyahForCopy[]>(() => {
+    return verses.map(v => {
+      const [sNumStr, aNumStr] = v.verse_key.split(':');
+      const sNum = parseInt(sNumStr, 10);
+      const aNum = parseInt(aNumStr, 10);
+      const sName = QURAN_INDEX.find(s => s.number === sNum)?.name || `سورة ${sNum}`;
+      return {
+        surahNumber: sNum,
+        surahName: sName,
+        ayahNumberInSurah: aNum,
+        textUthmani: v.text_uthmani,
+        juz: v.juz_number
+      };
+    });
+  }, [verses]);
 
   useEffect(() => {
     if (fontStyle === 'mushaf') {
@@ -404,7 +423,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
          >
            السابق
          </button>
-         <span className="font-bold font-mono text-lg text-amber-800 dark:text-amber-500">{pageNumber}</span>
+         <button 
+           type="button"
+           onClick={() => setIsCopyPageModalOpen(true)}
+           className="group inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-300/60 dark:border-amber-700/60 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-300 transition-all cursor-pointer shadow-xs hover:shadow hover:scale-105"
+           title="انقر لنسخ الصفحة الحالية كنص مع خيارات التشكيل والتوثيق"
+           aria-label={`نسخ الصفحة ${pageNumber} كنص`}
+         >
+           <CopyIcon className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" />
+           <span className="font-bold font-mono text-lg">{pageNumber}</span>
+         </button>
          <button 
            onClick={() => pageNumber < totalPages && onPageChange(pageNumber + 1)}
            disabled={pageNumber >= totalPages}
@@ -413,6 +441,15 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
            التالي
          </button>
       </footer>
+
+      {/* Copy Page Modal */}
+      <CopyPageModal
+        isOpen={isCopyPageModalOpen}
+        onClose={() => setIsCopyPageModalOpen(false)}
+        pageNumber={pageNumber}
+        juzNumber={verses[0]?.juz_number}
+        ayahs={pageAyahsForCopy}
+      />
     </div>
   );
 };
