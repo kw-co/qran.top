@@ -58,7 +58,7 @@ interface AppRouterProps {
     handleStartPlayback: (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void;
     hizbQuarterStartMap: Map<number, number>;
     setIsSearching: (isSearching: boolean) => void;
-    performSearchByAyahNumber: (num: number, hawameemOnly?: boolean) => Ayah[];
+    performSearchByAyahNumber: (num: number, hawameemOnly?: boolean, includeDigitSum?: boolean) => Ayah[];
     performSearch: (query: string, isRootSearch?: boolean, overrideTargetSurah?: number, targetMuqattaat?: string, hawameemOnly?: boolean) => { results: Ayah[], finalSearchEdition: string, correctedQuery?: string, targetSurahNumber?: number, parsedQuery?: string };
     setIsSidePanelOpen?: (open: boolean) => void;
 }
@@ -149,10 +149,12 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
     const isRootSearchVal = isSearchPage && !isSearchNumber && queryParams.get('mode') === 'root';
     const targetSurahNumberVal = isSearchPage && queryParams.has('ts') ? parseInt(normalizeDigits(queryParams.get('ts')!), 10) : undefined;
 
+    const isDigitSumRoute = queryParams.get('digitsum') === '1' || queryParams.get('sum') === '1';
+
     const searchNumberResults = React.useMemo(() => {
         if (!isSearchNumber || !searchNumberVal) return [] as Ayah[];
-        return performSearchByAyahNumber(searchNumberVal);
-    }, [performSearchByAyahNumber, isSearchNumber, searchNumberVal]);
+        return performSearchByAyahNumber(searchNumberVal, false, isDigitSumRoute);
+    }, [performSearchByAyahNumber, isSearchNumber, searchNumberVal, isDigitSumRoute]);
 
     const searchTextResult = React.useMemo(() => {
         if (!isSearchPage || isSearchNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined, targetSurahNumber: undefined as number | undefined, parsedQuery: undefined as string | undefined };
@@ -175,8 +177,8 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
 
     const hmNumberResults = React.useMemo(() => {
         if (!isHmNumber) return [] as Ayah[];
-        return performSearchByAyahNumber(hmNumberVal, true);
-    }, [performSearchByAyahNumber, isHmNumber, hmNumberVal]);
+        return performSearchByAyahNumber(hmNumberVal, true, isDigitSumRoute);
+    }, [performSearchByAyahNumber, isHmNumber, hmNumberVal, isDigitSumRoute]);
 
     const hmTextResult = React.useMemo(() => {
         if (!isHmPage || isHmNumber) return { results: [] as Ayah[], finalSearchEdition: '', correctedQuery: undefined, targetSurahNumber: undefined as number | undefined, parsedQuery: undefined as string | undefined };
@@ -515,11 +517,26 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
                     searchType={isNumberSearch ? 'number' : 'text'}
                     isRootSearch={isHmRootSearchVal}
                     targetSurahNumber={targetHmSurahNumberVal}
+                    isDigitSum={isDigitSumRoute}
+                    onToggleDigitSum={(active) => {
+                        const hash = window.location.hash || '';
+                        const [path, queryString] = hash.split('?');
+                        const params = new URLSearchParams(queryString || '');
+                        if (active) {
+                            params.set('digitsum', '1');
+                        } else {
+                            params.delete('digitsum');
+                            params.delete('sum');
+                        }
+                        const pStr = params.toString();
+                        window.location.hash = pStr ? `${path}?${pStr}` : path;
+                    }}
                     onSelectSurahFilter={(surahNum?: number) => {
                         let url = activeQuery ? `#/hm/${encodeURIComponent(activeQuery)}` : `#/hm`;
                         const params: string[] = [];
                         if (isHmRootSearchVal) params.push('mode=root');
                         if (surahNum) params.push(`ts=${surahNum}`);
+                        if (isDigitSumRoute) params.push('digitsum=1');
                         if (params.length > 0) url += `?${params.join('&')}`;
                         window.location.hash = url;
                     }}
@@ -539,7 +556,29 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
                 queryParams: queryParams,
             };
             if (isSearchNumber) {
-                return <SearchView {...commonProps} query={String(searchNumberVal)} results={searchNumberResults} searchEdition={'quran-simple-clean'} searchType="number" />;
+                return (
+                    <SearchView 
+                        {...commonProps} 
+                        query={String(searchNumberVal)} 
+                        results={searchNumberResults} 
+                        searchEdition={'quran-simple-clean'} 
+                        searchType="number" 
+                        isDigitSum={isDigitSumRoute}
+                        onToggleDigitSum={(active) => {
+                            const hash = window.location.hash || '';
+                            const [path, queryString] = hash.split('?');
+                            const params = new URLSearchParams(queryString || '');
+                            if (active) {
+                                params.set('digitsum', '1');
+                            } else {
+                                params.delete('digitsum');
+                                params.delete('sum');
+                            }
+                            const pStr = params.toString();
+                            window.location.hash = pStr ? `${path}?${pStr}` : path;
+                        }}
+                    />
+                );
             }
             const query = cleanAyahSearchQuery(rawSearchArg1);
             const isRootSearch = queryParams.get('mode') === 'root';

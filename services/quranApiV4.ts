@@ -286,16 +286,37 @@ export async function playSmartWordAudio(
 
 export async function fetchPageVersesV4(pageNumber: number): Promise<QuranV4Verse[]> {
     try {
-        const cacheKey = `quran_v4_page_v2_${pageNumber}`;
+        const cacheKey = `quran_v4_page_v3_${pageNumber}`;
         const localCached = localStorage.getItem(cacheKey);
-        if (localCached) return JSON.parse(localCached);
+        if (localCached) {
+            const cachedVerses: QuranV4Verse[] = JSON.parse(localCached);
+            cachedVerses.forEach(v => {
+                if (!v.text_uthmani && v.words) {
+                    v.text_uthmani = v.words
+                        .filter(w => w.char_type_name === 'word')
+                        .map(w => w.text_uthmani)
+                        .filter(Boolean)
+                        .join(' ');
+                }
+            });
+            return cachedVerses;
+        }
         
-        const url = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&word_fields=text_uthmani,location,audio_url,char_type_name,line_number,page_number,code_v1,v1_page`;
+        const url = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&fields=text_uthmani&word_fields=text_uthmani,location,audio_url,char_type_name,line_number,page_number,code_v1,v1_page`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`API response error: ${res.status}`);
         
         const data = await res.json();
         if (data.verses && data.verses.length > 0) {
+            data.verses.forEach((v: QuranV4Verse) => {
+                if (!v.text_uthmani && v.words) {
+                    v.text_uthmani = v.words
+                        .filter(w => w.char_type_name === 'word')
+                        .map(w => w.text_uthmani)
+                        .filter(Boolean)
+                        .join(' ');
+                }
+            });
             try {
                 localStorage.setItem(cacheKey, JSON.stringify(data.verses));
             } catch (e) {}

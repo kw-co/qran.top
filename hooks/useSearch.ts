@@ -10,6 +10,7 @@ const SURAH_MUQATTAAT_MAP: Record<number, string> = {
 import { normalizeArabicText, normalizeDigits, cleanAyahSearchQuery } from '../utils/text';
 import { levenshtein } from '../utils/levenshtein';
 import { findWordsByRoot } from '../utils/roots';
+import { matchesDigitSum } from '../utils/digitSum';
 
 // Universal helper to get pre-normalized or lazily cached normalized text
 const getNormalizedText = (ayah: any): string => {
@@ -298,14 +299,20 @@ export const useSearch = (allQuranData: { [key: string]: SurahData[] } | null) =
         return { ...resultObj, targetSurahNumber: undefined, targetMuqattaat: undefined, parsedQuery: finalQuery };
     }, [allQuranData, simpleSearchableAyahs, quranicWordList]);
 
-    const performSearchByAyahNumber = useCallback((ayahNumber: number | string, hawameemOnly?: boolean): Ayah[] => {
+    const performSearchByAyahNumber = useCallback((ayahNumber: number | string, hawameemOnly?: boolean, includeDigitSum?: boolean): Ayah[] => {
         if (!simpleSearchableAyahs) return [];
         const num = typeof ayahNumber === 'number' ? ayahNumber : parseInt(normalizeDigits(String(ayahNumber)), 10);
         if (isNaN(num) || num <= 0) return [];
-        return simpleSearchableAyahs.filter(ayah => 
-            ayah.numberInSurah === num && 
-            (!hawameemOnly || HAWAMEEM_SURAH_NUMBERS.includes(ayah.surah.number))
-        );
+        return simpleSearchableAyahs.filter(ayah => {
+            if (hawameemOnly && !HAWAMEEM_SURAH_NUMBERS.includes(ayah.surah.number)) {
+                return false;
+            }
+            if (ayah.numberInSurah === num) return true;
+            if (includeDigitSum) {
+                return matchesDigitSum(ayah.numberInSurah, num);
+            }
+            return false;
+        });
     }, [simpleSearchableAyahs]);
 
     return {

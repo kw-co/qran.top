@@ -412,7 +412,7 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
                                                 : 'bg-surface-subtle hover:bg-surface-hover text-text-primary border border-border-subtle'
                                         }`}
                                     >
-                                        <span className="truncate">{s.number}. {s.name.replace(/^سُورَةُ\s*/, '')}</span>
+                                        <span className="truncate">{s.number}. {String(s.name || '').replace(/^سُورَةُ\s*/, '')}</span>
                                         <span className={`text-[10px] ${isCurrent ? 'text-white/80' : 'text-text-muted'} font-mono`}>
                                             ص {startPage}
                                         </span>

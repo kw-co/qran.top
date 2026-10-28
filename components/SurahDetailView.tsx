@@ -98,7 +98,7 @@ ${fullText}`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `سورة_${surah.name.replace(/\s+/g, "_")}.txt`;
+      a.download = `سورة_${String(surah?.name || 'surah').replace(/\s+/g, "_")}.txt`;
       a.click();
       URL.revokeObjectURL(url);
   };

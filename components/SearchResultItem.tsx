@@ -11,6 +11,7 @@ import { playSmartWordAudio } from '../services/quranApiV4';
 import WordActionPopover from './WordActionPopover';
 import WordMorphologyModal from './WordMorphologyModal';
 import { findSajdahByAyah, openQuranSymbolModal } from '../data/quranSymbolsData';
+import { getDigitSumBreakdown } from '../utils/digitSum';
 
 interface SearchResultItemProps {
   ayah: Ayah;
@@ -35,6 +36,8 @@ interface SearchResultItemProps {
   onPlayAyah?: (resultIndex: number) => void;
   copiedAyah?: number | null;
   imlaeiSimpleData?: SurahData[];
+  isDigitSum?: boolean;
+  targetAyahNumber?: number;
 }
 
 const SURAH_MUQATTAAT_MAP: Record<number, string> = {
@@ -78,7 +81,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
     ayah, queryWords, currentQuery, onNewSearch, displayEdition, displayEditionData, searchEdition,
     fontSize, fontStyle, searchType, isCurrentlyPlaying, isPlaybackLoading, itemRef, pulsingWordIndex,
     resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah,
-    imlaeiSimpleData
+    imlaeiSimpleData, isDigitSum, targetAyahNumber
 }) => {
     const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta } = useSettingsContext();
 
@@ -279,6 +282,20 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                     >
                         <span className="font-quran-title">{displayAyah.surah?.name} - الآية {displayAyah.numberInSurah}</span>
                     </a>
+
+                    {searchType === 'number' && isDigitSum && targetAyahNumber && (() => {
+                        const breakdown = getDigitSumBreakdown(displayAyah.numberInSurah, targetAyahNumber);
+                        if (!breakdown) return null;
+                        return (
+                            <span 
+                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 shadow-2xs" 
+                                title={`مجموع خانات الآية ${displayAyah.numberInSurah}: ${breakdown.formula}`}
+                            >
+                                <span className="font-sans text-[11px] opacity-75">مجموع الخانات:</span>
+                                <span>{breakdown.formula}</span>
+                            </span>
+                        );
+                    })()}
 
                     {(() => {
                         const sNum = displayAyah.surah?.number || 0;

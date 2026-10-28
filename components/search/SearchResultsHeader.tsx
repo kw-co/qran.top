@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Ayah } from '../../types';
 import { SparklesIcon } from '../icons';
 import { QURAN_INDEX } from '../../quranIndex';
 import { normalizeArabicText } from '../../utils/text';
+import { getAllMatchingAyahNumbers } from '../../utils/digitSum';
 
 // Complete list of all 14 unique Muqatta'at (fawatih) formulas across the 29 surahs in the Holy Quran
 const ALL_MUQATTAAT_CONFIG: { letters: string; allSurahs: number[] }[] = [
@@ -114,6 +115,9 @@ interface SearchResultsHeaderProps {
     activePhraseFilter?: string;
     activeDiacriticFilter?: string;
     displayEditionData?: any[];
+    isDigitSum?: boolean;
+    onToggleDigitSum?: (value: boolean) => void;
+    targetAyahNumber?: number;
 }
 
 const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
@@ -122,7 +126,8 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
     setExactMatch, totalOccurrences, onJumpToOccurrence, 
     cachedAnalysisExists, onNewSearch, isRootSearch = false, onToggleRootSearch,
     displayedResults = [], showMuqattaatInSearch = true, simpleCleanData,
-    activePhraseFilter, activeDiacriticFilter, displayEditionData
+    activePhraseFilter, activeDiacriticFilter, displayEditionData,
+    isDigitSum = false, onToggleDigitSum, targetAyahNumber
 }) => {
     const finalQueryForChecks = correctedQuery || query;
     const shouldShowAnalysisButton = finalQueryForChecks.trim().split(/\s+/).filter(Boolean).length === 1 && searchType === 'text';
@@ -350,14 +355,50 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                             )}
                         </h3>
                     ) : (
-                        <h3 className="text-lg font-semibold text-text-secondary">الآيات التي تحمل الرقم "<span className="font-bold text-primary-text-strong">{query}</span>" في جميع سور القرآن الكريم</h3>
+                        <h3 className="text-lg font-semibold text-text-secondary flex items-center gap-2 flex-wrap">
+                            <span>الآيات التي تحمل الرقم </span>
+                            <span className="font-bold text-primary-text-strong font-mono">"{query}"</span>
+                            {isDigitSum ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                                    <span>➕ ومجموع أرقامها = {query}</span>
+                                </span>
+                            ) : null}
+                            <span>في سور القرآن الكريم</span>
+                        </h3>
                     )}
                     
                     {resultsCount > 0 && (
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-500/20 text-text-primary shadow-sm cursor-help" title="إجمالي عدد الآيات المطابقة.">
-                                {searchType === 'number' ? `${displayedResultsCount} آية في ${displayedResultsCount} سورة` : `${displayedResultsCount} آيات`}
+                                {searchType === 'number' 
+                                    ? (isDigitSum 
+                                        ? `${displayedResultsCount} آية مطابقة (بالرقم والمجموع)`
+                                        : `${displayedResultsCount} آية في ${displayedResultsCount} سورة`) 
+                                    : `${displayedResultsCount} آيات`}
                             </span>
+
+                            {searchType === 'number' && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (onToggleDigitSum) onToggleDigitSum(!isDigitSum);
+                                    }}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold shadow-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-subtle focus:ring-amber-500
+                                    ${isDigitSum 
+                                        ? 'bg-amber-600 text-white font-bold shadow-sm' 
+                                        : 'bg-amber-500/15 text-amber-900 dark:text-amber-300 hover:bg-amber-500/30 border border-amber-500/30'}`}
+                                    title={isDigitSum 
+                                        ? 'إلغاء البحث بمجموع الأرقام والعودة لرقم الآية الفعلي فقط' 
+                                        : `إظهار الآيات التي يساوي مجموع أرقامها ${query} (مثل 18، 45، 54...)`}
+                                    aria-pressed={isDigitSum}
+                                >
+                                    <span>{isDigitSum ? '✓' : '➕'}</span>
+                                    <span>مجموع الأرقام ({query})</span>
+                                    <span className="text-xs opacity-75 font-normal">
+                                        {isDigitSum ? '(مُفعّل)' : '(مثل 18، 45...)'}
+                                    </span>
+                                </button>
+                            )}
                             {searchType === 'text' && (
                                 <>
                                   {isSingleWordSearch && !isRootSearch && (
@@ -409,6 +450,39 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                     )}
                 </div>
             </div>
+
+            {searchType === 'number' && isDigitSum && targetAyahNumber && (() => {
+                const matchingNumbers = getAllMatchingAyahNumbers(targetAyahNumber);
+                return (
+                    <div className="mt-3 pt-3 border-t border-border-default">
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+                            <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-amber-900 dark:text-amber-200 font-medium">
+                                <span className="font-bold flex items-center gap-1.5">
+                                    <span>🧮 أرقام الآيات المشمولة (مجموع خاناتها = {targetAyahNumber}):</span>
+                                </span>
+                                <span className="text-text-muted text-[11px]">
+                                    (تشمل الآية {targetAyahNumber} الأصلية والآيات التي ينتج مجموع أرقامها {targetAyahNumber})
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pt-1">
+                                {matchingNumbers.map(num => (
+                                    <span 
+                                        key={num}
+                                        className={`px-2 py-0.5 rounded-md text-xs font-mono font-bold ${
+                                            num === targetAyahNumber 
+                                                ? 'bg-amber-600 text-white shadow-2xs ring-1 ring-amber-700/30' 
+                                                : 'bg-surface border border-border-default text-text-primary'
+                                        }`}
+                                        title={num === targetAyahNumber ? `الرقم الأصلي (${num})` : `مجموع خانات الآية ${num} = ${targetAyahNumber}`}
+                                    >
+                                        {num}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {cachedAnalysisExists && shouldShowAnalysisButton && (
                 <div className="mt-3 pt-3 border-t border-border-default">

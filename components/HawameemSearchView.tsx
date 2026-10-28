@@ -42,6 +42,8 @@ interface HawameemSearchViewProps {
     isRootSearch?: boolean;
     targetSurahNumber?: number;
     onSelectSurahFilter?: (surahNum?: number) => void;
+    isDigitSum?: boolean;
+    onToggleDigitSum?: (active: boolean) => void;
 }
 
 export const HawameemSearchView: React.FC<HawameemSearchViewProps> = ({
@@ -65,6 +67,8 @@ export const HawameemSearchView: React.FC<HawameemSearchViewProps> = ({
     isRootSearch = false,
     targetSurahNumber,
     onSelectSurahFilter,
+    isDigitSum,
+    onToggleDigitSum,
 }) => {
     const [inputValue, setInputValue] = useState(query);
     const [isListening, setIsListening] = useState(false);
@@ -476,6 +480,8 @@ export const HawameemSearchView: React.FC<HawameemSearchViewProps> = ({
                         correctedQuery={correctedQuery}
                         isRootSearch={isRootSearch}
                         targetSurahNumber={targetSurahNumber}
+                        isDigitSum={isDigitSum}
+                        onToggleDigitSum={onToggleDigitSum}
                     />
                 </div>
             )}

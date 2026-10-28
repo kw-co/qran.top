@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from 'react';
 import type { Ayah, SurahData, SavedAyahItem, SavedSearchItem } from '../types';
 import { SearchIcon, ClearIcon, DocumentDuplicateIcon } from './icons';
-import { normalizeArabicText, formatSurahNameForDisplay, formatAyahForCopy, copyToClipboard } from '../utils/text';
+import { normalizeArabicText, formatSurahNameForDisplay, formatAyahForCopy, copyToClipboard, normalizeDigits } from '../utils/text';
 import { useSearchLogic } from '../hooks/useSearchLogic';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import { ALL_AUDIO_EDITIONS } from '../data/audioEditions';
@@ -39,6 +39,8 @@ interface SearchViewProps {
   targetSurahNumber?: number;
   queryParams?: URLSearchParams;
   initialFilters?: { exact?: boolean; phrase?: string; diacritic?: string; };
+  isDigitSum?: boolean;
+  onToggleDigitSum?: (active: boolean) => void;
 }
 
 export const SearchView: React.FC<SearchViewProps> = ({ 
@@ -46,8 +48,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
     displayEditionData, searchEdition, position, 
     simpleCleanData, imlaeiSimpleData, onSaveAyah, onSaveSearch, searchType = 'text',
     currentlyPlayingAyahGlobalNumber, isPlaybackLoading, onStartPlayback,
-    correctedQuery, isRootSearch = false, targetSurahNumber, queryParams
+    correctedQuery, isRootSearch = false, targetSurahNumber, queryParams,
+    isDigitSum, onToggleDigitSum
 }) => {
+  const targetNumberVal = useMemo(() => {
+    if (searchType !== 'number') return undefined;
+    const n = parseInt(normalizeDigits(query), 10);
+    return isNaN(n) ? undefined : n;
+  }, [searchType, query]);
   const [isEditableQuery, setIsEditableQuery] = useState(false);
   const [editableQuery, setEditableQuery] = useState(query);
   const [isAllCopied, setIsAllCopied] = useState(false);
@@ -483,6 +491,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
             activePhraseFilter={activePhraseFilter}
             activeDiacriticFilter={activeDiacriticFilter}
             displayEditionData={effectiveEditionData}
+            isDigitSum={isDigitSum}
+            onToggleDigitSum={onToggleDigitSum}
+            targetAyahNumber={targetNumberVal}
         />
         
         {results.length > 0 && (
@@ -531,6 +542,8 @@ export const SearchView: React.FC<SearchViewProps> = ({
                                     onCopyAyah={handleCopyAyah}
                                     onPlayAyah={handlePlaySingleAyah}
                                     copiedAyah={copiedAyah}
+                                    isDigitSum={isDigitSum}
+                                    targetAyahNumber={targetNumberVal}
                                 />
                            );
                         })}

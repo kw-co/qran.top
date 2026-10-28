@@ -44,15 +44,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
   const pageAyahsForCopy = useMemo<PageAyahForCopy[]>(() => {
     return verses.map(v => {
-      const [sNumStr, aNumStr] = v.verse_key.split(':');
-      const sNum = parseInt(sNumStr, 10);
-      const aNum = parseInt(aNumStr, 10);
+      const [sNumStr, aNumStr] = (v.verse_key || '1:1').split(':');
+      const sNum = parseInt(sNumStr, 10) || 1;
+      const aNum = parseInt(aNumStr, 10) || v.verse_number || 1;
       const sName = QURAN_INDEX.find(s => s.number === sNum)?.name || `سورة ${sNum}`;
+      const uthmaniText = v.text_uthmani || v.words?.filter(w => w.char_type_name === 'word').map(w => w.text_uthmani).filter(Boolean).join(' ') || '';
       return {
         surahNumber: sNum,
         surahName: sName,
         ayahNumberInSurah: aNum,
-        textUthmani: v.text_uthmani,
+        textUthmani: uthmaniText,
         juz: v.juz_number
       };
     });
@@ -443,13 +444,15 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       </footer>
 
       {/* Copy Page Modal */}
-      <CopyPageModal
-        isOpen={isCopyPageModalOpen}
-        onClose={() => setIsCopyPageModalOpen(false)}
-        pageNumber={pageNumber}
-        juzNumber={verses[0]?.juz_number}
-        ayahs={pageAyahsForCopy}
-      />
+      {isCopyPageModalOpen && (
+        <CopyPageModal
+          isOpen={isCopyPageModalOpen}
+          onClose={() => setIsCopyPageModalOpen(false)}
+          pageNumber={pageNumber}
+          juzNumber={verses[0]?.juz_number}
+          ayahs={pageAyahsForCopy}
+        />
+      )}
     </div>
   );
 };

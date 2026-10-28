@@ -38,6 +38,7 @@ export const CopyPageModal: React.FC<CopyPageModalProps> = ({
 
     // Group ayahs by surah
     const surahGroups = useMemo(() => {
+        if (!ayahs || !Array.isArray(ayahs) || ayahs.length === 0) return [];
         const groups: {
             surahNumber: number;
             surahName: string;
@@ -46,13 +47,14 @@ export const CopyPageModal: React.FC<CopyPageModalProps> = ({
         }[] = [];
 
         ayahs.forEach(ayah => {
+            if (!ayah) return;
             const lastGroup = groups[groups.length - 1];
             if (lastGroup && lastGroup.surahNumber === ayah.surahNumber) {
                 lastGroup.ayahs.push(ayah);
             } else {
                 groups.push({
                     surahNumber: ayah.surahNumber,
-                    surahName: ayah.surahName,
+                    surahName: ayah.surahName || `سورة ${ayah.surahNumber}`,
                     ayahs: [ayah],
                     isStartOfSurah: ayah.ayahNumberInSurah === 1
                 });
@@ -64,7 +66,9 @@ export const CopyPageModal: React.FC<CopyPageModalProps> = ({
 
     // Unique surah names on this page
     const surahsSummary = useMemo(() => {
+        if (!surahGroups || surahGroups.length === 0) return '';
         return surahGroups.map(g => {
+            if (!g.ayahs || g.ayahs.length === 0) return `سورة ${g.surahName}`;
             const firstAyah = g.ayahs[0].ayahNumberInSurah;
             const lastAyah = g.ayahs[g.ayahs.length - 1].ayahNumberInSurah;
             const range = firstAyah === lastAyah ? `${firstAyah}` : `${firstAyah}-${lastAyah}`;
@@ -74,7 +78,7 @@ export const CopyPageModal: React.FC<CopyPageModalProps> = ({
 
     // Generate formatted text for copying
     const formattedText = useMemo(() => {
-        if (!ayahs || ayahs.length === 0) return '';
+        if (!isOpen || !ayahs || ayahs.length === 0) return '';
 
         const sections: string[] = [];
 
@@ -99,19 +103,20 @@ export const CopyPageModal: React.FC<CopyPageModalProps> = ({
 
             // Format ayahs
             const ayahTexts = group.ayahs.map(ayah => {
-                let baseText = ayah.textUthmani;
+                const rawUthmani = String(ayah.textUthmani || '');
+                let baseText = rawUthmani;
                 if (textFormat === 'clean') {
-                    baseText = ayah.textSimple || stripDiacritics(ayah.textUthmani);
+                    baseText = ayah.textSimple || stripDiacritics(rawUthmani);
                 } else if (textFormat === 'imlai') {
                     // Imlai: remove Quranic pause marks but keep tashkeel
-                    baseText = ayah.textUthmani
+                    baseText = rawUthmani
                         .replace(/[\u06D6-\u06ED]/g, '')
                         .replace(/ـ/g, '')
                         .replace(/\s+/g, ' ')
                         .trim();
                 } else {
                     // Uthmani: clean trailing numbers if present
-                    baseText = ayah.textUthmani
+                    baseText = rawUthmani
                         .replace(/[\s\u0660-\u0669\u06F0-\u06F9\u06DD\uFD3E\uFD3F]+$/, '')
                         .trim();
                 }
