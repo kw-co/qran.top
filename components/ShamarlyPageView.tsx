@@ -26,7 +26,7 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
     onPageChange,
     currentlyPlayingAyahGlobalNumber
 }) => {
-    const { mushafFrameStyle } = useSettingsContext();
+    const { mushafFrameStyle, hideMushafFrames } = useSettingsContext();
     const { theme } = useTheme();
     const [imageLoading, setImageLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
@@ -233,12 +233,12 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
         blendMode = 'multiply';
     }
 
-    const frameClass = `frame-${mushafFrameStyle || 'classic'}`;
+    const frameClass = hideMushafFrames ? 'frame-none minimal-margins' : `frame-${mushafFrameStyle || 'classic'}`;
     const isZoomed = zoomLevel > 1;
 
     return (
         <div 
-            className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl shadow-2xl relative select-text`}
+            className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl relative select-text ${hideMushafFrames ? 'shadow-none! p-1 sm:p-2' : 'shadow-2xl'}`}
             dir="rtl"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}

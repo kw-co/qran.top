@@ -8,6 +8,7 @@ import { injectMushafFontFaces, ensurePageFontLoaded, preloadAdjacentPageFonts }
 import { openQuranSymbolModal } from '../data/quranSymbolsData';
 import { CopyPageModal, PageAyahForCopy } from './CopyPageModal';
 import { CopyIcon } from './icons';
+import { normalizeArabicText } from '../utils/text';
 
 interface MushafPageViewProps {
   pageNumber: number;
@@ -37,8 +38,32 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   const [verses, setVerses] = useState<QuranV4Verse[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCopyPageModalOpen, setIsCopyPageModalOpen] = useState(false);
-  const { fontStyle, mushafFrameStyle, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta } = useSettingsContext();
+  const { fontStyle, mushafFrameStyle, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta, hideMushafFrames, ayahHighlightDuration } = useSettingsContext();
   const [isFontReady, setIsFontReady] = useState(false);
+  const [liveSearchQuery, setLiveSearchQuery] = useState<string>('');
+
+  // Manage temporary or permanent ayah highlight
+  const [activeHighlightAyah, setActiveHighlightAyah] = useState<number | null>(highlightAyahNumber ?? null);
+
+  useEffect(() => {
+    setActiveHighlightAyah(highlightAyahNumber ?? null);
+    if (highlightAyahNumber && ayahHighlightDuration !== 'permanent') {
+      const ms = ayahHighlightDuration === '3s' ? 3000 : 5000;
+      const timer = setTimeout(() => {
+        setActiveHighlightAyah(null);
+      }, ms);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightAyahNumber, pageNumber, ayahHighlightDuration]);
+
+  useEffect(() => {
+    const handleLiveSearch = (e: any) => {
+      const q = typeof e?.detail?.query === 'string' ? e.detail.query.trim() : '';
+      setLiveSearchQuery(q);
+    };
+    window.addEventListener('quran-live-search', handleLiveSearch);
+    return () => window.removeEventListener('quran-live-search', handleLiveSearch);
+  }, []);
 
   const totalPages = 604;
 
@@ -205,12 +230,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   };
 
   const showSurahName = !isFirstLineChapterHeader();
-  const frameClass = `frame-${mushafFrameStyle || 'classic'}`;
+  const frameClass = hideMushafFrames ? 'frame-none minimal-margins' : `frame-${mushafFrameStyle || 'classic'}`;
 
   return (
-    <div className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl shadow-2xl relative select-text`} dir="rtl">
+    <div className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl relative select-text ${hideMushafFrames ? 'shadow-none! p-1 sm:p-2' : 'shadow-2xl'}`} dir="rtl">
       {/* Header */}
-      <header className="mushaf-header flex justify-between px-4 font-bold text-amber-700/80 dark:text-amber-500/80 text-xs sm:text-sm border-b border-amber-200/50 pb-2 mb-2 sm:mb-4">
+      <header className={`mushaf-header flex justify-between px-2 font-bold text-amber-700/80 dark:text-amber-500/80 text-xs sm:text-sm ${hideMushafFrames ? 'border-b border-amber-200/25 pb-1 mb-1.5' : 'border-b border-amber-200/50 pb-2 mb-2 sm:mb-4'}`}>
         {isOddPage ? (
             <>
                 <span>{showSurahName ? `سورة ${surahName}` : ''}</span>
@@ -241,7 +266,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       </header>
 
       {/* Main 15 Lines */}
-      <main className="flex flex-col justify-between w-full h-full" style={{ minHeight: '60vh', padding: '0 0.5rem' }}>
+      <main className="flex flex-col justify-between w-full h-full" style={{ minHeight: '60vh', padding: hideMushafFrames ? '0 0.15rem' : '0 0.5rem' }}>
         {(() => {
           const assignedAyahIds = new Set<string>();
 
@@ -339,7 +364,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   }
 
                   const isTargetSurah = !targetSurahNumber || targetSurahNumber === sNum;
-                  const isHighlighted = isTargetSurah && highlightAyahNumber !== null && highlightAyahNumber !== undefined && ayahNum === highlightAyahNumber;
+                  const isHighlighted = isTargetSurah && activeHighlightAyah !== null && activeHighlightAyah !== undefined && ayahNum === activeHighlightAyah;
                   const isPlaying = currentlyPlayingAyahGlobalNumber !== null && verse.id === currentlyPlayingAyahGlobalNumber;
                   const isSelected = selectedAyahKeys?.includes(verse.verse_key);
 
@@ -347,7 +372,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   if (isPlaying) {
                       highlightClass = 'bg-yellow-300/70 dark:bg-yellow-400/40 text-yellow-950 dark:text-yellow-100 ring-2 ring-yellow-500 rounded px-0.5';
                   } else if (isHighlighted) {
-                      highlightClass = 'bg-amber-300/50 dark:bg-amber-400/35 text-amber-950 dark:text-amber-100 ring-2 ring-amber-500/70 rounded px-0.5 animate-highlight-pulse';
+                      highlightClass = 'bg-amber-300/50 dark:bg-amber-400/35 text-amber-950 dark:text-amber-100 ring-2 ring-amber-500/70 rounded px-0.5 animate-highlight-pulse transition-all duration-700';
                   } else if (isSelected) {
                       highlightClass = 'bg-primary/20 dark:bg-primary/40 rounded px-0.5';
                   }
@@ -356,6 +381,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   let wordFontClass = '';
                   const isHaMeemWord = highlightHaMeem && hasHaMeem(word.text_uthmani);
                   const isPureNooraniGlyphWord = useMadinahGlyphFont && highlightNoorani && isWordPureNoorani(word.text_uthmani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta);
+                  const isLiveSearchWord = liveSearchQuery.length > 0 && word.text_uthmani && 
+                      normalizeArabicText(word.text_uthmani).includes(normalizeArabicText(liveSearchQuery));
 
                   if (useMadinahGlyphFont && word.code_v1) {
                       displayText = word.code_v1;
@@ -367,9 +394,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                       key={word.id || idx}
                       id={ayahElementId}
                       className={`hover:text-amber-600 transition-all cursor-pointer shrink-0 inline-flex items-baseline ${highlightClass} ${wordFontClass} ${
-                        isPureNooraniGlyphWord 
-                          ? 'noorani-letter-highlight' 
-                          : (isHaMeemWord ? 'text-amber-600 dark:text-amber-400 font-bold' : '')
+                        isLiveSearchWord 
+                          ? 'bg-amber-400/60 dark:bg-amber-400/45 text-amber-950 dark:text-amber-50 ring-2 ring-amber-500 rounded px-1 font-bold scale-105 shadow-xs z-10'
+                          : isPureNooraniGlyphWord 
+                            ? 'noorani-letter-highlight' 
+                            : (isHaMeemWord ? 'text-amber-600 dark:text-amber-400 font-bold' : '')
                       }`}
                       onClick={(e) => {
                           if (isSelectionMode || e.ctrlKey || e.metaKey) {

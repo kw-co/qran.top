@@ -435,15 +435,7 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                                       البحث بالجذر
                                   </button>
 
-                                  {isSingleWordSearch && (
-                                    <a
-                                        href={`#/word-geometry/${encodeURIComponent(finalQueryForChecks)}`}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-text-primary hover:bg-emerald-500/30 transition-all shadow-sm border border-emerald-500/30"
-                                        title="دراسة قوة الكلمة ومركز ثقلها المصحفي وهندسة أرقام السور الحاضنة"
-                                    >
-                                        <span>⚖️ هندسة السور ومركز الثقل</span>
-                                    </a>
-                                  )}
+
                                 </>
                             )}
                         </div>

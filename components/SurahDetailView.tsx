@@ -164,8 +164,22 @@ ${fullText}`;
   const prevHighlightAyahNumber = useRef<number | null>(null);
 
   // Consume Settings from Context
-  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar, mushafFrameStyle, mushafType, setMushafType } = useSettingsContext();
+  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar, mushafFrameStyle, mushafType, setMushafType, hideMushafFrames, ayahHighlightDuration } = useSettingsContext();
   const researchData = useResearchData();
+
+  // Manage temporary or permanent ayah highlight based on settings
+  const [activeHighlightAyah, setActiveHighlightAyah] = useState<number | null>(highlightAyahNumber || null);
+
+  useEffect(() => {
+    setActiveHighlightAyah(highlightAyahNumber || null);
+    if (highlightAyahNumber && ayahHighlightDuration !== 'permanent') {
+      const ms = ayahHighlightDuration === '3s' ? 3000 : 5000;
+      const timer = setTimeout(() => {
+        setActiveHighlightAyah(null);
+      }, ms);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightAyahNumber, surah.number, forcedPageNumber, ayahHighlightDuration]);
 
   const [shamarlyCurrentPage, setShamarlyCurrentPage] = useState<number>(() => {
     if (forcedPageNumber && forcedPageNumber <= 522) {
@@ -709,14 +723,14 @@ ${fullText}`;
                      setActivePopover({ ayah: fallbackAyah, triggerElement: e.currentTarget as HTMLElement });
                   }
               }}
-              highlightAyahNumber={highlightAyahNumber}
+              highlightAyahNumber={activeHighlightAyah}
               targetSurahNumber={surah.number}
               currentlyPlayingAyahGlobalNumber={currentlyPlayingAyahGlobalNumber}
             />
           )
         ) : (
              <div>
-                <div className={`mushaf-page frame-${mushafFrameStyle || 'classic'} relative`}>
+                <div className={`mushaf-page ${hideMushafFrames ? 'frame-none minimal-margins shadow-none! p-1 sm:p-2' : `frame-${mushafFrameStyle || 'classic'}`} relative`}>
                     {pageInfo?.markers.map((marker, index) => (
                          <button
                              key={index}
@@ -732,7 +746,7 @@ ${fullText}`;
                              <span className="font-serif">۞</span> {marker.label}
                          </button>
                     ))}
-                    <header className="mushaf-header flex items-center justify-between">
+                    <header className={`mushaf-header flex items-center justify-between ${hideMushafFrames ? 'px-2 pb-1.5 mb-2 border-b border-border-subtle/40' : ''}`}>
                         {pageInfo?.juzNumber ? (
                             <button
                                 type="button"
@@ -763,7 +777,7 @@ ${fullText}`;
                             // Only pass highlight to the renderer if this segment matches the requested surah.
                             // This prevents conflict if multiple surahs on page have the same ayah number (e.g. 1).
                             const isTargetSurah = surahSegment.number === surah.number;
-                            const effectiveHighlight = isTargetSurah ? highlightAyahNumber : null;
+                            const effectiveHighlight = isTargetSurah ? activeHighlightAyah : null;
 
                             return (
                                 <React.Fragment key={surahSegment.number}>

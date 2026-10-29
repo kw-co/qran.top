@@ -49,10 +49,16 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, ini
         setQuery(initialQuery);
     }, [initialQuery]);
 
-        const handleSubmit = (e: React.FormEvent) => {
+    const handleInputChange = (val: string) => {
+        setQuery(val);
+        window.dispatchEvent(new CustomEvent('quran-live-search', { detail: { query: val } }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const trimmed = query.trim();
         if (trimmed) {
+            window.dispatchEvent(new CustomEvent('quran-live-search', { detail: { query: '' } }));
             let newRecent = [trimmed, ...recentSearches.filter(s => s !== trimmed)];
             if (newRecent.length > 10) newRecent = newRecent.slice(0, 10);
             setRecentSearches(newRecent);
@@ -219,7 +225,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, ini
                         type="search"
                         autoComplete="off"
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e) => handleInputChange(e.target.value)}
                         onFocus={() => setShowDropdown(true)}
                         placeholder={disabled ? "جاري تحميل بيانات البحث..." : placeholder}
                         className="w-full text-base h-10 pl-14 pr-4 bg-surface border-2 border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-70 disabled:cursor-not-allowed"

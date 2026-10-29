@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import type { FontSize, FontStyleType, QuranEdition, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat, MushafFrameStyle } from '../types';
+import type { FontSize, FontStyleType, QuranEdition, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat, MushafFrameStyle, AyahHighlightDuration } from '../types';
 
 interface SettingsContextType {
     fontSize: FontSize;
@@ -10,6 +10,10 @@ interface SettingsContextType {
     setMushafType: (type: MushafType) => void;
     mushafFrameStyle: MushafFrameStyle;
     setMushafFrameStyle: (style: MushafFrameStyle) => void;
+    hideMushafFrames: boolean;
+    setHideMushafFrames: (hide: boolean) => void;
+    ayahHighlightDuration: AyahHighlightDuration;
+    setAyahHighlightDuration: (duration: AyahHighlightDuration) => void;
     activeEditions: QuranEdition[];
     selectedEdition: string;
     setSelectedEdition: (id: string) => void;

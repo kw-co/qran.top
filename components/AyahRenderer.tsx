@@ -95,6 +95,16 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
 
     const [v4TajweedData, setV4TajweedData] = useState<QuranV4TajweedVerse[]>([]);
     const [playingWordKey, setPlayingWordKey] = useState<string | null>(null);
+    const [liveSearchQuery, setLiveSearchQuery] = useState<string>('');
+
+    useEffect(() => {
+        const handleLiveSearch = (e: any) => {
+            const q = typeof e?.detail?.query === 'string' ? e.detail.query.trim() : '';
+            setLiveSearchQuery(q);
+        };
+        window.addEventListener('quran-live-search', handleLiveSearch);
+        return () => window.removeEventListener('quran-live-search', handleLiveSearch);
+    }, []);
 
     // Modals & Popovers for Word interaction
     const [activeWordPopover, setActiveWordPopover] = useState<{
@@ -216,7 +226,7 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
     return (
         <>
             {ayahsToRender.map((ayah, index) => {
-                const isHighlighted = ayah.numberInSurah === highlightAyahNumber;
+                const isHighlighted = highlightAyahNumber !== null && highlightAyahNumber !== undefined && ayah.numberInSurah === highlightAyahNumber;
                 const isPlaying = ayah.number === currentlyPlayingAyahGlobalNumber;
 
                 const baseText = (index === 0 && firstAyahInfo) ? firstAyahInfo.restOfAyah : ayah.text;
@@ -248,7 +258,13 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                         <span
                             id={`ayah-${surah.number}-${ayah.numberInSurah}`}
                             ref={isPlaying ? playingAyahRef : (isHighlighted ? highlightRef : null)}
-                            className={`inline rounded-md transition-colors duration-300 ${isPlaying ? 'bg-yellow-300/60 dark:bg-yellow-400/30' : ''} ${isSelected ? 'bg-primary/20 dark:bg-primary/40' : ''}`}
+                            className={`inline rounded-md transition-all duration-700 ${
+                                isPlaying 
+                                    ? 'bg-yellow-300/60 dark:bg-yellow-400/30' 
+                                    : isHighlighted 
+                                        ? 'bg-amber-300/50 dark:bg-amber-400/35 text-amber-950 dark:text-amber-100 ring-2 ring-amber-500/70 rounded px-1' 
+                                        : ''
+                            } ${isSelected ? 'bg-primary/20 dark:bg-primary/40' : ''}`}
                         >
                             {/* If Tajweed is enabled and v4 tajweed data is loaded */}
                             {enableTajweed && tajweedVerse && tajweedVerse.text_uthmani_tajweed ? (
@@ -326,13 +342,17 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                             );
                                         }
 
+                                        const isLiveMatch = liveSearchQuery.length > 0 && textUtils.normalizeArabicText(plainWord).includes(textUtils.normalizeArabicText(liveSearchQuery));
+
                                         return (
                                             <React.Fragment key={wIdx}>
                                                 <button
                                                     onClick={(e) => handleWordClickInternal(e, plainWord, wIdx, ayah.numberInSurah, ayah.text || "")}
-                                                    className={`word-trigger inline bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/20 rounded-md transition-colors px-0.5 ${
+                                                    className={`word-trigger inline bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/20 rounded-md transition-all px-0.5 ${
                                                         isWordPlaying ? 'bg-emerald-400/40 text-emerald-900 font-bold dark:bg-emerald-500/40 scale-105' : ''
-                                                    } ${highlightHaMeem && hasHaMeem(plainWord) ? 'text-amber-600 dark:text-amber-400 font-bold' : ''}`}
+                                                    } ${highlightHaMeem && hasHaMeem(plainWord) ? 'text-amber-600 dark:text-amber-400 font-bold' : ''} ${
+                                                        isLiveMatch ? 'bg-amber-400/60 dark:bg-amber-400/40 text-amber-950 dark:text-amber-50 ring-2 ring-amber-500 rounded px-1 font-bold shadow-xs scale-105 inline-block' : ''
+                                                    }`}
                                                     dangerouslySetInnerHTML={{ __html: wordHtml }}
                                                     title={`خيارات الكلمة: ${plainWord}`}
                                                 />
@@ -415,12 +435,17 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                                         );
                                     }
 
+                                    const isLiveMatch = liveSearchQuery.length > 0 && 
+                                        textUtils.normalizeArabicText(cleanWord).includes(textUtils.normalizeArabicText(liveSearchQuery));
+
                                     return (
                                         <React.Fragment key={wordIndex}>
                                             <button
                                                 onClick={(e) => handleWordClickInternal(e, word, wordIndex, ayah.numberInSurah, ayah.text || "")}
                                                 className={`word-trigger inline bg-transparent border-none p-0 font-inherit text-inherit leading-inherit cursor-pointer hover:bg-primary/10 rounded-md transition-all ${
                                                     isWordPlaying ? 'bg-emerald-400/40 text-emerald-900 dark:bg-emerald-500/40 font-bold scale-105' : ''
+                                                } ${
+                                                    isLiveMatch ? 'bg-amber-400/60 dark:bg-amber-400/40 text-amber-950 dark:text-amber-50 ring-2 ring-amber-500 rounded px-1 font-bold shadow-xs scale-105 inline-block' : ''
                                                 }`}
                                                 aria-label={`خيارات الكلمة: ${word}`}
                                             >

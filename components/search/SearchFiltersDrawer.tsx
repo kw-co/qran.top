@@ -43,7 +43,7 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
     const hasDiacritics = diacriticVariants.length >= 2;
 
     // Internal state with sync to optional external props
-    const [internalTab, setInternalTab] = useState<'phrases' | 'diacritics'>('phrases');
+    const [internalTab, setInternalTab] = useState<'phrases' | 'diacritics'>('diacritics');
     const [internalSort, setInternalSort] = useState<'alpha' | 'freq'>('alpha');
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
     
@@ -141,28 +141,6 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2.5 mb-2.5">
                 {/* Tabs */}
                 <div className="flex items-center gap-1.5 p-1 bg-surface-subtle border border-border-default rounded-xl">
-                    {hasPhrases && (
-                        <button
-                            type="button"
-                            onClick={() => handleTabChange('phrases')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                                effectiveTab === 'phrases'
-                                    ? 'bg-surface text-primary shadow-2xs border border-border-default'
-                                    : 'text-text-secondary hover:text-text-primary'
-                            }`}
-                        >
-                            <span>التراكيب والسياقات</span>
-                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                                effectiveTab === 'phrases' ? 'bg-primary/10 text-primary' : 'bg-surface-hover text-text-muted'
-                            }`}>
-                                {phraseFilters.length}
-                            </span>
-                            {isPhraseActive && (
-                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" title="فلتر مفعّل" />
-                            )}
-                        </button>
-                    )}
-
                     {hasDiacritics && (
                         <button
                             type="button"
@@ -180,6 +158,28 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
                                 {diacriticVariants.length}
                             </span>
                             {isDiacriticActive && (
+                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" title="فلتر مفعّل" />
+                            )}
+                        </button>
+                    )}
+
+                    {hasPhrases && (
+                        <button
+                            type="button"
+                            onClick={() => handleTabChange('phrases')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                effectiveTab === 'phrases'
+                                    ? 'bg-surface text-primary shadow-2xs border border-border-default'
+                                    : 'text-text-secondary hover:text-text-primary'
+                            }`}
+                        >
+                            <span>التراكيب والسياقات</span>
+                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                                effectiveTab === 'phrases' ? 'bg-primary/10 text-primary' : 'bg-surface-hover text-text-muted'
+                            }`}>
+                                {phraseFilters.length}
+                            </span>
+                            {isPhraseActive && (
                                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" title="فلتر مفعّل" />
                             )}
                         </button>

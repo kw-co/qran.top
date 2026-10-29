@@ -387,6 +387,23 @@ html.theme-isha .shamarly-page-img {
   pointer-events: none;
 }
 
+/* 5. Minimal Margins & Borderless (إلغاء الإطارات وهوامش مينيمال) */
+.mushaf-page.frame-none,
+.mushaf-page.minimal-margins {
+  padding: 0.5rem 0.25rem !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+.mushaf-page.frame-none::before,
+.mushaf-page.frame-none::after,
+.mushaf-page.minimal-margins::before,
+.mushaf-page.minimal-margins::after {
+  display: none !important;
+}
+
 /* Responsive Math & Safe Mobile Overflow Fix */
 @media (max-width: 640px) {
   .mushaf-page.frame-classic {

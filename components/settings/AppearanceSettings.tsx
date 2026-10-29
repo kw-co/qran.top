@@ -20,7 +20,7 @@ const FRAME_OPTIONS: { id: MushafFrameStyle; name: string; icon: string; desc: s
 
 const AppearanceSettings: React.FC = () => {
     const { theme } = useTheme();
-    const { mushafFrameStyle, setMushafFrameStyle } = useSettingsContext();
+    const { mushafFrameStyle, setMushafFrameStyle, hideMushafFrames, setHideMushafFrames } = useSettingsContext();
 
     const handleSelectTheme = (themeId: Theme) => {
         try {
@@ -125,6 +125,47 @@ const AppearanceSettings: React.FC = () => {
                             </button>
                         );
                     })}
+                </div>
+            </div>
+
+            {/* Minimal Margins & Disable Frames Option */}
+            <div className="pt-2 border-t border-border-default/60">
+                <div
+                    onClick={() => setHideMushafFrames(!hideMushafFrames)}
+                    className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer select-none ${
+                        hideMushafFrames
+                            ? 'bg-surface border-primary/40 ring-1 ring-primary/20 shadow-xs'
+                            : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
+                    }`}
+                >
+                    <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-xl shrink-0">🔲</span>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-text-primary">إلغاء الإطارات وهوامش مينيمال</span>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 bg-primary/10 text-primary">
+                                    أقصى اتساع
+                                </span>
+                            </div>
+                            <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
+                                إلغاء إطارات وبراويز صفحة القراءة الزخرفية تماماً وتقليص الهوامش الجانبية للحد الأدنى (مينيمال) لتوفير أقصى مساحة مريحة للقراءة بدون تشتيت.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        role="switch"
+                        aria-checked={hideMushafFrames}
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                            hideMushafFrames ? 'bg-primary' : 'bg-surface-hover border border-border-default'
+                        }`}
+                    >
+                        <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-xs transition-transform ${
+                                hideMushafFrames ? '-translate-x-4' : '-translate-x-0.5'
+                            }`}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

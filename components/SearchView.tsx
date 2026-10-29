@@ -98,7 +98,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         diacritic: params.get('diacritic') || params.get('d') || undefined,
         exact: (params.get('exact') === '1' || params.get('exact') === 'true') ? true : undefined,
         sort: (params.get('sort') === 'freq' ? 'freq' : 'alpha') as 'alpha' | 'freq',
-        tab: (params.get('tab') === 'diacritics' ? 'diacritics' : 'phrases') as 'phrases' | 'diacritics',
+        tab: (params.get('tab') === 'phrases' ? 'phrases' : 'diacritics') as 'phrases' | 'diacritics',
       };
     } catch {
       return {};
@@ -106,7 +106,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [queryParams]);
 
   const [filterSortOrder, setFilterSortOrder] = useState<'alpha' | 'freq'>(initialFilters.sort || 'alpha');
-  const [filterActiveTab, setFilterActiveTab] = useState<'phrases' | 'diacritics'>(initialFilters.tab || 'phrases');
+  const [filterActiveTab, setFilterActiveTab] = useState<'phrases' | 'diacritics'>(initialFilters.tab || 'diacritics');
   const [isShareCopied, setIsShareCopied] = useState(false);
 
   // Pagination / Batching for super-fast DOM rendering on frequent queries (like "الله")
@@ -533,6 +533,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                                     queryWords={searchType === 'number' ? [] : queryWords} currentQuery={query} onNewSearch={onNewSearch}
                                     displayEdition={displayEdition} displayEditionData={displayEditionData} searchEdition={searchEdition}
                                     imlaeiSimpleData={imlaeiSimpleData}
+                                    simpleCleanData={simpleCleanData}
                                     fontSize={fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
                                     isPlaybackLoading={isPlaybackLoading}
                                     pulsingWordIndex={pulsingWord?.itemIndex === index ? pulsingWord.wordIndex : -1} resultIndex={index}

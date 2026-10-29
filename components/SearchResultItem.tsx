@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Ayah, SurahData, QuranEdition, FontSize, FontStyleType } from '../types';
-import { SparklesIcon, BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpinnerIcon, SpeakerWaveIcon } from './icons';
+import { SparklesIcon, BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpinnerIcon, SpeakerWaveIcon, PaperIcon } from './icons';
 import { normalizeArabicText } from '../utils/text';
 import * as textUtils from '../utils/text';
 import { getQuranTextStyle } from '../utils/font';
@@ -36,6 +36,7 @@ interface SearchResultItemProps {
   onPlayAyah?: (resultIndex: number) => void;
   copiedAyah?: number | null;
   imlaeiSimpleData?: SurahData[];
+  simpleCleanData?: SurahData[];
   isDigitSum?: boolean;
   targetAyahNumber?: number;
 }
@@ -81,7 +82,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
     ayah, queryWords, currentQuery, onNewSearch, displayEdition, displayEditionData, searchEdition,
     fontSize, fontStyle, searchType, isCurrentlyPlaying, isPlaybackLoading, itemRef, pulsingWordIndex,
     resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah,
-    imlaeiSimpleData, isDigitSum, targetAyahNumber
+    imlaeiSimpleData, simpleCleanData, isDigitSum, targetAyahNumber
 }) => {
     const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta } = useSettingsContext();
 
@@ -137,6 +138,32 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
         }
         return ayah;
     }, [ayah, imlaeiSimpleData, displayEditionData]);
+
+    // Resolve Madinah Mushaf Page Number (1 to 604)
+    const madinahPageNumber = useMemo(() => {
+        if (displayAyah.page) return displayAyah.page;
+        if (ayah.page) return ayah.page;
+        const sNum = displayAyah.surah?.number || ayah.surah?.number;
+        const aNum = displayAyah.numberInSurah || ayah.numberInSurah;
+        if (sNum && aNum) {
+            if (displayEditionData) {
+                const s = displayEditionData.find(x => x.number === sNum);
+                const a = s?.ayahs.find(x => x.numberInSurah === aNum);
+                if (a?.page) return a.page;
+            }
+            if (simpleCleanData) {
+                const s = simpleCleanData.find(x => x.number === sNum);
+                const a = s?.ayahs.find(x => x.numberInSurah === aNum);
+                if (a?.page) return a.page;
+            }
+            if (imlaeiSimpleData) {
+                const s = imlaeiSimpleData.find(x => x.number === sNum);
+                const a = s?.ayahs.find(x => x.numberInSurah === aNum);
+                if (a?.page) return a.page;
+            }
+        }
+        return undefined;
+    }, [displayAyah.page, ayah.page, displayAyah.surah?.number, ayah.surah?.number, displayAyah.numberInSurah, ayah.numberInSurah, displayEditionData, simpleCleanData, imlaeiSimpleData]);
 
     // Always use Uthmani font for search results
     const { className: quranTextClass } = getQuranTextStyle('uthmani', fontSize);
@@ -275,13 +302,56 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
         >
             <div className="flex justify-between items-center mb-2 gap-4">
                 <div className="flex items-center gap-2 flex-wrap">
-                     <a
-                        href={`#/surah/${displayAyah.surah?.number}?ayah=${displayAyah.numberInSurah}`}
-                        className="text-primary-text font-bold cursor-pointer rounded-md p-1 -m-1 hover:bg-surface-hover transition-colors"
-                        aria-label={`الانتقال إلى ${displayAyah.surah?.name} الآية ${displayAyah.numberInSurah}`}
-                    >
-                        <span className="font-quran-title">{displayAyah.surah?.name} - الآية {displayAyah.numberInSurah}</span>
-                    </a>
+                    {(() => {
+                        const cleanSurahName = (displayAyah.surah?.name || '').replace(/^(سُورَةُ|سورة)\s*/, '');
+                        return (
+                            <a
+                                href={`#/surah/${displayAyah.surah?.number}?ayah=${displayAyah.numberInSurah}`}
+                                className="inline-flex items-center gap-1.5 text-primary-text font-bold cursor-pointer rounded-md p-1 -m-1 hover:bg-surface-hover transition-colors group"
+                                aria-label={`الانتقال إلى ${cleanSurahName} الآية ${displayAyah.numberInSurah}`}
+                            >
+                                <span className="font-quran-title text-base sm:text-lg">{cleanSurahName}</span>
+                                <span 
+                                    className="inline-flex items-center justify-center relative w-7 h-7 sm:w-7.5 sm:h-7.5 select-none text-primary align-middle group-hover:scale-110 transition-transform"
+                                    title={`الآية ${displayAyah.numberInSurah}`}
+                                >
+                                    <svg 
+                                        viewBox="0 0 40 40" 
+                                        className="absolute inset-0 w-full h-full stroke-current fill-none pointer-events-none overflow-visible"
+                                        aria-hidden="true"
+                                    >
+                                        <circle cx="20" cy="20" r="14.2" strokeWidth="1.2" />
+                                        <circle cx="20" cy="20" r="11.8" strokeWidth="0.8" strokeOpacity="0.7" />
+                                        <path d="M16.5 6 C17 3.2 18.5 1.2 20 1.2 C21.5 1.2 23 3.2 23.5 6 Z" fill="currentColor" strokeWidth="0.4" />
+                                        <circle cx="20" cy="1" r="1" fill="currentColor" />
+                                        <circle cx="16.5" cy="4.8" r="0.7" fill="currentColor" />
+                                        <circle cx="23.5" cy="4.8" r="0.7" fill="currentColor" />
+                                        <path d="M16.5 34 C17 36.8 18.5 38.8 20 38.8 C21.5 38.8 23 36.8 23.5 34 Z" fill="currentColor" strokeWidth="0.4" />
+                                        <circle cx="20" cy="39" r="1" fill="currentColor" />
+                                        <circle cx="16.5" cy="35.2" r="0.7" fill="currentColor" />
+                                        <circle cx="23.5" cy="35.2" r="0.7" fill="currentColor" />
+                                        <circle cx="4.5" cy="20" r="0.85" fill="currentColor" />
+                                        <circle cx="35.5" cy="20" r="0.85" fill="currentColor" />
+                                    </svg>
+                                    <span className={`font-bold z-10 font-mono text-text-primary ${displayAyah.numberInSurah > 99 ? 'text-[10px]' : 'text-xs'}`}>
+                                        {displayAyah.numberInSurah}
+                                    </span>
+                                </span>
+                            </a>
+                        );
+                    })()}
+
+                    {madinahPageNumber && (
+                        <a
+                            href={`#/page/${madinahPageNumber}?ayah=${displayAyah.numberInSurah}`}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-surface text-text-secondary border border-border-default hover:text-primary hover:border-primary/40 transition-all cursor-pointer shadow-2xs"
+                            title={`الصفحة ${madinahPageNumber} (مصحف المدينة)`}
+                            aria-label={`الصفحة ${madinahPageNumber}`}
+                        >
+                            <PaperIcon className="w-3.5 h-3.5 text-primary" />
+                            <span>{madinahPageNumber}</span>
+                        </a>
+                    )}
 
                     {searchType === 'number' && isDigitSum && targetAyahNumber && (() => {
                         const breakdown = getDigitSumBreakdown(displayAyah.numberInSurah, targetAyahNumber);
@@ -324,11 +394,12 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                                 e.stopPropagation();
                                 openQuranSymbolModal({ type: 'juz', juzNumber: displayAyah.juz });
                             }}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-surface text-text-secondary border border-border-default hover:text-primary hover:border-primary/40 transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-surface text-text-secondary border border-border-default hover:text-primary hover:border-primary/40 transition-all cursor-pointer shadow-2xs"
                             title={`الجزء ${displayAyah.juz} - اضغط لمعرفة تفاصيل وسور هذا الجزء`}
+                            aria-label={`الجزء ${displayAyah.juz}`}
                         >
                             <span>📖</span>
-                            <span>الجزء {displayAyah.juz}</span>
+                            <span>{displayAyah.juz}</span>
                         </button>
                     )}
 
@@ -339,11 +410,12 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                                 e.stopPropagation();
                                 openQuranSymbolModal({ type: 'hizb', quarterNumber: displayAyah.hizbQuarter });
                             }}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all cursor-pointer shadow-2xs"
                             title={`الربع ${displayAyah.hizbQuarter} من 240 - اضغط لعرض التفاصيل`}
+                            aria-label={`الربع ${displayAyah.hizbQuarter}`}
                         >
                             <span>۞</span>
-                            <span>ربع {displayAyah.hizbQuarter}</span>
+                            <span>{displayAyah.hizbQuarter}</span>
                         </button>
                     )}
                 </div>

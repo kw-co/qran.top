@@ -113,7 +113,9 @@ const ReadingSettings: React.FC = () => {
         startShamarlyDownload,
         cancelShamarlyDownload,
         removeShamarlyMushaf,
-        enableShamarlyInHeader, setEnableShamarlyInHeader
+        enableShamarlyInHeader, setEnableShamarlyInHeader,
+        hideMushafFrames, setHideMushafFrames,
+        ayahHighlightDuration, setAyahHighlightDuration
     } = useSettingsContext();
 
     const handleDownloadFonts = async (e: React.MouseEvent) => {
@@ -485,12 +487,66 @@ const ReadingSettings: React.FC = () => {
                 </div>
             </div>
 
-            {/* 4. Additional Reading Features & Quick Toggles */}
+            {/* 4. Ayah Navigation Highlight Duration */}
+            <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-text-muted uppercase tracking-wider block">
+                        تظليل الآية عند الانتقال إليها
+                    </label>
+                    <span className="text-xs text-text-muted font-medium">
+                        {ayahHighlightDuration === '3s' ? 'مؤقت (3 ثوانٍ)' : ayahHighlightDuration === '5s' ? 'مؤقت (5 ثوانٍ)' : 'دائم بدون إخفاء'}
+                    </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {[
+                        { id: '3s' as const, icon: '⏱️', label: 'مؤقت (3 ثوانٍ)', desc: 'تحديد الآية ثم إزالة التظليل تلقائياً بعد 3 ثوانٍ' },
+                        { id: '5s' as const, icon: '⏳', label: 'مؤقت (5 ثوانٍ)', desc: 'تحديد الآية ثم إزالة التظليل تدريجياً بعد 5 ثوانٍ (موصى به)' },
+                        { id: 'permanent' as const, icon: '📌', label: 'تظليل دائم', desc: 'إبقاء الآية مظللة باستمرار حتى الانتقال لآية أخرى' },
+                    ].map((item) => {
+                        const isSelected = ayahHighlightDuration === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => setAyahHighlightDuration(item.id)}
+                                className={`p-3.5 rounded-xl border text-right transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                                    isSelected
+                                        ? 'bg-surface border-primary ring-1 ring-primary/20 shadow-xs'
+                                        : 'bg-surface border-border-default hover:border-border-default/80 hover:bg-surface-hover/50'
+                                }`}
+                            >
+                                <div className="flex items-center gap-2.5">
+                                    <span className="text-xl">{item.icon}</span>
+                                    <div>
+                                        <div className="font-bold text-sm text-text-primary">{item.label}</div>
+                                        <div className="text-[11px] text-text-muted mt-0.5 leading-normal">{item.desc}</div>
+                                    </div>
+                                </div>
+                                {isSelected && <CheckIcon className="w-4 h-4 text-primary shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* 5. Additional Reading Features & Quick Toggles */}
             <div className="space-y-2.5">
                 <label className="text-xs font-bold text-text-muted uppercase tracking-wider block">
                     ميزات وتفضيلات إضافية
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    {/* Minimal Margins & Disable Frames */}
+                    <SwitchItem
+                        id="switch-hide-mushaf-frames"
+                        icon="🔲"
+                        title="إلغاء الإطارات وهوامش مينيمال"
+                        subtitle="إخفاء براويز صفحات القراءة وتقليص الهوامش للحد الأدنى"
+                        badge="مينيمال"
+                        badgeColor="bg-primary/10 text-primary"
+                        checked={hideMushafFrames}
+                        onChange={() => setHideMushafFrames(!hideMushafFrames)}
+                    />
+
                     {/* Word audio pronunciation - Default now false */}
                     <SwitchItem
                         id="switch-word-audio"

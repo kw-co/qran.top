@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { QuranEdition, FontSize, FontStyleType, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat, MushafFrameStyle } from '../types';
+import type { QuranEdition, FontSize, FontStyleType, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat, MushafFrameStyle, AyahHighlightDuration } from '../types';
 import { downloadAllMushafFonts, checkMushafFontsDownloaded } from '../utils/mushafFonts';
 
 const QURAN_EDITION_KEY = 'qran_app_edition';
@@ -7,6 +7,8 @@ const FONT_SIZE_KEY = 'qran_app_font_size';
 const FONT_STYLE_KEY = 'qran_app_font_style';
 const MUSHAF_TYPE_KEY = 'qran_app_mushaf_type';
 const MUSHAF_FRAME_STYLE_KEY = 'qran_app_mushaf_frame_style';
+const HIDE_MUSHAF_FRAMES_KEY = 'qran_app_hide_mushaf_frames';
+const AYAH_HIGHLIGHT_DURATION_KEY = 'qran_app_ayah_highlight_duration';
 const AUDIO_EDITION_KEY = 'qran_app_audio_edition';
 const BROWSING_MODE_KEY = 'qran_app_browsing_mode';
 const TAJWEED_MODE_KEY = 'qran_app_enable_tajweed';
@@ -151,9 +153,19 @@ export const useSettings = () => {
         }
     }, []);
 
-    // Mushaf Frame Style: 'classic' | 'minimal' | 'borderless' | 'ornate'
+    // Mushaf Frame Style: 'classic' | 'minimal' | 'borderless' | 'ornate' | 'none'
     const [mushafFrameStyle, setMushafFrameStyle] = useState<MushafFrameStyle>(
         () => safeGetItem(MUSHAF_FRAME_STYLE_KEY, 'classic') as MushafFrameStyle
+    );
+
+    // Minimal margins & disable decorative frames option
+    const [hideMushafFrames, setHideMushafFrames] = useState<boolean>(
+        () => safeGetItem(HIDE_MUSHAF_FRAMES_KEY, 'false') === 'true'
+    );
+
+    // Ayah highlight duration when navigating to an ayah: '3s' | '5s' | 'permanent'
+    const [ayahHighlightDuration, setAyahHighlightDuration] = useState<AyahHighlightDuration>(
+        () => safeGetItem(AYAH_HIGHLIGHT_DURATION_KEY, '5s') as AyahHighlightDuration
     );
 
     // Default to 'quran-simple-clean' which is loaded instantly
@@ -320,6 +332,8 @@ export const useSettings = () => {
     useEffect(() => { safeSetItem(HIGHLIGHT_NOORANI_INCLUDE_WAW_KEY, String(highlightNooraniIncludeWaw)); }, [highlightNooraniIncludeWaw]);
     useEffect(() => { safeSetItem(HIGHLIGHT_NOORANI_INCLUDE_TAA_MARBUTA_KEY, String(highlightNooraniIncludeTaaMarbuta)); }, [highlightNooraniIncludeTaaMarbuta]);
     useEffect(() => { safeSetItem(MUSHAF_FRAME_STYLE_KEY, mushafFrameStyle); }, [mushafFrameStyle]);
+    useEffect(() => { safeSetItem(HIDE_MUSHAF_FRAMES_KEY, String(hideMushafFrames)); }, [hideMushafFrames]);
+    useEffect(() => { safeSetItem(AYAH_HIGHLIGHT_DURATION_KEY, ayahHighlightDuration); }, [ayahHighlightDuration]);
     useEffect(() => { safeSetItem(SHAMARLY_ENABLED_HEADER_KEY, String(enableShamarlyInHeader)); }, [enableShamarlyInHeader]);
 
     const displayEdition = useMemo(() => {
@@ -345,6 +359,8 @@ export const useSettings = () => {
         fontStyle, setFontStyle,
         mushafType, setMushafType,
         mushafFrameStyle, setMushafFrameStyle,
+        hideMushafFrames, setHideMushafFrames,
+        ayahHighlightDuration, setAyahHighlightDuration,
         activeEditions,
         selectedEdition, setSelectedEdition,
         selectedAudioEdition, setSelectedAudioEdition,
