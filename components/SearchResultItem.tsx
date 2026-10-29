@@ -39,6 +39,7 @@ interface SearchResultItemProps {
   simpleCleanData?: SurahData[];
   isDigitSum?: boolean;
   targetAyahNumber?: number;
+  inResultsFilter?: string;
 }
 
 const SURAH_MUQATTAAT_MAP: Record<number, string> = {
@@ -82,7 +83,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
     ayah, queryWords, currentQuery, onNewSearch, displayEdition, displayEditionData, searchEdition,
     fontSize, fontStyle, searchType, isCurrentlyPlaying, isPlaybackLoading, itemRef, pulsingWordIndex,
     resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah,
-    imlaeiSimpleData, simpleCleanData, isDigitSum, targetAyahNumber
+    imlaeiSimpleData, simpleCleanData, isDigitSum, targetAyahNumber, inResultsFilter
 }) => {
     const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta } = useSettingsContext();
 
@@ -231,7 +232,19 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                 }
             };
 
-            if (searchType === 'number') { // No highlighting for number search
+            // In-results filter match check
+            let isInResultsFilterMatch = false;
+            if (inResultsFilter && inResultsFilter.trim().length > 0) {
+                const filterTokens = normalizeArabicText(inResultsFilter.trim()).split(/\s+/).filter(Boolean);
+                if (filterTokens.length > 0) {
+                    const uNorm = normalizeArabicText(word);
+                    const iWord = alignmentInfo[index]?.imlaeiWord;
+                    const iNorm = iWord ? normalizeArabicText(iWord) : '';
+                    isInResultsFilterMatch = filterTokens.some(token => (uNorm.length > 0 && uNorm.includes(token)) || (iNorm.length > 0 && iNorm.includes(token)));
+                }
+            }
+
+            if (searchType === 'number') { // Number search with live filter support
                  return (
                     <button 
                         type="button" 
@@ -240,11 +253,17 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                         className="word-trigger bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/10 rounded-md px-1 transition-colors"
                         aria-label={`إظهار خيارات البحث لكلمة: ${word}`}
                     >
-                        <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>
-                            {highlightNoorani 
-                                ? renderWordWithNoorani(word, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta) 
-                                : renderWordWithHaMeem(word, highlightHaMeem)}
-                        </span>
+                        {isInResultsFilterMatch ? (
+                            <mark className={`bg-emerald-400/40 dark:bg-emerald-400/30 text-emerald-950 dark:text-emerald-50 font-bold px-1.5 py-0.5 rounded-md ring-2 ring-emerald-500 shadow-xs inline-block ${isPulsing ? 'animate-highlight-pulse' : ''}`} title={`مطابقة التصفية: ${inResultsFilter}`}>
+                                {word}
+                            </mark>
+                        ) : (
+                            <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>
+                                {highlightNoorani 
+                                    ? renderWordWithNoorani(word, true, 'noorani-letter-highlight', highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta) 
+                                    : renderWordWithHaMeem(word, highlightHaMeem)}
+                            </span>
+                        )}
                     </button>
                  );
             }
@@ -274,7 +293,11 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                     className="word-trigger bg-transparent border-none p-0 font-inherit cursor-pointer hover:bg-primary/10 rounded-md px-1 transition-colors"
                     aria-label={`إظهار خيارات البحث لكلمة: ${word}`}
                 >
-                    {isMatch ? (
+                    {isInResultsFilterMatch ? (
+                        <mark className={`bg-emerald-400/40 dark:bg-emerald-400/30 text-emerald-950 dark:text-emerald-50 font-bold px-1.5 py-0.5 rounded-md ring-2 ring-emerald-500 shadow-xs animate-pulse inline-block ${isPulsing ? 'animate-highlight-pulse' : ''}`} title={`مطابقة التصفية: ${inResultsFilter}`}>
+                            {word}
+                        </mark>
+                    ) : isMatch ? (
                         <mark className={`bg-amber-400/30 dark:bg-amber-400/25 text-text-primary font-bold px-1 py-0.5 rounded-md ring-1 ring-amber-500/30 dark:ring-amber-400/30 ${isPulsing ? 'animate-highlight-pulse' : ''}`}>{word}</mark>
                     ) : (
                         <span className={isPulsing ? 'animate-highlight-pulse rounded-sm' : ''}>

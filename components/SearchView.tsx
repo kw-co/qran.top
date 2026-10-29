@@ -192,24 +192,67 @@ export const SearchView: React.FC<SearchViewProps> = ({
     setTimeout(() => setIsShareCopied(false), 2500);
   }, []);
 
+  // Live In-Results Filtering (allows filtering current results on the fly without losing context)
+  const [inResultsFilter, setInResultsFilter] = useState<string>('');
+
+  // Listen to live search input from the top search bar
+  useEffect(() => {
+    const handleLiveSearch = (e: any) => {
+      const raw = typeof e?.detail?.query === 'string' ? e.detail.query.trim() : '';
+      if (raw && normalizeArabicText(raw) !== normalizeArabicText(query)) {
+        setInResultsFilter(raw);
+      } else {
+        setInResultsFilter('');
+      }
+    };
+    window.addEventListener('quran-live-search', handleLiveSearch);
+    return () => window.removeEventListener('quran-live-search', handleLiveSearch);
+  }, [query]);
+
+  // Reset in-results filter when base query changes
+  useEffect(() => {
+    setInResultsFilter('');
+  }, [query]);
+
   // Reset pagination whenever query, filters or sorting change
   useEffect(() => {
     setVisibleCount(INITIAL_BATCH_SIZE);
-  }, [query, correctedQuery, activePhraseFilter, exactMatch, searchType, isRootSearch]);
+  }, [query, correctedQuery, activePhraseFilter, exactMatch, searchType, isRootSearch, inResultsFilter]);
+
+  // Filter current displayedResults by inResultsFilter
+  const filteredResults = useMemo(() => {
+    const trimmed = inResultsFilter.trim();
+    if (!trimmed) return displayedResults;
+
+    const normFilter = normalizeArabicText(trimmed);
+    if (!normFilter) return displayedResults;
+
+    const filterTokens = normFilter.split(/\s+/).filter(Boolean);
+    if (filterTokens.length === 0) return displayedResults;
+
+    return displayedResults.filter(ayah => {
+      const uthmaniNorm = normalizeArabicText(ayah.text || '');
+      const simpleSurah = simpleCleanData?.find(s => s.number === ayah.surah?.number);
+      const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
+      const simpleNorm = normalizeArabicText(simpleAyah?.text || '');
+
+      return filterTokens.every(token => (uthmaniNorm.length > 0 && uthmaniNorm.includes(token)) || (simpleNorm.length > 0 && simpleNorm.includes(token)));
+    });
+  }, [displayedResults, inResultsFilter, simpleCleanData]);
 
   const paginatedResults = useMemo(() => {
-    return displayedResults.slice(0, visibleCount);
-  }, [displayedResults, visibleCount]);
+    return filteredResults.slice(0, visibleCount);
+  }, [filteredResults, visibleCount]);
 
   // Infinite scroll trigger via IntersectionObserver
   useEffect(() => {
-    if (visibleCount >= displayedResults.length) return;
+    if (visibleCount >= filteredResults.length) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           requestAnimationFrame(() => {
-            setVisibleCount(prev => Math.min(prev + 40, displayedResults.length));
+            setVisibleCount(prev => Math.min(prev + 40, filteredResults.length));
           });
         }
       },
@@ -222,7 +265,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     return () => {
       if (currentSentinel) observer.unobserve(currentSentinel);
     };
-  }, [visibleCount, displayedResults.length]);
+  }, [visibleCount, filteredResults.length]);
 
   const normalizedQueryForDiscussion = useMemo(() => {
     if (searchType === 'number') return `topic:ayah-number:${query}`;
@@ -520,57 +563,139 @@ export const SearchView: React.FC<SearchViewProps> = ({
           </>
         )}
         
-        <div className="mt-6">
+        {/* In-Results Live Filter Bar & Match Status */}
+        {displayedResults.length > 0 && (
+          <div className="mt-4 mb-2 space-y-2">
+            <div className="relative flex items-center bg-surface p-2 sm:p-2.5 rounded-xl border border-border-default shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <SearchIcon className="w-4 h-4 text-primary shrink-0 ml-2" />
+                <input
+                    type="text"
+                    value={inResultsFilter}
+                    onChange={(e) => setInResultsFilter(e.target.value)}
+                    placeholder="تصفية فورية وتظليل داخل النتائج الحالية (مثال: الجنة، النار، الأيكة)..."
+                    className="w-full bg-transparent border-none text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+                    aria-label="تصفية فورية في النتائج الحالية"
+                />
+                {inResultsFilter && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setInResultsFilter('');
+                            window.dispatchEvent(new CustomEvent('quran-live-search', { detail: { query: '' } }));
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-text-muted hover:text-red-500 hover:bg-surface-hover transition-colors text-xs font-bold cursor-pointer"
+                        title="إلغاء التصفية وعرض كل النتائج"
+                    >
+                        ✕ مسح
+                    </button>
+                )}
+            </div>
+
+            {inResultsFilter.trim() && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm animate-fade-in flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1.5">
+                            <span>🔍 تصفية نشطة:</span>
+                            <span className="px-2 py-0.5 rounded-md bg-surface border border-emerald-500/30 text-text-primary font-bold">
+                                "{inResultsFilter}"
+                            </span>
+                        </span>
+                        <span className="text-text-secondary font-semibold font-mono">
+                            ({filteredResults.length} من أصل {displayedResults.length} آية)
+                        </span>
+                        <span className="text-xs text-text-muted hidden md:inline">
+                            • الكلمات معلمة ومظللة بالأخضر الفاقع
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setInResultsFilter('');
+                            window.dispatchEvent(new CustomEvent('quran-live-search', { detail: { query: '' } }));
+                        }}
+                        className="px-3 py-1 rounded-lg bg-surface text-red-600 dark:text-red-400 hover:bg-red-500/10 border border-border-default font-bold text-xs cursor-pointer transition-colors"
+                    >
+                        إلغاء التصفية
+                    </button>
+                </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4">
             {displayedResults.length > 0 ? (
                 <>
-                    <ul className="space-y-4">
-                        {paginatedResults.map((ayah, index) => {
-                            const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah?.number);
-                            const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
-                            return (
-                                <SearchResultItem 
-                                    key={ayah.number} itemRef={itemRefs.current[index]} ayah={ayah} 
-                                    queryWords={searchType === 'number' ? [] : queryWords} currentQuery={query} onNewSearch={onNewSearch}
-                                    displayEdition={displayEdition} displayEditionData={displayEditionData} searchEdition={searchEdition}
-                                    imlaeiSimpleData={imlaeiSimpleData}
-                                    simpleCleanData={simpleCleanData}
-                                    fontSize={fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
-                                    isPlaybackLoading={isPlaybackLoading}
-                                    pulsingWordIndex={pulsingWord?.itemIndex === index ? pulsingWord.wordIndex : -1} resultIndex={index}
-                                    simpleAyahText={simpleAyah?.text || ''}
-                                    onUthmaniWordClick={handleUthmaniWordClick}
-                                    onSaveAyah={handleSaveClick}
-                                    onCopyAyah={handleCopyAyah}
-                                    onPlayAyah={handlePlaySingleAyah}
-                                    copiedAyah={copiedAyah}
-                                    isDigitSum={isDigitSum}
-                                    targetAyahNumber={targetNumberVal}
-                                />
-                           );
-                        })}
-                    </ul>
+                    {filteredResults.length === 0 ? (
+                        <div className="p-8 text-center bg-surface-subtle border border-border-default rounded-2xl space-y-3">
+                            <div className="text-3xl">🔍</div>
+                            <div className="text-base font-bold text-text-primary">
+                                لا توجد آيات تحتوي على "{inResultsFilter}" ضمن نتائج البحث الحالية عن "{query}"
+                            </div>
+                            <p className="text-xs text-text-muted">
+                                يمكنك إلغاء التصفية للعودة لكافة النتائج ({displayedResults.length} آية)، أو الضغط على مفتاح الإدخال ↵ للبحث عنها في كامل المصحف الشريف.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setInResultsFilter('');
+                                    window.dispatchEvent(new CustomEvent('quran-live-search', { detail: { query: '' } }));
+                                }}
+                                className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover transition-colors cursor-pointer"
+                            >
+                                إلغاء التصفية وعرض كل النتائج
+                            </button>
+                        </div>
+                    ) : (
+                        <ul className="space-y-4">
+                            {paginatedResults.map((ayah, index) => {
+                                const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah?.number);
+                                const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
+                                return (
+                                    <SearchResultItem 
+                                        key={ayah.number} itemRef={itemRefs.current[index]} ayah={ayah} 
+                                        queryWords={searchType === 'number' ? [] : queryWords} currentQuery={query} onNewSearch={onNewSearch}
+                                        displayEdition={displayEdition} displayEditionData={displayEditionData} searchEdition={searchEdition}
+                                        imlaeiSimpleData={imlaeiSimpleData}
+                                        simpleCleanData={simpleCleanData}
+                                        fontSize={fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
+                                        isPlaybackLoading={isPlaybackLoading}
+                                        pulsingWordIndex={pulsingWord?.itemIndex === index ? pulsingWord.wordIndex : -1} resultIndex={index}
+                                        simpleAyahText={simpleAyah?.text || ''}
+                                        onUthmaniWordClick={handleUthmaniWordClick}
+                                        onSaveAyah={handleSaveClick}
+                                        onCopyAyah={handleCopyAyah}
+                                        onPlayAyah={handlePlaySingleAyah}
+                                        copiedAyah={copiedAyah}
+                                        isDigitSum={isDigitSum}
+                                        targetAyahNumber={targetNumberVal}
+                                        inResultsFilter={inResultsFilter}
+                                    />
+                               );
+                            })}
+                        </ul>
+                    )}
 
-                    {displayedResults.length > visibleCount && (
+                    {filteredResults.length > visibleCount && (
                         <div ref={loadMoreSentinelRef} className="mt-8 py-6 px-4 bg-surface-subtle border border-border-default rounded-2xl text-center space-y-3 shadow-xs">
                             <div className="text-sm font-bold text-text-primary">
-                                تم عرض <span className="text-primary font-mono">{visibleCount}</span> من إجمالي <span className="text-primary font-mono">{displayedResults.length}</span> آية
+                                تم عرض <span className="text-primary font-mono">{visibleCount}</span> من إجمالي <span className="text-primary font-mono">{filteredResults.length}</span> آية
                             </div>
                             <p className="text-xs text-text-muted">
                                 اسحب للأسفل لعرض المزيد تلقائياً، أو انقر أحد الخيارات التالية:
                             </p>
                             <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
                                 <button
-                                    onClick={() => setVisibleCount(prev => Math.min(prev + 50, displayedResults.length))}
+                                    onClick={() => setVisibleCount(prev => Math.min(prev + 50, filteredResults.length))}
                                     className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-2"
                                 >
                                     <SearchIcon className="w-4 h-4" />
                                     <span>عرض 50 آية إضافية</span>
                                 </button>
                                 <button
-                                    onClick={() => setVisibleCount(displayedResults.length)}
+                                    onClick={() => setVisibleCount(filteredResults.length)}
                                     className="px-4 py-2.5 bg-surface text-text-primary border border-border-default hover:bg-surface-hover rounded-xl text-sm font-semibold active:scale-95 transition-all cursor-pointer shadow-2xs"
                                 >
-                                    عرض كل النتائج ({displayedResults.length})
+                                    عرض كل النتائج ({filteredResults.length})
                                 </button>
                             </div>
                         </div>
