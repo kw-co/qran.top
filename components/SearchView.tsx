@@ -125,6 +125,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     queryWords, isSingleWordSearch,
     phraseFilters,
     displayedResults,
+    baseUnfilteredCount,
     muqattaatSourceResults,
     occurrencesMap, totalOccurrences,
     generalOccurrences, exactOccurrences,
@@ -139,9 +140,16 @@ export const SearchView: React.FC<SearchViewProps> = ({
     }
   );
 
+  const prevUrlSyncKeyRef = useRef(`${query}|${correctedQuery || ''}|${Boolean(isRootSearch)}`);
+
   // Sync URL hash with search query, filters and settings so sharing the link reproduces the exact state
   useEffect(() => {
     if (searchType === 'number') return;
+    const currentSyncKey = `${query}|${correctedQuery || ''}|${Boolean(isRootSearch)}`;
+    if (prevUrlSyncKeyRef.current !== currentSyncKey) {
+      prevUrlSyncKeyRef.current = currentSyncKey;
+      return;
+    }
     try {
       const currentHash = window.location.hash || '';
       if (!currentHash.startsWith('#/search')) return;
@@ -180,6 +188,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
       // ignore
     }
   }, [
+    query, correctedQuery,
     searchType, isRootSearch, targetSurahNumber, position,
     exactMatch, activePhraseFilter, activeDiacriticFilter,
     filterSortOrder, filterActiveTab
@@ -217,7 +226,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   // Reset pagination whenever query, filters or sorting change
   useEffect(() => {
     setVisibleCount(INITIAL_BATCH_SIZE);
-  }, [query, correctedQuery, activePhraseFilter, exactMatch, searchType, isRootSearch, inResultsFilter]);
+  }, [query, correctedQuery, activePhraseFilter, activeDiacriticFilter, activeMuqattaatFilter, exactMatch, searchType, isRootSearch, inResultsFilter]);
 
   // Filter current displayedResults by inResultsFilter
   const filteredResults = useMemo(() => {
@@ -514,6 +523,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             activeDiacriticFilter={activeDiacriticFilter}
             setActiveDiacriticFilter={setActiveDiacriticFilter}
             resultsCount={displayedResults.length}
+            totalResultsCount={baseUnfilteredCount}
             activeTab={filterActiveTab}
             onTabChange={setFilterActiveTab}
             sortOrder={filterSortOrder}
@@ -669,6 +679,9 @@ export const SearchView: React.FC<SearchViewProps> = ({
                                         isDigitSum={isDigitSum}
                                         targetAyahNumber={targetNumberVal}
                                         inResultsFilter={inResultsFilter}
+                                        activeDiacriticFilter={activeDiacriticFilter}
+                                        activePhraseFilter={activePhraseFilter}
+                                        exactMatch={exactMatch}
                                     />
                                );
                             })}

@@ -16,7 +16,7 @@ interface AyahRendererProps {
     ayahsToRender: Ayah[];
     surah: SurahData;
     highlightAyahNumber: number | null;
-    onWordClick: (query: string, editionIdentifier: string, position: { surah: number; ayah: number; wordIndex: number; }) => void;
+    onWordClick: (query: string, editionIdentifier: string, position?: { surah: number; ayah: number; wordIndex: number; }, isRootSearch?: boolean) => void;
     currentlyPlayingAyahGlobalNumber: number | null;
     simpleCleanData: SurahData[];
     wordPopoverState: { ayahNumberInSurah: number; simpleText: string; triggerElement: HTMLElement; } | null;
@@ -554,12 +554,12 @@ const AyahRenderer: React.FC<AyahRendererProps> = ({
                     surahName={activeMorphologyModal.surahName}
                     ayahNumberInSurah={activeMorphologyModal.ayahNumberInSurah}
                     onClose={() => setActiveMorphologyModal(null)}
-                    onSearchWord={(cleanWord) => {
+                    onSearchWord={(cleanWord, isRoot) => {
                         onWordClick(cleanWord, displayEdition.identifier, {
                             surah: activeMorphologyModal.surahNumber,
                             ayah: activeMorphologyModal.ayahNumberInSurah,
                             wordIndex: 0
-                        });
+                        }, isRoot);
                     }}
                 />
             )}

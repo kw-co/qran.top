@@ -37,10 +37,21 @@ interface SearchResultItemProps {
   copiedAyah?: number | null;
   imlaeiSimpleData?: SurahData[];
   simpleCleanData?: SurahData[];
-  isDigitSum?: boolean;
-  targetAyahNumber?: number;
-  inResultsFilter?: string;
+    isDigitSum?: boolean;
+    targetAyahNumber?: number;
+    inResultsFilter?: string;
+    activeDiacriticFilter?: string;
+    activePhraseFilter?: string;
+    exactMatch?: boolean;
 }
+
+const cleanVoweledWord = (text: string | undefined | null): string => {
+    if (!text) return '';
+    return String(text)
+        .replace(/[\u0610-\u061A\u06D6-\u06ED۝۞۩*٭★☆✪✦✧𖣔܍֍«»﴿﴾\(\)\[\]"'ـ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
 
 const SURAH_MUQATTAAT_MAP: Record<number, string> = {
     2: "الم",
@@ -83,7 +94,8 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
     ayah, queryWords, currentQuery, onNewSearch, displayEdition, displayEditionData, searchEdition,
     fontSize, fontStyle, searchType, isCurrentlyPlaying, isPlaybackLoading, itemRef, pulsingWordIndex,
     resultIndex, simpleAyahText, onUthmaniWordClick, onSaveAyah, onCopyAyah, onPlayAyah, copiedAyah,
-    imlaeiSimpleData, simpleCleanData, isDigitSum, targetAyahNumber, inResultsFilter
+    imlaeiSimpleData, simpleCleanData, isDigitSum, targetAyahNumber, inResultsFilter,
+    activeDiacriticFilter, activePhraseFilter, exactMatch
 }) => {
     const { wordClickBehavior, enableWordAudio, enableMorphology, showMuqattaatInSearch, highlightHaMeem, highlightNoorani, highlightNooraniIncludeWaw, highlightNooraniIncludeTaaMarbuta } = useSettingsContext();
 
@@ -220,6 +232,83 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
         const alignmentInfo = textUtils.getUthmaniToImlaeiMap(uthmaniRawWords, simpleAyahText);
         const isImlaeiSearch = searchEdition === 'quran-simple-clean';
 
+        const activeDiacriticList = activeDiacriticFilter
+            ? activeDiacriticFilter.split(',').map(s => cleanVoweledWord(s)).filter(Boolean)
+            : [];
+        const activePhraseList = (activePhraseFilter && activePhraseFilter !== 'all')
+            ? activePhraseFilter.split(',').map(s => normalizeArabicText(s)).filter(Boolean)
+            : [];
+
+        const matchedDiacriticWordIndices = new Set<number>();
+        if (activeDiacriticList.length > 0) {
+            const nonEmptyWords = uthmaniRawWords
+                .map((w, idx) => ({ clean: cleanVoweledWord(w), idx }))
+                .filter(x => x.clean.length > 0);
+
+            for (const df of activeDiacriticList) {
+                const dfParts = df.split(' ').filter(Boolean);
+                if (dfParts.length === 1) {
+                    for (const item of nonEmptyWords) {
+                        if (item.clean === dfParts[0]) {
+                            matchedDiacriticWordIndices.add(item.idx);
+                        }
+                    }
+                } else if (dfParts.length > 1) {
+                    for (let i = 0; i <= nonEmptyWords.length - dfParts.length; i++) {
+                        let allMatch = true;
+                        for (let j = 0; j < dfParts.length; j++) {
+                            if (nonEmptyWords[i + j].clean !== dfParts[j]) {
+                                allMatch = false;
+                                break;
+                            }
+                        }
+                        if (allMatch) {
+                            for (let j = 0; j < dfParts.length; j++) {
+                                matchedDiacriticWordIndices.add(nonEmptyWords[i + j].idx);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        const matchedPhraseWordIndices = new Set<number>();
+        if (activePhraseList.length > 0) {
+            const nonEmptyNormWords = uthmaniRawWords
+                .map((w, idx) => {
+                    const iWord = alignmentInfo[idx]?.imlaeiWord;
+                    const norm = isImlaeiSearch && iWord ? normalizeArabicText(iWord) : normalizeArabicText(w);
+                    return { norm, idx };
+                })
+                .filter(x => x.norm.length > 0);
+
+            for (const pf of activePhraseList) {
+                const pfParts = pf.split(' ').filter(Boolean);
+                if (pfParts.length === 1) {
+                    for (const item of nonEmptyNormWords) {
+                        if (item.norm === pfParts[0]) {
+                            matchedPhraseWordIndices.add(item.idx);
+                        }
+                    }
+                } else if (pfParts.length > 1) {
+                    for (let i = 0; i <= nonEmptyNormWords.length - pfParts.length; i++) {
+                        let allMatch = true;
+                        for (let j = 0; j < pfParts.length; j++) {
+                            if (nonEmptyNormWords[i + j].norm !== pfParts[j]) {
+                                allMatch = false;
+                                break;
+                            }
+                        }
+                        if (allMatch) {
+                            for (let j = 0; j < pfParts.length; j++) {
+                                matchedPhraseWordIndices.add(nonEmptyNormWords[i + j].idx);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         const wordElements = uthmaniRawWords.map((word, index) => {
             const isPulsing = index === pulsingWordIndex;
 
@@ -270,17 +359,23 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
 
             let isMatch = false;
             if (searchType === 'text' && queryWords.length > 0) {
-                const validQueryWords = queryWords.map(normalizeArabicText).filter(q => q.length > 0);
-                if (validQueryWords.length > 0) {
-                    if (isImlaeiSearch) {
-                        const iWord = alignmentInfo[index]?.imlaeiWord;
-                        if (iWord) {
-                            const iNorm = normalizeArabicText(iWord);
-                            isMatch = iNorm.length > 0 && validQueryWords.some(q => iNorm.includes(q));
+                if (activeDiacriticList.length > 0) {
+                    isMatch = matchedDiacriticWordIndices.has(index);
+                } else if (activePhraseList.length > 0) {
+                    isMatch = matchedPhraseWordIndices.has(index);
+                } else {
+                    const validQueryWords = queryWords.map(normalizeArabicText).filter(q => q.length > 0);
+                    if (validQueryWords.length > 0) {
+                        if (isImlaeiSearch) {
+                            const iWord = alignmentInfo[index]?.imlaeiWord;
+                            if (iWord) {
+                                const iNorm = normalizeArabicText(iWord);
+                                isMatch = iNorm.length > 0 && validQueryWords.some(q => (exactMatch && validQueryWords.length === 1) ? iNorm === q : iNorm.includes(q));
+                            }
+                        } else {
+                            const uNorm = normalizeArabicText(word);
+                            isMatch = uNorm.length > 0 && validQueryWords.some(q => (exactMatch && validQueryWords.length === 1) ? uNorm === q : uNorm.includes(q));
                         }
-                    } else {
-                        const uNorm = normalizeArabicText(word);
-                        isMatch = uNorm.length > 0 && validQueryWords.some(q => uNorm.includes(q));
                     }
                 }
             }

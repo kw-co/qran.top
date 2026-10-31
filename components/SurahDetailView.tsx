@@ -21,7 +21,7 @@ interface SurahDetailViewProps {
   surah: SurahData;
   pageSurahs?: SurahData[]; // New prop to handle multiple surahs on one page
   highlightAyahNumber: number | null;
-  onWordClick: (query: string, editionIdentifier: string, position: { surah: number; ayah: number; wordIndex: number; }) => void;
+  onWordClick: (query: string, editionIdentifier: string, position?: { surah: number; ayah: number; wordIndex: number; }, isRootSearch?: boolean) => void;
   onSaveAyah: (item: SavedAyahItem) => void;
   onSearchByAyahNumber: (ayahNumber: number) => void;
   // --- Props for audio playback ---

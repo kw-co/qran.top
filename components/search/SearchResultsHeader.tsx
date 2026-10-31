@@ -163,14 +163,31 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                         const displaySurah = displayEditionData?.find((s: any) => s.number === ayah.surah?.number);
                         const displayAyah = displaySurah?.ayahs.find((a: any) => a.numberInSurah === ayah.numberInSurah);
                         const targetText = String(displayAyah?.text || ayah.text || '');
-                        const cleanAyahText = targetText.replace(/[\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ');
-                        const words = cleanAyahText.split(/\s+/).filter(Boolean);
+                        const cleanAyahText = targetText
+                            .replace(/[\u0610-\u061A\u06D6-\u06ED۝۞۩*٭★☆✪✦✧𖣔܍֍«»﴿﴾\(\)\[\]"'ـ]/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+                        const words = cleanAyahText.split(' ').filter(Boolean);
                         
                         let matchedInAyah = 0;
-                        for (const df of dFilters) {
-                            for (const w of words) {
-                                if (w === df || (!exactMatch && w.includes(df))) {
-                                    matchedInAyah++;
+                        for (const rawDf of dFilters) {
+                            const df = rawDf
+                                .replace(/[\u0610-\u061A\u06D6-\u06ED۝۞۩*٭★☆✪✦✧𖣔܍֍«»﴿﴾\(\)\[\]"'ـ]/g, ' ')
+                                .replace(/\s+/g, ' ')
+                                .trim();
+                            if (!df) continue;
+                            if (!df.includes(' ')) {
+                                for (const w of words) {
+                                    if (w === df) {
+                                        matchedInAyah++;
+                                    }
+                                }
+                            } else {
+                                const dfParts = df.split(' ').filter(Boolean);
+                                for (let i = 0; i <= words.length - dfParts.length; i++) {
+                                    if (words.slice(i, i + dfParts.length).join(' ') === df) {
+                                        matchedInAyah++;
+                                    }
                                 }
                             }
                         }
@@ -420,24 +437,39 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
                                       </button>
                                     </>
                                   )}
-                                  
-                                  <button
-                                      onClick={() => {
-                                          if (onToggleRootSearch) onToggleRootSearch(!isRootSearch);
-                                      }}
-                                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold shadow-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-subtle focus:ring-indigo-500
-                                      ${isRootSearch 
-                                          ? 'bg-indigo-600 text-white font-bold' 
-                                          : 'bg-indigo-500/20 text-text-primary hover:bg-indigo-500/40'}`}
-                                      title="البحث عن جميع الكلمات المرتبطة بنفس الجذر اللغوي"
-                                      aria-pressed={isRootSearch}
-                                  >
-                                      البحث بالجذر
-                                  </button>
-
-
+                                  {(isSingleWordSearch || isRootSearch) && (
+                                    <button
+                                        onClick={() => {
+                                            if (onToggleRootSearch) onToggleRootSearch(!isRootSearch);
+                                        }}
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold shadow-sm transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-subtle focus:ring-indigo-500
+                                        ${isRootSearch 
+                                            ? 'bg-indigo-600 text-white font-bold ring-2 ring-indigo-400' 
+                                            : 'bg-indigo-500/20 text-text-primary hover:bg-indigo-500/40'}`}
+                                        title={isRootSearch ? "إلغاء البحث بالجذر والعودة للبحث اللفظي" : "البحث عن كافة مشتقات الجذر اللغوي وتصريفاته"}
+                                        aria-pressed={isRootSearch}
+                                    >
+                                        <span>{isRootSearch ? '✓' : '🌱'}</span>
+                                        <span>{isRootSearch ? 'البحث بالجذر (مُفعّل)' : 'البحث بالجذر اللغوي'}</span>
+                                    </button>
+                                  )}
                                 </>
                             )}
+                        </div>
+                    )}
+
+                    {/* Explanatory banner when root search is active */}
+                    {searchType === 'text' && isRootSearch && (
+                        <div className="mt-3 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs sm:text-sm text-text-primary flex items-start gap-2.5">
+                            <span className="text-lg leading-none mt-0.5">🌱</span>
+                            <div className="space-y-0.5">
+                                <div className="font-bold text-indigo-700 dark:text-indigo-300">
+                                    وضع البحث بالجذر اللغوي مُفعّل:
+                                </div>
+                                <p className="text-text-secondary text-xs leading-relaxed">
+                                    يتم استعراض كافة مشتقات وتصريفات هذا الأصل الصرفي (ماضٍ، مضارع، اسم فاعل، مصادر، وجموع) في جميع سور القرآن الكريم.
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>

@@ -20,6 +20,7 @@ export interface SearchFiltersDrawerProps {
     activeDiacriticFilter: string;
     setActiveDiacriticFilter: (filter: string) => void;
     resultsCount: number;
+    totalResultsCount?: number;
     activeTab?: 'phrases' | 'diacritics';
     onTabChange?: (tab: 'phrases' | 'diacritics') => void;
     sortOrder?: 'alpha' | 'freq';
@@ -34,13 +35,26 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
     activeDiacriticFilter,
     setActiveDiacriticFilter,
     resultsCount,
+    totalResultsCount,
     activeTab: externalActiveTab,
     onTabChange,
     sortOrder: externalSortOrder,
     onSortOrderChange,
 }) => {
-    const hasPhrases = phraseFilters.length > 0;
-    const hasDiacritics = diacriticVariants.length >= 2;
+    const totalCount = totalResultsCount ?? resultsCount;
+
+    // Active phrase filter tokens
+    const currentPhraseFilters = activePhraseFilter === 'all' || !activePhraseFilter
+        ? []
+        : activePhraseFilter.split(',').map(s => s.trim()).filter(Boolean);
+
+    // Active diacritic filter tokens
+    const currentDiacriticFilters = !activeDiacriticFilter || activeDiacriticFilter.trim() === ''
+        ? []
+        : activeDiacriticFilter.split(',').map(s => s.trim()).filter(Boolean);
+
+    const hasPhrases = phraseFilters.length > 0 || currentPhraseFilters.length > 0;
+    const hasDiacritics = diacriticVariants.length >= 2 || currentDiacriticFilters.length > 0;
 
     // Internal state with sync to optional external props
     const [internalTab, setInternalTab] = useState<'phrases' | 'diacritics'>('diacritics');
@@ -63,11 +77,6 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
         if (onSortOrderChange) onSortOrderChange(sort);
     };
 
-    // Active phrase filter tokens
-    const currentPhraseFilters = activePhraseFilter === 'all' || !activePhraseFilter
-        ? []
-        : activePhraseFilter.split(',').map(s => s.trim()).filter(Boolean);
-
     const togglePhrase = (phrase: string) => {
         if (currentPhraseFilters.includes(phrase)) {
             const next = currentPhraseFilters.filter(p => p !== phrase);
@@ -77,11 +86,6 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
             setActivePhraseFilter(next.join(','));
         }
     };
-
-    // Active diacritic filter tokens
-    const currentDiacriticFilters = !activeDiacriticFilter || activeDiacriticFilter.trim() === ''
-        ? []
-        : activeDiacriticFilter.split(',').map(s => s.trim()).filter(Boolean);
 
     const toggleDiacritic = (word: string) => {
         if (currentDiacriticFilters.includes(word)) {
@@ -116,6 +120,21 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
             return copy.sort((a, b) => b.count - a.count || a.word.localeCompare(b.word, 'ar'));
         }
     }, [diacriticVariants, sortOrder]);
+
+    // Ensure all active filters are always shown in collapsed preview so none are hidden
+    const collapsedPhrases = useMemo(() => {
+        const top = sortedPhrases.slice(0, 6);
+        const topSet = new Set(top.map(p => p.phrase));
+        const activeExtras = sortedPhrases.slice(6).filter(p => currentPhraseFilters.includes(p.phrase) && !topSet.has(p.phrase));
+        return [...top, ...activeExtras];
+    }, [sortedPhrases, currentPhraseFilters]);
+
+    const collapsedDiacritics = useMemo(() => {
+        const top = sortedDiacritics.slice(0, 5);
+        const topSet = new Set(top.map(d => d.word));
+        const activeExtras = sortedDiacritics.slice(5).filter(d => currentDiacriticFilters.includes(d.word) && !topSet.has(d.word));
+        return [...top, ...activeExtras];
+    }, [sortedDiacritics, currentDiacriticFilters]);
 
     // If neither filter is relevant, do not render (AFTER all hooks)
     if (!hasPhrases && !hasDiacritics) {
@@ -234,9 +253,9 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
                                         : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'
                                 }`}
                             >
-                                كل النتائج ({resultsCount})
+                                كل النتائج ({totalCount})
                             </button>
-                            {sortedPhrases.slice(0, 6).map(({ phrase, count }) => {
+                            {collapsedPhrases.map(({ phrase, count }) => {
                                 const isActive = currentPhraseFilters.includes(phrase);
                                 return (
                                     <button
@@ -255,13 +274,13 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
                                     </button>
                                 );
                             })}
-                            {sortedPhrases.length > 6 && (
+                            {sortedPhrases.length > collapsedPhrases.length && (
                                 <button
                                     type="button"
                                     onClick={() => setIsExpanded(true)}
                                     className="text-xs text-primary font-semibold hover:underline px-1 py-1"
                                 >
-                                    +{sortedPhrases.length - 6} المزيد...
+                                    +{sortedPhrases.length - collapsedPhrases.length} المزيد...
                                 </button>
                             )}
                         </>
@@ -276,9 +295,9 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
                                         : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'
                                 }`}
                             >
-                                كل الحالات ({resultsCount})
+                                كل الحالات ({totalCount})
                             </button>
-                            {sortedDiacritics.slice(0, 5).map(({ word, count }) => {
+                            {collapsedDiacritics.map(({ word, count }) => {
                                 const isActive = currentDiacriticFilters.includes(word);
                                 return (
                                     <button
@@ -305,13 +324,13 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
                                     </button>
                                 );
                             })}
-                            {sortedDiacritics.length > 5 && (
+                            {sortedDiacritics.length > collapsedDiacritics.length && (
                                 <button
                                     type="button"
                                     onClick={() => setIsExpanded(true)}
                                     className="text-xs text-primary font-bold hover:underline px-1 py-1"
                                 >
-                                    +{sortedDiacritics.length - 5} المزيد...
+                                    +{sortedDiacritics.length - collapsedDiacritics.length} المزيد...
                                 </button>
                             )}
                         </>
@@ -428,7 +447,7 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
                                             : 'bg-surface border border-border-default text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                                     }`}
                                 >
-                                    عرض كل النتائج ({resultsCount})
+                                    عرض كل النتائج ({totalCount})
                                 </button>
                                 {sortedPhrases.map(({ phrase, count }) => {
                                     const isActive = currentPhraseFilters.includes(phrase);
@@ -465,7 +484,7 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
                                             : 'bg-surface border border-border-default text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                                     }`}
                                 >
-                                    عرض كل الحالات ({resultsCount})
+                                    عرض كل الحالات ({totalCount})
                                 </button>
                                 {sortedDiacritics.map(({ word, count }) => {
                                     const isActive = currentDiacriticFilters.includes(word);

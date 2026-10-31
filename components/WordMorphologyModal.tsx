@@ -7,7 +7,7 @@ interface WordMorphologyModalProps {
     surahName?: string;
     ayahNumberInSurah: number;
     onClose: () => void;
-    onSearchWord: (cleanWord: string) => void;
+    onSearchWord: (cleanWord: string, isRoot?: boolean) => void;
 }
 
 interface MorphologyData {
@@ -179,7 +179,7 @@ const WordMorphologyModal: React.FC<WordMorphologyModalProps> = ({
                                 const rawRoot = morphology?.root || '';
                                 const rootSearchTerm = rawRoot.replace(/[\s\-\u0640]/g, '').replace(/[\u0622\u0623\u0625\u0671]/g, 'ا').replace(/هـ/g, 'ه');
                                 if (rootSearchTerm) {
-                                    onSearchWord(rootSearchTerm);
+                                    onSearchWord(rootSearchTerm, true);
                                     onClose();
                                 }
                             }}

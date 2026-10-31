@@ -106,8 +106,10 @@ const FingerprintToolView: React.FC<FingerprintToolViewProps> = ({ simpleCleanDa
         activePhraseFilter, setActivePhraseFilter,
         activeDiacriticFilter, setActiveDiacriticFilter,
         diacriticVariants,
+        queryWords,
         phraseFilters,
         displayedResults,
+        baseUnfilteredCount,
     } = useSearchLogic(
         query, ("correctedQuery" in searchResult ? searchResult.correctedQuery : undefined), searchResult.results, 'text', simpleCleanData, isRootSearch, displayEditionData, useMemo(() => ({ exact: true }), [])
     );
@@ -228,7 +230,7 @@ const FingerprintToolView: React.FC<FingerprintToolViewProps> = ({ simpleCleanDa
             </div>
 
             {query && (phraseFilters.length > 0 || diacriticVariants.length > 0) && (
-                <div className="bg-surface rounded-xl border border-border-default overflow-hidden mt-4">
+                <div className="bg-surface rounded-xl border border-border-default overflow-hidden mt-4 p-4">
                     <SearchFiltersDrawer 
                         phraseFilters={phraseFilters}
                         activePhraseFilter={activePhraseFilter}
@@ -237,6 +239,7 @@ const FingerprintToolView: React.FC<FingerprintToolViewProps> = ({ simpleCleanDa
                         activeDiacriticFilter={activeDiacriticFilter}
                         setActiveDiacriticFilter={setActiveDiacriticFilter}
                         resultsCount={displayedResults.length}
+                        totalResultsCount={baseUnfilteredCount}
                     />
                 </div>
             )}
@@ -294,7 +297,7 @@ const FingerprintToolView: React.FC<FingerprintToolViewProps> = ({ simpleCleanDa
                                     key={ayah.number} 
                                     itemRef={{ current: null }} 
                                     ayah={ayah}
-                                    queryWords={[]} 
+                                    queryWords={queryWords} 
                                     currentQuery={query} 
                                     onNewSearch={onNewSearch}
                                     displayEdition={displayEdition} 
@@ -314,6 +317,9 @@ const FingerprintToolView: React.FC<FingerprintToolViewProps> = ({ simpleCleanDa
                                         setCopiedAyah(ayah.number);
                                         setTimeout(() => setCopiedAyah(null), 2000);
                                     }}
+                                    activeDiacriticFilter={activeDiacriticFilter}
+                                    activePhraseFilter={activePhraseFilter}
+                                    exactMatch={exactMatch}
                                 />
                             );
                         })}

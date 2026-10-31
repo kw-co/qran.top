@@ -1,5 +1,5 @@
 // FIX: Import useEffect from 'react' to resolve 'Cannot find name' error.
-import { useState, useMemo, useCallback, useEffect, useDeferredValue } from 'react';
+import { useState, useMemo, useCallback, useEffect, useDeferredValue, useRef } from 'react';
 import type { Ayah } from '../types';
 import { normalizeArabicText, formatSurahNameForDisplay, escapeRegExp, cleanAyahSearchQuery } from '../utils/text';
 import { safeLocalStorage } from '../utils/storage';
@@ -114,6 +114,14 @@ const getAyahMatchTier = (ayah: Ayah, queryWords: string[]): number => {
 };
 
 
+const cleanVoweledText = (text: string | undefined | null): string => {
+    if (!text) return '';
+    return String(text)
+        .replace(/[\u0610-\u061A\u06D6-\u06ED۝۞۩*٭★☆✪✦✧𖣔܍֍«»﴿﴾\(\)\[\]"'ـ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
 export const useSearchLogic = (
     query: string, 
     correctedQuery: string | undefined, 
@@ -134,24 +142,6 @@ export const useSearchLogic = (
     const [activeMuqattaatFilter, setActiveMuqattaatFilter] = useState('');
     const [activeDiacriticFilter, setActiveDiacriticFilter] = useState(initialFilters?.diacritic || '');
 
-    useEffect(() => {
-        if (initialFilters?.phrase !== undefined) {
-            setActivePhraseFilter(initialFilters.phrase || 'all');
-        }
-    }, [initialFilters?.phrase]);
-
-    useEffect(() => {
-        if (initialFilters?.diacritic !== undefined) {
-            setActiveDiacriticFilter(initialFilters.diacritic || '');
-        }
-    }, [initialFilters?.diacritic]);
-
-    useEffect(() => {
-        if (initialFilters?.exact !== undefined) {
-            setExactMatch(initialFilters.exact);
-        }
-    }, [initialFilters?.exact]);
-
     const queryWords = useMemo(() => {
         const finalQuery = correctedQuery || cleanAyahSearchQuery(query) || '';
         return String(finalQuery)
@@ -169,11 +159,11 @@ export const useSearchLogic = (
 
     
     // --- FACETED SEARCH FILTERING HELPER ---
-    const applyFilters = (
-        results: Ayah[],
+    const applyFilters = useCallback((
+        sourceResults: Ayah[],
         options: { skipPhrase?: boolean; skipDiacritic?: boolean; skipMuqattaat?: boolean } = {}
     ) => {
-        let baseResults = results;
+        let baseResults = sourceResults;
         
         // Exact match applies to Text Mode only (base text filtering)
         if (searchType === 'text' && exactMatch && isSingleWordSearch && !isRootSearch && queryWords.length === 1 && queryWords[0].length > 0) {
@@ -187,14 +177,19 @@ export const useSearchLogic = (
 
         // Apply Diacritic Filter
         if (!options.skipDiacritic && activeDiacriticFilter && activeDiacriticFilter.trim() !== '') {
-            const dFilters = activeDiacriticFilter.split(',').map(f => f.trim()).filter(Boolean);
+            const dFilters = activeDiacriticFilter.split(',').map(f => cleanVoweledText(f)).filter(Boolean);
             if (dFilters.length > 0) {
                 filtered = filtered.filter(ayah => {
                     const displaySurah = displayEditionData?.find((s: any) => s.number === ayah.surah?.number);
                     const displayAyah = displaySurah?.ayahs.find((a: any) => a.numberInSurah === ayah.numberInSurah);
                     const targetText = String(displayAyah?.text || ayah.text || '');
-                    const cleanAyahText = targetText.replace(/[\u06D6-\u06ED]/g, '').replace(/\s+/g, ' ');
+                    const cleanAyahText = cleanVoweledText(targetText);
+                    const ayahWords = cleanAyahText.split(' ').filter(Boolean);
+
                     return dFilters.some(df => {
+                        if (!df.includes(' ')) {
+                            return ayahWords.includes(df);
+                        }
                         const escapedDf = escapeRegExp(df);
                         const regex = new RegExp(`(^|\\s)${escapedDf}(\\s|$)`);
                         return regex.test(cleanAyahText);
@@ -219,13 +214,7 @@ export const useSearchLogic = (
         if (!options.skipPhrase && activePhraseFilter !== 'all' && activePhraseFilter.trim() !== '') {
             const filters = activePhraseFilter.split(',').map(f => f.trim()).filter(Boolean);
             if (filters.length > 0) {
-                if (isRootSearch) {
-                    filtered = filtered.filter(ayah => {
-                        const ayahWords = getNormalizedWords(ayah);
-                        return filters.some(f => ayahWords.includes(f));
-                    });
-                } else if (isSingleWordSearch) {
-                    // For single word non-root search, the filter is an exact word extracted from the ayah
+                if (isRootSearch || isSingleWordSearch) {
                     filtered = filtered.filter(ayah => {
                         const ayahWords = getNormalizedWords(ayah);
                         return filters.some(f => ayahWords.includes(f));
@@ -240,9 +229,9 @@ export const useSearchLogic = (
         }
 
         return filtered;
-    };
+    }, [searchType, exactMatch, isSingleWordSearch, isRootSearch, queryWords, activeDiacriticFilter, displayEditionData, activeMuqattaatFilter, activePhraseFilter]);
 
-        const phraseFilters = useMemo(() => {
+    const phraseFilters = useMemo(() => {
         if (searchType === 'number' || queryWords.length === 0) {
             return [];
         }
@@ -251,7 +240,7 @@ export const useSearchLogic = (
 
         if (isRootSearch) {
             const uniqueWords = Array.from(new Set(queryWords));
-            const wordCounts: { phrase: string; count: number }[] = [];
+            const wordMap = new Map<string, number>();
             
             uniqueWords.forEach(word => {
                 const count = currentResults.filter(ayah => {
@@ -259,10 +248,19 @@ export const useSearchLogic = (
                     return ayahWords.includes(word);
                 }).length;
                 if (count > 0) {
-                    wordCounts.push({ phrase: word, count });
+                    wordMap.set(word, count);
                 }
             });
+
+            if (activePhraseFilter && activePhraseFilter !== 'all') {
+                activePhraseFilter.split(',').map(s => s.trim()).filter(Boolean).forEach(pf => {
+                    if (!wordMap.has(pf)) {
+                        wordMap.set(pf, 0);
+                    }
+                });
+            }
             
+            const wordCounts = Array.from(wordMap.entries()).map(([phrase, count]) => ({ phrase, count }));
             wordCounts.sort((a, b) => b.count - a.count);
             return wordCounts;
         }
@@ -274,7 +272,7 @@ export const useSearchLogic = (
                 const ayahWords = getNormalizedWords(ayah);
                 const matchedInAyah = new Set<string>();
                 ayahWords.forEach(word => {
-                    if (word.includes(queryWord)) {
+                    if (exactMatch ? word === queryWord : word.includes(queryWord)) {
                         matchedInAyah.add(word);
                     }
                 });
@@ -282,6 +280,16 @@ export const useSearchLogic = (
                     wordMap.set(word, (wordMap.get(word) || 0) + 1);
                 });
             });
+
+            // Ensure any currently selected phrase filter remains visible even if count is 0
+            if (activePhraseFilter && activePhraseFilter !== 'all') {
+                activePhraseFilter.split(',').map(s => s.trim()).filter(Boolean).forEach(pf => {
+                    if (!wordMap.has(pf)) {
+                        wordMap.set(pf, 0);
+                    }
+                });
+            }
+
             const wordCounts = Array.from(wordMap.entries()).map(([phrase, count]) => ({ phrase, count }));
             wordCounts.sort((a, b) => b.count - a.count);
             return wordCounts;
@@ -290,7 +298,7 @@ export const useSearchLogic = (
         const phrasesToConsider = new Set<string>();
         currentResults.forEach(ayah => {
             const ayahWords = getNormalizedWords(ayah);
-            const indices = [];
+            const indices: number[] = [];
             ayahWords.forEach((word, index) => {
                 if (queryWords.includes(word)) {
                     indices.push(index);
@@ -310,16 +318,16 @@ export const useSearchLogic = (
         const userQueryPhrase = queryWords.join(' ');
         phrasesToConsider.add(userQueryPhrase);
 
-        const allPhraseCounts = [];
+        const allPhraseCounts: { phrase: string; count: number }[] = [];
         phrasesToConsider.forEach(phrase => {
             const count = currentResults.filter(ayah => getNormalizedText(ayah).includes(phrase)).length;
             allPhraseCounts.push({ phrase, count });
         });
 
         return allPhraseCounts.sort((a, b) => b.count - a.count).filter(item => item.count > 0);
-    }, [deferredResults, queryWords, searchType, isRootSearch, activeDiacriticFilter, activeMuqattaatFilter, exactMatch]);
+    }, [deferredResults, queryWords, searchType, isRootSearch, isSingleWordSearch, exactMatch, activePhraseFilter, applyFilters]);
 
-        const displayedResults = useMemo(() => {
+    const displayedResults = useMemo(() => {
         let filtered = [...applyFilters(activeResults)];
         
         if (searchType === 'text' && queryWords.length > 0) {
@@ -331,51 +339,68 @@ export const useSearchLogic = (
             });
         }
         return filtered;
-    }, [activeResults, queryWords, exactMatch, searchType, activePhraseFilter, activeMuqattaatFilter, activeDiacriticFilter, isSingleWordSearch, isRootSearch, displayEditionData]);
+    }, [activeResults, queryWords, searchType, applyFilters]);
+
+    const baseUnfilteredCount = useMemo(() => {
+        return applyFilters(activeResults, { skipDiacritic: true, skipPhrase: true }).length;
+    }, [activeResults, applyFilters]);
 
     const muqattaatSourceResults = useMemo(() => {
         return applyFilters(activeResults, { skipMuqattaat: true });
-    }, [activeResults, exactMatch, searchType, activePhraseFilter, activeDiacriticFilter, isSingleWordSearch, isRootSearch, displayEditionData]);
+    }, [activeResults, applyFilters]);
 
-            const diacriticVariants = useMemo(() => {
+    const diacriticVariants = useMemo(() => {
         if (searchType !== 'text' || queryWords.length === 0 || !queryWords[0]) return [];
 
         const variantsMap = new Map<string, number>();
         const numQueryWords = queryWords.length;
         const currentResults = applyFilters(deferredResults, { skipDiacritic: true });
+        const activePFilters = (activePhraseFilter && activePhraseFilter !== 'all')
+            ? activePhraseFilter.split(',').map(f => f.trim()).filter(Boolean)
+            : [];
 
         if (isRootSearch) {
             const queryWordsSet = new Set(queryWords);
             for (const ayah of currentResults) {
                 const displaySurah = displayEditionData?.find((s: any) => s.number === ayah.surah?.number);
                 const displayAyah = displaySurah?.ayahs.find((a: any) => a.numberInSurah === ayah.numberInSurah);
-                const targetText = displayAyah?.text || ayah.text;
+                const targetText = cleanVoweledText(displayAyah?.text || ayah.text);
 
-                const rawWords = targetText.split(/\s+/).filter(Boolean);
+                const rawWords = targetText.split(' ').filter(Boolean);
+                const matchedInAyah = new Set<string>();
                 for (const rawWord of rawWords) {
                     const normWord = normalizeArabicText(rawWord);
                     if (queryWordsSet.has(normWord)) {
-                        const voweledWord = String(rawWord).replace(/[\u06D6-\u06ED]/g, '');
-                        variantsMap.set(voweledWord, (variantsMap.get(voweledWord) || 0) + 1);
+                        if (activePFilters.length === 0 || activePFilters.includes(normWord)) {
+                            matchedInAyah.add(rawWord);
+                        }
                     }
                 }
+                matchedInAyah.forEach(voweledWord => {
+                    variantsMap.set(voweledWord, (variantsMap.get(voweledWord) || 0) + 1);
+                });
             }
         } else {
             for (const ayah of currentResults) {
                 const displaySurah = displayEditionData?.find((s: any) => s.number === ayah.surah?.number);
                 const displayAyah = displaySurah?.ayahs.find((a: any) => a.numberInSurah === ayah.numberInSurah);
-                const targetText = displayAyah?.text || ayah.text;
+                const targetText = cleanVoweledText(displayAyah?.text || ayah.text);
                 
-                const rawWords = targetText.split(/\s+/).filter(Boolean);
+                const rawWords = targetText.split(' ').filter(Boolean);
                 const normWords = rawWords.map(w => normalizeArabicText(w));
+                const matchedInAyah = new Set<string>();
                 
                 for (let i = 0; i <= normWords.length - numQueryWords; i++) {
                     let match = true;
                     for (let j = 0; j < numQueryWords; j++) {
-                        // wait, previous logic used strict match, but for single word it might be substring?
-                        // If it's a single word search, use substring match for highlighting
                         if (isSingleWordSearch) {
-                            if (!normWords[i].includes(queryWords[0])) {
+                            const wNorm = normWords[i];
+                            const qNorm = queryWords[0];
+                            if (exactMatch ? wNorm !== qNorm : !wNorm.includes(qNorm)) {
+                                match = false;
+                                break;
+                            }
+                            if (activePFilters.length > 0 && !activePFilters.includes(wNorm)) {
                                 match = false;
                                 break;
                             }
@@ -387,17 +412,31 @@ export const useSearchLogic = (
                         }
                     }
                     if (match) {
-                        const voweledPhrase = rawWords.slice(i, i + numQueryWords).map(w => String(w).replace(/[\u06D6-\u06ED]/g, '')).join(' ');
-                        variantsMap.set(voweledPhrase, (variantsMap.get(voweledPhrase) || 0) + 1);
+                        const voweledPhrase = rawWords.slice(i, i + numQueryWords).join(' ').trim();
+                        if (voweledPhrase) {
+                            matchedInAyah.add(voweledPhrase);
+                        }
                     }
                 }
+                matchedInAyah.forEach(voweledPhrase => {
+                    variantsMap.set(voweledPhrase, (variantsMap.get(voweledPhrase) || 0) + 1);
+                });
             }
+        }
+
+        // Ensure any currently selected diacritic filter remains in the list even if count is 0
+        if (activeDiacriticFilter && activeDiacriticFilter.trim() !== '') {
+            activeDiacriticFilter.split(',').map(s => cleanVoweledText(s)).filter(Boolean).forEach(df => {
+                if (!variantsMap.has(df)) {
+                    variantsMap.set(df, 0);
+                }
+            });
         }
 
         return Array.from(variantsMap.entries())
             .map(([word, count]) => ({ word, count }))
             .sort((a, b) => b.count - a.count || a.word.localeCompare(b.word));
-    }, [deferredResults, queryWords, searchType, isRootSearch, displayEditionData, activePhraseFilter, activeMuqattaatFilter, exactMatch]);
+    }, [deferredResults, queryWords, searchType, isRootSearch, isSingleWordSearch, displayEditionData, activePhraseFilter, exactMatch, activeDiacriticFilter, applyFilters]);
 
     const occurrencesMap = useMemo(() => {
         if (searchType === 'number' || !query) return [];
@@ -439,7 +478,7 @@ export const useSearchLogic = (
             }
         }
         return count;
-    }, [deferredResults, queryWords, searchType]);
+    }, [displayedResults, queryWords, searchType]);
 
     const exactOccurrences = useMemo(() => {
         if (searchType === 'number' || queryWords.length === 0) return 0;
@@ -454,7 +493,7 @@ export const useSearchLogic = (
             }
         }
         return count;
-    }, [deferredResults, queryWords, searchType]);
+    }, [displayedResults, queryWords, searchType]);
 
     const neighboringWords = useMemo(() => {
         if (searchType === 'number' || !isSingleWordSearch) return [];
@@ -523,13 +562,18 @@ export const useSearchLogic = (
         return template.trim();
     }, [displayedResults, searchType, correctedQuery, query, generalOccurrences, exactOccurrences, exactMatch]);
     
-    // Reset filters when query or mode changes
+    const prevSearchKeyRef = useRef(`${query}|${correctedQuery || ''}|${Boolean(isRootSearch)}`);
+
+    // Reset filters when query or mode changes after initial mount
     useEffect(() => {
-        setActivePhraseFilter(initialFilters?.phrase || 'all');
-        setActiveDiacriticFilter(initialFilters?.diacritic || '');
-        setActiveMuqattaatFilter('');
-        setExactMatch(initialFilters?.exact || false);
-        setVisibleSuggestionsCount(7);
+        const currentKey = `${query}|${correctedQuery || ''}|${Boolean(isRootSearch)}`;
+        if (prevSearchKeyRef.current !== currentKey) {
+            prevSearchKeyRef.current = currentKey;
+            setActivePhraseFilter('all');
+            setActiveDiacriticFilter('');
+            setActiveMuqattaatFilter('');
+            setVisibleSuggestionsCount(7);
+        }
     }, [query, correctedQuery, isRootSearch]);
 
     return {
@@ -542,6 +586,7 @@ export const useSearchLogic = (
         queryWords, isSingleWordSearch,
         phraseFilters,
         displayedResults,
+        baseUnfilteredCount,
         muqattaatSourceResults,
         occurrencesMap, totalOccurrences,
         generalOccurrences, exactOccurrences,
