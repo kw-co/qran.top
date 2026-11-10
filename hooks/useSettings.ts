@@ -53,12 +53,8 @@ export const useSettings = () => {
 
     const [fontSize, setFontSize] = useState<FontSize>(() => safeGetItem(FONT_SIZE_KEY, 'md') as FontSize);
     
-    // Default to 'uthmani' or 'mushaf'
-    const [fontStyle, setFontStyle] = useState<FontStyleType>(() => {
-        const stored = safeGetItem(FONT_STYLE_KEY, 'uthmani');
-        if (stored === 'mushaf') return 'mushaf';
-        return 'uthmani';
-    });
+    // Always default to 'uthmani' so reading starts in Uthmani script until switched inside a page
+    const [fontStyle, setFontStyle] = useState<FontStyleType>('uthmani');
 
     // Mushaf Type: 'madinah' | 'shamarly'
     const [mushafType, setMushafType] = useState<MushafType>(
@@ -155,12 +151,12 @@ export const useSettings = () => {
 
     // Mushaf Frame Style: 'classic' | 'minimal' | 'borderless' | 'ornate' | 'none'
     const [mushafFrameStyle, setMushafFrameStyle] = useState<MushafFrameStyle>(
-        () => safeGetItem(MUSHAF_FRAME_STYLE_KEY, 'classic') as MushafFrameStyle
+        () => safeGetItem(MUSHAF_FRAME_STYLE_KEY, 'borderless') as MushafFrameStyle
     );
 
-    // Minimal margins & disable decorative frames option
+    // Minimal margins & disable decorative frames option (default true per user preference)
     const [hideMushafFrames, setHideMushafFrames] = useState<boolean>(
-        () => safeGetItem(HIDE_MUSHAF_FRAMES_KEY, 'false') === 'true'
+        () => safeGetItem(HIDE_MUSHAF_FRAMES_KEY, 'true') === 'true'
     );
 
     // Ayah highlight duration when navigating to an ayah: '3s' | '5s' | 'permanent'

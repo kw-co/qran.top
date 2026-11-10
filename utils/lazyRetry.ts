@@ -16,7 +16,14 @@ export function lazyRetry<T extends React.ComponentType<any>>(
                     .then(resolve)
                     .catch((error) => {
                         if (remaining <= 0) {
-                            // If it still fails, try refreshing the page once or pass the error to ErrorBoundary
+                            try {
+                                const reloadKey = 'qran_chunk_reload_attempted';
+                                if (!sessionStorage.getItem(reloadKey)) {
+                                    sessionStorage.setItem(reloadKey, 'true');
+                                    window.location.reload();
+                                    return;
+                                }
+                            } catch {}
                             reject(error);
                             return;
                         }

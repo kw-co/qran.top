@@ -37,9 +37,9 @@ const NON_CONNECTING_TO_LEFT = new Set([
   'ة'
 ]);
 
-// Arabic combining marks regex (harakat, tashkeel, tanween, dagger alif, quranic marks)
-const COMBINING_MARKS_REGEX = /^[\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u0640]+$/;
-const IS_COMBINING_CHAR = (ch: string) => /[\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u0640]/.test(ch);
+// Arabic combining marks regex (harakat, tashkeel, tanween, dagger alif, quranic marks, and Extended-A quranic tanween)
+const COMBINING_MARKS_REGEX = /^[\u0610-\u061A\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u08D3-\u08FF\u0640]+$/;
+const IS_COMBINING_CHAR = (ch: string) => /[\u0610-\u061A\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u08D3-\u08FF\u0640]/.test(ch);
 
 export const isNooraniChar = (
   char: string, 
@@ -207,7 +207,7 @@ export const renderWordWithNoorani = (
         let needsLeadingZWJ = false;
         if (!isFirst) {
           const prevSeg = segments[idx - 1];
-          const lastCharOfPrev = prevSeg.text.replace(/[\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u0640]/g, '').slice(-1);
+          const lastCharOfPrev = prevSeg.text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u08D3-\u08FF\u0640]/g, '').slice(-1);
           if (lastCharOfPrev && !NON_CONNECTING_TO_LEFT.has(lastCharOfPrev) && isArabicBaseLetter(lastCharOfPrev)) {
             needsLeadingZWJ = true;
           }
@@ -216,7 +216,7 @@ export const renderWordWithNoorani = (
         // Check if this segment ends with a letter that connects to the left
         let needsTrailingZWJ = false;
         if (!isLast) {
-          const lastCharOfCurrent = seg.text.replace(/[\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u0640]/g, '').slice(-1);
+          const lastCharOfCurrent = seg.text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u0653\u0654\u0655\u06D6-\u06ED\u08D3-\u08FF\u0640]/g, '').slice(-1);
           if (lastCharOfCurrent && !NON_CONNECTING_TO_LEFT.has(lastCharOfCurrent) && isArabicBaseLetter(lastCharOfCurrent)) {
             needsTrailingZWJ = true;
           }

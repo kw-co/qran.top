@@ -170,7 +170,7 @@ export const SearchFiltersDrawer: React.FC<SearchFiltersDrawerProps> = ({
                                     : 'text-text-secondary hover:text-text-primary'
                             }`}
                         >
-                            <span>صيغ التشكيل</span>
+                            <span>شيفرة الهدهد</span>
                             <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                                 effectiveTab === 'diacritics' ? 'bg-primary/10 text-primary' : 'bg-surface-hover text-text-muted'
                             }`}>

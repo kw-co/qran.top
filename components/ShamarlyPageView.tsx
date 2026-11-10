@@ -233,18 +233,18 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
         blendMode = 'multiply';
     }
 
-    const frameClass = hideMushafFrames ? 'frame-none minimal-margins' : `frame-${mushafFrameStyle || 'classic'}`;
+    const frameClass = 'frame-none minimal-margins';
     const isZoomed = zoomLevel > 1;
 
     return (
         <div 
-            className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl relative select-text ${hideMushafFrames ? 'shadow-none! p-1 sm:p-2' : 'shadow-2xl'}`}
+            className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl relative select-text shadow-none border-none p-1 sm:p-2`}
             dir="rtl"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >
             {/* Native Mushaf Header: Identical layout to Madinah Mushaf */}
-            <header className="mushaf-header flex justify-between items-center px-4 font-bold text-amber-700/80 dark:text-amber-500/80 text-xs sm:text-sm border-b border-amber-200/50 pb-2 mb-2 sm:mb-4 select-none relative">
+            <header className="mushaf-header flex justify-between items-center px-2 font-bold text-text-secondary text-xs sm:text-sm pb-1 mb-2 select-none relative">
                 {isOddPage ? (
                     <>
                         {/* Right: Surah Name with Dropdown Trigger */}
@@ -524,7 +524,7 @@ export const ShamarlyPageView: React.FC<ShamarlyPageViewProps> = ({
             </main>
 
             {/* Native Mushaf Footer: Identical layout to Madinah Mushaf */}
-            <footer className="mushaf-footer flex items-center justify-between mt-4 sm:mt-6 pt-2 border-t border-amber-200/50 select-none">
+            <footer className="mushaf-footer flex items-center justify-between mt-4 sm:mt-6 pt-2 select-none">
                 <button 
                     type="button"
                     onClick={handlePrevPage}

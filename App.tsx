@@ -159,6 +159,9 @@ const App: React.FC = () => {
 
     // --- Search Handlers ---
     const handleSearch = (query: string, sourceEdition?: string, position?: { surah: number; ayah: number; wordIndex: number; }, isRootSearch?: boolean, targetSurahNumber?: number, exactMatchOverride?: boolean) => {
+        if (settings.fontStyle === 'mushaf') {
+            settings.setFontStyle('uthmani');
+        }
         const ayahRef = tryParseAyahReference(query);
         if (ayahRef && !position) {
             window.location.hash = `#/surah/${ayahRef.surah}?ayah=${ayahRef.ayah}`;
@@ -183,6 +186,9 @@ const App: React.FC = () => {
     };
 
     const handleSearchByAyahNumber = (ayahNumber: number | string) => {
+        if (settings.fontStyle === 'mushaf') {
+            settings.setFontStyle('uthmani');
+        }
         const num = typeof ayahNumber === 'number' ? ayahNumber : parseInt(normalizeDigits(String(ayahNumber)), 10);
         if (!isNaN(num) && num > 0) {
             setIsSearching(true);

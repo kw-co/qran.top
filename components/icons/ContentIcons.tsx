@@ -270,3 +270,46 @@ export const ShamarlyMushafIcon = ({ className }: { className?: string }) => (
         />
     </svg>
 );
+
+export const AncientManuscriptIcon = ({ className }: { className?: string }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        className={className || "w-5 h-5"}
+    >
+        {/* Top and Bottom Rolled Parchment Cylinders */}
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M5 4.5A1.5 1.5 0 0 1 6.5 3h12A1.5 1.5 0 0 1 20 4.5v1A1.5 1.5 0 0 1 18.5 7H6.5A1.5 1.5 0 0 1 5 5.5v-1Z"
+            fill="currentColor"
+            fillOpacity={0.18}
+        />
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4 18.5A1.5 1.5 0 0 1 5.5 17h12a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4 19.5v-1Z"
+            fill="currentColor"
+            fillOpacity={0.18}
+        />
+        {/* Manuscript Parchment Body */}
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6.5 7v10M18.5 7v10"
+        />
+        {/* Ancient Kufic Script Lines */}
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.4}
+            d="M9.5 10.2h6M9.5 12.8h4.5M9.5 15.2h5.5"
+            opacity={0.85}
+        />
+        {/* Manuscript Ink Dots / Diacritic Marks */}
+        <circle cx="15" cy="12.8" r="0.7" fill="currentColor" stroke="none" />
+    </svg>
+);

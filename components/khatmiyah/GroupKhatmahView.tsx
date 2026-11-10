@@ -472,7 +472,7 @@ export const GroupKhatmahView: React.FC<GroupKhatmahViewProps> = ({
     const juzInfo = JUZ_INDEX.find(j => j.number === partNumber);
     if (!juzInfo) return;
 
-    setFontStyle('mushaf');
+    setFontStyle('uthmani');
     setSelectedEdition('quran-uthmani-quran-academy');
 
     if (onNavigateToJuz) {

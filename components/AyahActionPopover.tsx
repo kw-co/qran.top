@@ -1,12 +1,13 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Ayah } from '../types';
-import { BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpeakerWaveIcon, LightBulbIcon } from './icons';
+import { BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpeakerWaveIcon, LightBulbIcon, AncientManuscriptIcon } from './icons';
 import { useResearchData } from '../hooks/useResearchData';
 import { findSajdahByAyah, openQuranSymbolModal } from '../data/quranSymbolsData';
 
 const AyahActionPopover: React.FC<{
     activePopover: { ayah: Ayah; triggerElement: HTMLElement };
+    surahNumber?: number;
     onClose: () => void;
     onSave: (ayah: Ayah) => void;
     onCopy: (ayah: Ayah) => void;
@@ -17,12 +18,12 @@ const AyahActionPopover: React.FC<{
     copiedAyah: number | null;
     onStartSelection?: (ayah: Ayah) => void;
     onShowResearch?: (surahNum: number, ayahNum: number) => void;
-}> = ({ activePopover, onClose, onSave, onCopy, onPlayFrom, copiedAyah, onStartSelection, onShowResearch }) => {
+}> = ({ activePopover, surahNumber, onClose, onSave, onCopy, onPlayFrom, copiedAyah, onStartSelection, onShowResearch }) => {
     
     const popoverRef = useRef<HTMLDivElement>(null);
     const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0, pointerEvents: 'none' });
     const researchData = useResearchData();
-    const currentSurahNum = activePopover.ayah.surah?.number || 0;
+    const currentSurahNum = activePopover.ayah.surah?.number || surahNumber || 0;
     const hasResearch = researchData ? !!researchData[currentSurahNum] : false;
 
     useLayoutEffect(() => {
@@ -66,6 +67,22 @@ const AyahActionPopover: React.FC<{
             role="dialog"
             aria-label="إجراءات الآية"
         >
+            {currentSurahNum > 0 && (
+                <>
+                    <a
+                        href={`https://corpuscoranicum.de/en/verse-navigator/sura/${currentSurahNum}/verse/${activePopover.ayah.numberInSurah}/manuscripts`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => onClose()}
+                        className="p-2 rounded-xl text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 transition-colors flex items-center justify-center cursor-pointer"
+                        title="نسخ المصحف والمخطوطات التاريخية لهذه الآية"
+                        aria-label="نسخ المصحف التاريخية"
+                    >
+                        <AncientManuscriptIcon className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                    </a>
+                    <div className="hidden sm:block w-px h-5 bg-border-default"></div>
+                </>
+            )}
             {onStartSelection && (
                 <>
                     <button 
@@ -129,8 +146,6 @@ const AyahActionPopover: React.FC<{
                     </>
                 );
             })()}
-
-
 
             <button onClick={() => { onCopy(activePopover.ayah); }} className="p-1.5 sm:p-2.5 rounded-xl text-text-subtle hover:bg-surface-hover hover:text-primary transition-colors flex items-center gap-1 cursor-pointer" title="نسخ الآية مع المرجع">
               {copiedAyah === activePopover.ayah.number ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4" />}

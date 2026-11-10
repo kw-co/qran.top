@@ -4,7 +4,6 @@ import { QURAN_INDEX } from '../quranIndex';
 import { formatSurahNameForDisplay } from '../utils/text';
 import SearchForm from './SearchForm';
 import ThemeToggleButton from './ThemeToggleButton';
-import { openQuranSymbolModal } from '../data/quranSymbolsData';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useSettingsContext } from '../contexts/SettingsContext';
 import type { Ayah } from '../types';
@@ -198,6 +197,14 @@ const Header: React.FC<HeaderProps> = ({
     const isMadinahActive = fontStyle === 'mushaf' && mushafType === 'madinah';
     const isShamarlyActive = fontStyle === 'mushaf' && mushafType === 'shamarly';
 
+    // Always revert to Uthmani display mode when exiting a Surah/Page or navigating to Search/Home
+    useEffect(() => {
+        if (!isSurahOrPage && fontStyle === 'mushaf') {
+            setFontStyle('uthmani');
+            setSelectedEdition('quran-uthmani-quran-academy');
+        }
+    }, [isSurahOrPage, fontStyle, setFontStyle, setSelectedEdition]);
+
     const handleUthmaniClick = useCallback(() => {
         setFontStyle('uthmani');
         setSelectedEdition('quran-uthmani-quran-academy');
@@ -218,6 +225,14 @@ const Header: React.FC<HeaderProps> = ({
         setFontStyle('mushaf');
         setSelectedEdition('quran-uthmani-quran-academy');
     }, [setMushafType, setFontStyle, setSelectedEdition]);
+
+    const handleSearchWithReset = useCallback((query: string) => {
+        if (fontStyle === 'mushaf') {
+            setFontStyle('uthmani');
+            setSelectedEdition('quran-uthmani-quran-academy');
+        }
+        onSearch(query);
+    }, [fontStyle, setFontStyle, setSelectedEdition, onSearch]);
 
     const handleTitleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
@@ -246,66 +261,68 @@ const Header: React.FC<HeaderProps> = ({
                         {/* Theme Toggle Button */}
                         <ThemeToggleButton />
 
-                        {/* Mode Switcher: Uthmani Script, Madinah Mushaf & Shamarly Mushaf (Always visible, intuitive icons) */}
-                        <div 
-                            className="flex items-center bg-surface-subtle p-0.5 rounded-full border border-border-default/80 shadow-xs" 
-                            role="group" 
-                            aria-label="التبديل بين أوضاع العرض والمصاحف"
-                        >
-                            {/* زر الرسم العثماني */}
-                            <button
-                                type="button"
-                                onClick={handleUthmaniClick}
-                                disabled={isUthmaniLoading && fontStyle === 'mushaf'}
-                                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${
-                                    isUthmaniActive
-                                        ? 'bg-primary text-white shadow-xs font-bold'
-                                        : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
-                                }`}
-                                title="الرسم العثماني (نص رقمي متتابع)"
-                                aria-label="الرسم العثماني"
+                        {/* Mode Switcher: Only visible when inside a Surah or Page */}
+                        {isSurahOrPage && (
+                            <div 
+                                className="flex items-center bg-surface-subtle p-0.5 rounded-full border border-border-default/80 shadow-xs animate-fade-in" 
+                                role="group" 
+                                aria-label="التبديل بين أوضاع العرض والمصاحف"
                             >
-                                <UthmaniScriptIcon className="w-4 h-4 flex-shrink-0" />
-                            </button>
-
-                            {/* زر مصحف المدينة */}
-                            <button
-                                type="button"
-                                onClick={handleMadinahClick}
-                                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 relative ${
-                                    isMadinahActive
-                                        ? 'bg-primary text-white shadow-xs font-bold'
-                                        : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
-                                }`}
-                                title={isMushafDownloaded ? "مصحف المدينة (مطابق للمصحف الورقي المطبوع - 604 صفحة)" : "مصحف المدينة (انقر للتنزيل والتفعيل)"}
-                                aria-label="مصحف المدينة"
-                            >
-                                <MadinahMushafIcon className="w-4 h-4 flex-shrink-0" />
-                                {!isMushafDownloaded && (
-                                    <span 
-                                        className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute top-1 left-1 ring-1 ring-surface" 
-                                        title="يتطلب تنزيل الخطوط" 
-                                    />
-                                )}
-                            </button>
-
-                            {/* زر مصحف الشمرلي (يظهر في الشريط العلوي عند تفعيله أو تنزيله من الإعدادات) */}
-                            {(isShamarlyDownloaded || enableShamarlyInHeader) && (
+                                {/* زر الرسم العثماني */}
                                 <button
                                     type="button"
-                                    onClick={handleShamarlyClick}
-                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 animate-fade-in ${
-                                        isShamarlyActive
+                                    onClick={handleUthmaniClick}
+                                    disabled={isUthmaniLoading && fontStyle === 'mushaf'}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 ${
+                                        isUthmaniActive
                                             ? 'bg-primary text-white shadow-xs font-bold'
                                             : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
                                     }`}
-                                    title="مصحف الشمرلي (الطبعة المصرية الشهيرة - 522 صفحة)"
-                                    aria-label="مصحف الشمرلي"
+                                    title="الرسم العثماني (نص رقمي متتابع)"
+                                    aria-label="الرسم العثماني"
                                 >
-                                    <ShamarlyMushafIcon className="w-4 h-4 flex-shrink-0" />
+                                    <UthmaniScriptIcon className="w-4 h-4 flex-shrink-0" />
                                 </button>
-                            )}
-                        </div>
+
+                                {/* زر مصحف المدينة */}
+                                <button
+                                    type="button"
+                                    onClick={handleMadinahClick}
+                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 relative ${
+                                        isMadinahActive
+                                            ? 'bg-primary text-white shadow-xs font-bold'
+                                            : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
+                                    }`}
+                                    title={isMushafDownloaded ? "مصحف المدينة (مطابق للمصحف الورقي المطبوع - 604 صفحة)" : "مصحف المدينة (انقر للتنزيل والتفعيل)"}
+                                    aria-label="مصحف المدينة"
+                                >
+                                    <MadinahMushafIcon className="w-4 h-4 flex-shrink-0" />
+                                    {!isMushafDownloaded && (
+                                        <span 
+                                            className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute top-1 left-1 ring-1 ring-surface" 
+                                            title="يتطلب تنزيل الخطوط" 
+                                        />
+                                    )}
+                                </button>
+
+                                {/* زر مصحف الشمرلي (يظهر في الشريط العلوي عند تفعيله أو تنزيله من الإعدادات) */}
+                                {(isShamarlyDownloaded || enableShamarlyInHeader) && (
+                                    <button
+                                        type="button"
+                                        onClick={handleShamarlyClick}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer active:scale-95 animate-fade-in ${
+                                            isShamarlyActive
+                                                ? 'bg-primary text-white shadow-xs font-bold'
+                                                : 'text-text-muted hover:text-text-primary hover:bg-surface-hover'
+                                        }`}
+                                        title="مصحف الشمرلي (الطبعة المصرية الشهيرة - 522 صفحة)"
+                                        aria-label="مصحف الشمرلي"
+                                    >
+                                        <ShamarlyMushafIcon className="w-4 h-4 flex-shrink-0" />
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
                         {/* Bookmark / Reading History Button */}
                         <a
@@ -316,23 +333,12 @@ const Header: React.FC<HeaderProps> = ({
                         >
                             <BookmarkIcon className="w-4 h-4 text-primary" />
                         </a>
-
-                        {/* Quran Symbols Guide Button */}
-                        <button
-                            type="button"
-                            onClick={() => openQuranSymbolModal({ type: 'sajdah' })}
-                            className="w-9 h-9 rounded-full transition-all border border-border-default text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-surface-hover bg-surface-subtle shadow-xs flex items-center justify-center cursor-pointer active:scale-95 font-serif text-lg leading-none"
-                            title="دليل علامات المصحف: سجدات التلاوة (۩)، الأحزاب (۞)، والأجزاء (📖)"
-                            aria-label="دليل علامات المصحف"
-                        >
-                            ۩
-                        </button>
                     </div>
 
                     {/* Center Group: Desktop Search */}
                     <div className="flex-grow flex items-center justify-center min-w-0 px-2 sm:px-4">
                         <div className="hidden lg:block w-full max-w-md">
-                            <SearchForm onSearch={onSearch} disabled={searchDisabled} initialQuery={searchQuery} />
+                            <SearchForm onSearch={handleSearchWithReset} disabled={searchDisabled} initialQuery={searchQuery} />
                         </div>
                     </div>
                     
@@ -345,7 +351,7 @@ const Header: React.FC<HeaderProps> = ({
                 {/* Row 2: Search Form - Always open and prominent on a separate line (hidden on desktop) */}
                 <div className="lg:hidden pb-3 pt-1.5 border-t border-border-default/10">
                     <div className="w-full max-w-xl mx-auto">
-                        <SearchForm onSearch={onSearch} disabled={searchDisabled} initialQuery={searchQuery} />
+                        <SearchForm onSearch={handleSearchWithReset} disabled={searchDisabled} initialQuery={searchQuery} />
                     </div>
                 </div>
             </div>

@@ -115,12 +115,11 @@ export const normalizeArabicText = (word: string | undefined | null | number): s
     // U+0670 is Dagger Alif.
     cleaned = cleaned.replace(/[\u0670ٰ]/g, '');
 
-    // Remove Quranic stars, symbols, and ornamental brackets (نجمة الآية ۝, ۞, ۩, *, etc.)
-    cleaned = cleaned.replace(/[۝۞۩*٭★☆✪✦✧𖣔܍֍«»﴿﴾\(\)\[\]"']/g, '');
+    // Remove Quranic stars, symbols, ornamental brackets, and pause signs (including ۛ U+06DB)
+    cleaned = cleaned.replace(/[۝۞۩*٭★☆✪✦✧𖣔܍֍«»﴿﴾\(\)\[\]"'ـۛ]/g, '');
 
-    // Remove diacritics (Tashkeel) and other Quranic annotation marks.
-    // This range covers most common diacritics.
-    cleaned = cleaned.replace(/[\u064B-\u065F\u06D6-\u06ED]/g, '');
+    // Remove diacritics (Tashkeel), Quranic annotation marks (U+0610-U+061A, U+06D6-U+06ED, U+08D3-U+08FF), and zero-width kerning marks (U+200A, U+2060, U+200B)
+    cleaned = cleaned.replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED\u08D3-\u08FF\u200A\u2060\u200B]/g, '');
 
     // Remove Tatweel (Kashida), which is used to stretch characters.
     cleaned = cleaned.replace(/ـ/g, '');
@@ -132,8 +131,8 @@ export const normalizeArabicText = (word: string | undefined | null | number): s
 export const stripDiacritics = (text: string | undefined | null | number): string => {
     if (!text) return '';
     return String(text)
-        // Remove Quranic annotation signs, pause marks (U+06D6 to U+06ED, U+0610 to U+061A)
-        .replace(/[\u0610-\u061A\u06D6-\u06ED\u0670]/g, '')
+        // Remove Quranic annotation signs, pause marks (U+06D6 to U+06ED, U+0610 to U+061A, U+08D3 to U+08FF), dagger alif, and kerning marks
+        .replace(/[\u0610-\u061A\u06D6-\u06ED\u08D3-\u08FF\u0670\u200A\u2060\u200B]/g, '')
         // Remove Tashkeel: Fatha, Damma, Kasra, Tanween, Shadda, Sukun, Superscript marks
         .replace(/[\u064B-\u065F]/g, '')
         // Remove Tatweel / Kashida
@@ -148,7 +147,7 @@ export const formatSurahNameForDisplay = (name: string | undefined | null | numb
     if (!name) return '';
     
     // First, remove all common Arabic diacritics (tashkeel), Shadda, and Quranic annotation marks.
-    const diacriticsRegex = /[\u0617-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
+    const diacriticsRegex = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u08D3-\u08FF\u200A\u2060\u200B]/g;
     let cleaned = String(name).replace(diacriticsRegex, '').replace(/ـ/g, '').trim();
 
     // Replace Alif Wasla (ٱ) with plain Alif (ا)
@@ -175,7 +174,7 @@ export const formatAyahText = (rawText: string | undefined | null | number, text
     if (textFormat === 'tashkeel' || textFormat === 'imlaei') {
         // Remove Quranic recitation pause marks (U+06D6 to U+06ED) while keeping standard Arabic diacritics
         const pauseMarksRegex = /[\u06D6-\u06ED]/g;
-        return text.replace(pauseMarksRegex, '').replace(/ـ/g, '').replace(/\s+/g, ' ').trim();
+        return text.replace(/[\u200A\u2060\u200B]/g, '').replace(pauseMarksRegex, '').replace(/ـ/g, '').replace(/[ \t]+/g, ' ').trim();
     }
 
     if (textFormat === 'current_view') {
@@ -393,9 +392,18 @@ export function alignUthmaniToImlaei(uthmaniRawWords: string[], imlaeiText: stri
 }
 
 export function getUthmaniToImlaeiMap(uthmaniRawWords: string[], imlaeiText: string) {
-    const imlaeiWords = imlaeiText.split(/\s+/).filter(Boolean);
-    const imlaeiNorm = imlaeiWords.map(normalizeArabicText);
+    // Filter out standalone punctuation / pause symbols (like ۛ) from imlaei words while preserving their exact original positions
+    const allImlaeiWords = imlaeiText.split(/\s+/).filter(Boolean);
+    const imlaeiEntries: { word: string; originalIndex: number; norm: string }[] = [];
+    allImlaeiWords.forEach((w, idx) => {
+        const norm = normalizeArabicText(w);
+        if (norm.length > 0) {
+            imlaeiEntries.push({ word: w, originalIndex: idx, norm });
+        }
+    });
+
     const uthmaniNorm = uthmaniRawWords.map(normalizeArabicText);
+    const imlaeiNorm = imlaeiEntries.map(e => e.norm);
     
     const dp: number[][] = Array(uthmaniNorm.length + 1).fill(null).map(() => Array(imlaeiNorm.length + 1).fill(0));
     
@@ -406,7 +414,8 @@ export function getUthmaniToImlaeiMap(uthmaniRawWords: string[], imlaeiText: str
             if (uW === "") {
                 dp[i][j] = dp[i-1][j];
             } else {
-                const match = dp[i-1][j-1] + (calculateTextSimilarity(uW, iW) > 0 ? 1 : 0);
+                const isMatch = (uW === iW) || (uW.length >= 3 && iW.length >= 3 && (uW.includes(iW) || iW.includes(uW)));
+                const match = dp[i-1][j-1] + (isMatch ? 1 : 0);
                 dp[i][j] = Math.max(match, dp[i-1][j], dp[i][j-1]);
             }
         }
@@ -420,11 +429,12 @@ export function getUthmaniToImlaeiMap(uthmaniRawWords: string[], imlaeiText: str
         }
         const uW = uthmaniNorm[i-1];
         const iW = imlaeiNorm[j-1];
+        const isMatch = (uW === iW) || (uW.length >= 3 && iW.length >= 3 && (uW.includes(iW) || iW.includes(uW)));
         
-        if (calculateTextSimilarity(uW, iW) > 0 && dp[i][j] === dp[i-1][j-1] + 1) {
+        if (isMatch && dp[i][j] === dp[i-1][j-1] + 1) {
             result[i-1] = {
-                imlaeiWord: imlaeiWords[j-1],
-                imlaeiIndex: j-1
+                imlaeiWord: imlaeiEntries[j-1].word,
+                imlaeiIndex: imlaeiEntries[j-1].originalIndex
             };
             i--; j--;
         } else if (dp[i-1][j] >= dp[i][j-1]) {

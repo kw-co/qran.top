@@ -3,7 +3,7 @@ import { ShamarlyPageView } from "./ShamarlyPageView";
 import { getShamarlyPageForAyah } from "../data/shamarlyIndex";
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { SurahData, SavedAyahItem, Ayah } from '../types';
-import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, SparklesIcon, ShareIcon, DocumentDuplicateIcon, DownloadIcon, ArrowUpTrayIcon } from './icons';
+import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, SparklesIcon, ShareIcon, DocumentDuplicateIcon, DownloadIcon, ArrowUpTrayIcon, AncientManuscriptIcon } from './icons';
 import { safeLocalStorage } from '../utils/storage';
 import AyahActionPopover from './AyahActionPopover';
 import AyahRenderer from './AyahRenderer';
@@ -406,6 +406,25 @@ ${fullText}`;
     };
   }, [currentPage, contentToRender, hizbQuarterStartMap]);
 
+  // Compute active surah header details with authentic full vocalization (Tashkeel)
+  const activeHeaderSurah = useMemo(() => {
+    const currentSegment = contentToRender[0] || surah;
+    const info = QURAN_INDEX.find(s => s.number === currentSegment.number);
+    let vocalized = info?.name || currentSegment.name || '';
+    if (currentSegment.number === 1) {
+        vocalized = 'سُورَةُ الفَاتِحَةِ';
+    } else if (!vocalized.startsWith('سُورَةُ') && !vocalized.startsWith('سورة')) {
+        vocalized = `سُورَةُ ${vocalized}`;
+    }
+
+    return {
+        number: currentSegment.number,
+        name: currentSegment.name,
+        vocalizedTitle: vocalized,
+        numberOfAyahs: info?.numberOfAyahs || currentSegment.numberOfAyahs || currentSegment.ayahs?.length || 0
+    };
+  }, [contentToRender, surah]);
+
         
   const findActiveAyah = () => {
     const elements = document.querySelectorAll('[id^="ayah-"]');
@@ -474,12 +493,14 @@ ${fullText}`;
         const surahObj = QURAN_INDEX.find(s => s.number === activeSurahNum);
         const surahName = surahObj ? surahObj.name : `سورة ${activeSurahNum}`;
 
+        const currentAyahObj = surah.ayahs.find(a => a.numberInSurah === (activeAyahNum || 1));
         const newStop = {
           browsingMode: 'page',
           surahNumber: activeSurahNum,
           surahName,
           ayahNumber: activeAyahNum || 1,
           pageNumber: activePageNum,
+          ayahText: currentAyahObj?.text || '',
           timestamp: Date.now()
         };
 
@@ -567,6 +588,7 @@ ${fullText}`;
         surahName: activeSurahName,
         ayahNumber: activeAyahNum,
         pageNumber: currentPage,
+        ayahText: ayah.text || '',
         timestamp: Date.now()
       };
 
@@ -730,7 +752,7 @@ ${fullText}`;
           )
         ) : (
              <div>
-                <div className={`mushaf-page ${hideMushafFrames ? 'frame-none minimal-margins shadow-none! p-1 sm:p-2' : `frame-${mushafFrameStyle || 'classic'}`} relative`}>
+                <div className="mushaf-page frame-none minimal-margins shadow-none border-none relative p-1 sm:p-2">
                     {pageInfo?.markers.map((marker, index) => (
                          <button
                              key={index}
@@ -746,27 +768,103 @@ ${fullText}`;
                              <span className="font-serif">۞</span> {marker.label}
                          </button>
                     ))}
-                    <header className={`mushaf-header flex items-center justify-between ${hideMushafFrames ? 'px-2 pb-1.5 mb-2 border-b border-border-subtle/40' : ''}`}>
-                        {pageInfo?.juzNumber ? (
-                            <button
-                                type="button"
-                                onClick={() => openQuranSymbolModal({ type: 'juz', juzNumber: pageInfo.juzNumber })}
-                                className="hover:text-primary hover:underline transition-colors cursor-pointer flex items-center gap-1 font-bold"
-                                title={`شرح ومعلومات الجزء ${pageInfo.juzNumber} - اضغط لعرض السور والأحزاب`}
-                            >
-                                <span>📖</span>
-                                <span>الجزء {pageInfo.juzNumber}</span>
-                            </button>
-                        ) : <span />}
-                        {pageInfo?.surahName && (
+                    {/* Unified Single-Line Top Bar - Lightweight, Native App Font */}
+                    <header className="mushaf-header flex items-center justify-between px-2 py-1 mb-1 border-b border-border-subtle/50 select-none">
+                        {/* Right: الجزء، ترتيبها، آياتها (بخط التطبيق الافتراضي الخفيف) */}
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-text-muted flex-shrink-0">
+                            {pageInfo?.juzNumber && (
+                                <button
+                                    type="button"
+                                    onClick={() => openQuranSymbolModal({ type: 'juz', juzNumber: pageInfo.juzNumber })}
+                                    className="hover:text-primary hover:underline transition-colors cursor-pointer flex items-center gap-1 font-medium text-text-secondary"
+                                    title={`الجزء ${pageInfo.juzNumber} - اضغط لمعرفة التفاصيل`}
+                                >
+                                    <span className="text-[11px]">📖</span>
+                                    <span>الجزء {pageInfo.juzNumber}</span>
+                                </button>
+                            )}
+                            <span className="text-border-default/80">•</span>
+                            <span>
+                                <span className="hidden sm:inline">ترتيبها: </span>
+                                <strong className="text-text-primary font-semibold">{activeHeaderSurah.number}</strong>
+                            </span>
+                            <span className="text-border-default/80">•</span>
+                            <span>
+                                <span className="hidden sm:inline">آياتها: </span>
+                                <strong className="text-text-primary font-semibold">{activeHeaderSurah.numberOfAyahs}</strong>
+                                <span className="sm:hidden text-[10px]"> آية</span>
+                            </span>
+                        </div>
+
+                        {/* Center: اسم السورة بخط التطبيق النقي (تاجوال) بحروف كاملة غير منقطعة وبدون بولد متكتل */}
+                        <div className="flex items-center justify-center px-1 sm:px-2 min-w-0">
                             <a 
-                                href={`#/surah/${pageInfo.surahNumber}`}
-                                className="hover:text-primary hover:underline transition-colors cursor-pointer"
-                                title={`فتح سورة ${pageInfo.surahName}`}
+                                href={`#/surah/${activeHeaderSurah.number}`}
+                                className="text-base sm:text-lg md:text-xl font-semibold text-primary-text-strong hover:text-primary transition-colors tracking-wide truncate"
+                                title={activeHeaderSurah.vocalizedTitle}
                             >
-                                سورة {pageInfo.surahName}
+                                {activeHeaderSurah.vocalizedTitle}
                             </a>
-                        )}
+                        </div>
+
+                        {/* Left: الأدوات (نسخ المصحف، نسخ، تحميل، مشاركة) بخط التطبيق الافتراضي */}
+                        <div className="flex items-center gap-1 text-xs text-text-muted flex-shrink-0">
+                            {(() => {
+                                const firstSegment = contentToRender[0] || surah;
+                                const targetSurahNum = firstSegment.number || surah.number;
+                                const targetAyahNum = highlightAyahNumber || firstSegment.ayahs?.[0]?.numberInSurah || 1;
+                                return (
+                                    <>
+                                        <a
+                                            href={`https://corpuscoranicum.de/en/verse-navigator/sura/${targetSurahNum}/verse/${targetAyahNum}/manuscripts`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title="نسخ المصحف والمخطوطات التاريخية لهذه الصفحة/الآية"
+                                            className="p-1 sm:p-1.5 text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 rounded-lg transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+                                        >
+                                            <AncientManuscriptIcon className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                                        </a>
+                                        <div className="w-px h-3 bg-border-default"></div>
+                                    </>
+                                );
+                            })()}
+                            <button 
+                                type="button"
+                                onClick={handleCopyWholeSurah} 
+                                title="نسخ السورة كاملة" 
+                                className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-text-secondary hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1 cursor-pointer active:scale-95"
+                            >
+                                {copiedWholeSurah ? <CheckIcon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                                <span className="font-medium hidden sm:inline">{copiedWholeSurah ? "تم النسخ" : "نسخ"}</span>
+                            </button>
+
+                            <div className="w-px h-3 bg-border-default"></div>
+
+                            <button 
+                                type="button"
+                                onClick={handleDownloadWholeSurah} 
+                                title="تحميل السورة كملف" 
+                                className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-text-secondary hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1 cursor-pointer active:scale-95"
+                            >
+                                <ArrowUpTrayIcon className="w-3.5 h-3.5" />
+                                <span className="font-medium hidden sm:inline">تحميل</span>
+                            </button>
+
+                            {navigator.share && (
+                                <>
+                                    <div className="w-px h-3 bg-border-default"></div>
+                                    <button 
+                                        type="button"
+                                        onClick={handleShareWholeSurah} 
+                                        title="مشاركة السورة" 
+                                        className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-text-secondary hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1 cursor-pointer active:scale-95"
+                                    >
+                                        <ShareIcon className="w-3.5 h-3.5" />
+                                        <span className="font-medium hidden sm:inline">مشاركة</span>
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </header>
                     
                     <main dir="rtl" className={`text-text-primary ${quranTextClass} text-justify`}>
@@ -779,47 +877,34 @@ ${fullText}`;
                             const isTargetSurah = surahSegment.number === surah.number;
                             const effectiveHighlight = isTargetSurah ? activeHighlightAyah : null;
 
+                            // Title for secondary surahs starting on the same page
+                            const secondaryVocalizedTitle = index > 0 && isStartOfSurah ? (() => {
+                                const sInfo = QURAN_INDEX.find(s => s.number === surahSegment.number);
+                                let name = sInfo?.name || surahSegment.name;
+                                if (surahSegment.number === 1) return 'سُورَةُ الفَاتِحَةِ';
+                                if (!name.startsWith('سُورَةُ') && !name.startsWith('سورة')) return `سُورَةُ ${name}`;
+                                return name;
+                            })() : '';
+
                             return (
                                 <React.Fragment key={surahSegment.number}>
-                                    {/* Traditional Islamic Section Divider if not the first surah on page */}
+                                    {/* Traditional Islamic Section Divider & header if subsequent surah on same page */}
                                     {index > 0 && (
-                                        <IslamicSectionDivider className="my-6" />
-                                    )}
-
-                                    {/* Surah Header if start of surah */}
-                                    {isStartOfSurah && (
                                         <>
-                                        <SurahHeaderStrip 
-                                            surahNumber={surahSegment.number} 
-                                            surahName={surahSegment.name} 
-                                            researchInfo={researchData ? researchData[surahSegment.number] : null}
-                                        />
-                                            <div className="flex justify-center items-center gap-2 mb-6 bg-surface/50 py-2 rounded-lg border border-border-default">
-                                                <button onClick={handleCopyWholeSurah} title="نسخ السورة كاملة" className="p-2 text-text-muted hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1.5 text-sm">
-                                                    {copiedWholeSurah ? <CheckIcon className="w-4 h-4 text-emerald-500" /> : <CopyIcon className="w-4 h-4" />}
-                                                    <span className="font-medium hidden sm:inline">{copiedWholeSurah ? "تم النسخ" : "نسخ السورة"}</span>
-                                                </button>
-                                                <div className="w-px h-4 bg-border-default"></div>
-                                                <button onClick={handleDownloadWholeSurah} title="تحميل السورة" className="p-2 text-text-muted hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1.5 text-sm">
-                                                    <ArrowUpTrayIcon className="w-4 h-4" />
-                                                    <span className="font-medium hidden sm:inline">تحميل كملف</span>
-                                                </button>
-                                                {navigator.share && (
-                                                    <>
-                                                        <div className="w-px h-4 bg-border-default"></div>
-                                                        <button onClick={handleShareWholeSurah} title="مشاركة السورة" className="p-2 text-text-muted hover:text-primary hover:bg-surface-hover rounded-lg transition-colors flex items-center gap-1.5 text-sm">
-                                                            <ShareIcon className="w-4 h-4" />
-                                                            <span className="font-medium hidden sm:inline">مشاركة</span>
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
+                                            <IslamicSectionDivider className="my-2.5" />
+                                            {isStartOfSurah && (
+                                                <div className="text-center my-1 select-none">
+                                                    <h3 className="text-base sm:text-lg font-semibold text-primary-text-strong">
+                                                        {secondaryVocalizedTitle}
+                                                    </h3>
+                                                </div>
+                                            )}
                                         </>
                                     )}
 
-                                    {/* Bismillah */}
+                                    {/* Bismillah - Compact */}
                                     {showBismillah && (
-                                        <div className="text-center mb-6 font-bismillah text-2xl text-primary-text-strong select-none">
+                                        <div className="text-center my-1.5 font-bismillah text-xl sm:text-2xl text-primary-text-strong select-none">
                                             بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
                                         </div>
                                     )}
@@ -960,6 +1045,7 @@ ${fullText}`;
       {activePopover && (
         <AyahActionPopover 
             activePopover={activePopover}
+            surahNumber={surah.number}
             onClose={() => setActivePopover(null)}
             onSave={handleSaveClick}
             onCopy={handleCopyAyah}

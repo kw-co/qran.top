@@ -5,7 +5,7 @@ import React from 'react';
 // \u064E: Fatha, \u064F: Damma, \u0650: Kasra,
 // \u0651: Shadda, \u0652: Sukun, \u0670: Dagger Alif
 // Quranic marks: \u0653: Maddah, \u0654: Hamza Above, \u0655: Hamza Below, \u06E1: Quranic Sukun (small head of khah)
-export const ARABIC_DIACRITICS_REGEX = /[\u064B-\u0655\u0670\u06D6-\u06ED]/g;
+export const ARABIC_DIACRITICS_REGEX = /[\u0610-\u061A\u064B-\u0655\u0670\u06D6-\u06ED\u08D3-\u08FF]/g;
 
 interface FormattedDiacriticWordProps {
     word: string;

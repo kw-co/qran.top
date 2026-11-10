@@ -230,12 +230,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   };
 
   const showSurahName = !isFirstLineChapterHeader();
-  const frameClass = hideMushafFrames ? 'frame-none minimal-margins' : `frame-${mushafFrameStyle || 'classic'}`;
+  const frameClass = 'frame-none minimal-margins';
 
   return (
-    <div className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl relative select-text ${hideMushafFrames ? 'shadow-none! p-1 sm:p-2' : 'shadow-2xl'}`} dir="rtl">
+    <div className={`mushaf-page ${frameClass} mx-auto w-full max-w-2xl relative select-text shadow-none border-none p-1 sm:p-2`} dir="rtl">
       {/* Header */}
-      <header className={`mushaf-header flex justify-between px-2 font-bold text-amber-700/80 dark:text-amber-500/80 text-xs sm:text-sm ${hideMushafFrames ? 'border-b border-amber-200/25 pb-1 mb-1.5' : 'border-b border-amber-200/50 pb-2 mb-2 sm:mb-4'}`}>
+      <header className="mushaf-header flex justify-between px-2 font-bold text-text-secondary text-xs sm:text-sm pb-1 mb-2">
         {isOddPage ? (
             <>
                 <span>{showSurahName ? `سورة ${surahName}` : ''}</span>
@@ -279,8 +279,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                    if (missingInfo.type === 'chapter_header') {
                        const sName = QURAN_INDEX.find(s => s.number === missingInfo.surahNumber)?.name || '';
                        return (
-                           <div key={`missing-${lineNum}`} className="w-full text-center py-1 sm:py-2 my-1 sm:my-2 border-y-2 border-amber-600/30 bg-amber-50/50 dark:bg-slate-800/50">
-                               <h2 className="font-quran-title text-xl sm:text-2xl text-amber-800 dark:text-amber-400 font-bold">{sName}</h2>
+                           <div key={`missing-${lineNum}`} className="w-full text-center py-2 my-1">
+                               <h2 className="font-quran-title text-xl sm:text-2xl text-primary font-bold">{sName}</h2>
                            </div>
                        );
                    }
@@ -304,8 +304,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   const sNum = parseInt(lineItems[0].verse.verse_key.split(':')[0], 10);
                   const sName = QURAN_INDEX.find(s => s.number === sNum)?.name || '';
                   return (
-                      <div key={lineNum} className="w-full text-center py-1 sm:py-2 my-1 sm:my-2 border-y-2 border-amber-600/30 bg-amber-50/50 dark:bg-slate-800/50">
-                          <h2 className="font-quran-title text-xl sm:text-2xl text-amber-800 dark:text-amber-400 font-bold">{sName}</h2>
+                      <div key={lineNum} className="w-full text-center py-2 my-1">
+                          <h2 className="font-quran-title text-xl sm:text-2xl text-primary font-bold">{sName}</h2>
                       </div>
                   );
                }
@@ -445,7 +445,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="mushaf-footer flex items-center justify-between mt-4 sm:mt-6 pt-2 border-t border-amber-200/50">
+      <footer className="mushaf-footer flex items-center justify-between mt-4 sm:mt-6 pt-2">
          <button 
            onClick={() => pageNumber > 1 && onPageChange(pageNumber - 1)}
            disabled={pageNumber <= 1}

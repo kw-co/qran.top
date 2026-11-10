@@ -285,12 +285,14 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
                 />
             );
         }
-        if (pathParts[0] === 'saved') {
+        if (pathParts[0] === 'saved' || pathParts[0] === 'history') {
             return (
-                <SavedView 
+                <HistoryView 
+                    surahList={QURAN_INDEX}
+                    allQuranData={allQuranData}
+                    initialTab={pathParts[0] === 'saved' ? 'saved' : 'history'}
                     collections={collections} 
                     collectionId={pathParts[1] || null} 
-                    allQuranData={allQuranData}
                     onDeleteCollection={handleDeleteCollection} 
                     onDeleteSavedItem={handleDeleteSavedItem} 
                     onUpdateNotes={updateItemNotes} 
@@ -303,7 +305,6 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
                 />
             );
         }
-        if (pathParts[0] === 'history') return <HistoryView surahList={QURAN_INDEX} />;
         if (pathParts[0] === 'fingerprint') return <FingerprintToolView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} displayEditionData={quranData || []} allQuranData={allQuranData} onNewSearch={handleSearch} />;
         if (pathParts[0] === 'alphabet-scanner') return <AlphabetScannerView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} />;
         if (pathParts[0] === 'analysis') return <WordAnalysisView simpleCleanData={allQuranData?.['quran-simple-clean'] || []} initialWord={pathParts[1] ? decodeURIComponent(pathParts[1]) : undefined} />;

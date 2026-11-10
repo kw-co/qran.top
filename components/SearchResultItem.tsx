@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Ayah, SurahData, QuranEdition, FontSize, FontStyleType } from '../types';
-import { SparklesIcon, BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpinnerIcon, SpeakerWaveIcon, PaperIcon } from './icons';
+import { SparklesIcon, BookmarkIcon, CopyIcon, CheckIcon, PlayIcon, SpinnerIcon, SpeakerWaveIcon, PaperIcon, AncientManuscriptIcon } from './icons';
 import { normalizeArabicText } from '../utils/text';
 import * as textUtils from '../utils/text';
 import { getQuranTextStyle } from '../utils/font';
@@ -48,8 +48,9 @@ interface SearchResultItemProps {
 const cleanVoweledWord = (text: string | undefined | null): string => {
     if (!text) return '';
     return String(text)
+        .replace(/[\u200A\u2060\u200B]/g, '')
         .replace(/[\u0610-\u061A\u06D6-\u06ED۝۞۩*٭★☆✪✦✧𖣔܍֍«»﴿﴾\(\)\[\]"'ـ]/g, ' ')
-        .replace(/\s+/g, ' ')
+        .replace(/[ \t]+/g, ' ')
         .trim();
 };
 
@@ -189,7 +190,7 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
         e.stopPropagation();
         const cleanWord = String(rawWord)
             .replace(/<[^>]*>/g, '')
-            .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+            .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u08D3-\u08FF\u200A\u2060\u200B]/g, '')
             .trim();
 
         if (!displayAyah.surah) return;
@@ -226,7 +227,10 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
             return '';
         }
         
-        let textToRender = String(displayAyah.text || '');
+        let textToRender = String(displayAyah.text || '')
+            .replace(/[\u200A\u2060\u200B]/g, '')
+            .replace(/[ \t]+/g, ' ')
+            .trim();
 
         const uthmaniRawWords = textToRender.split(' ');
         const alignmentInfo = textUtils.getUthmaniToImlaeiMap(uthmaniRawWords, simpleAyahText);
@@ -559,6 +563,19 @@ const getSurahMuqattaat = (surahNumber?: number): string | null => {
                             </button>
                         );
                     })()}
+                    {displayAyah.surah?.number && (
+                        <a
+                            href={`https://corpuscoranicum.de/en/verse-navigator/sura/${displayAyah.surah.number}/verse/${displayAyah.numberInSurah}/manuscripts`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1.5 rounded-lg text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all flex items-center justify-center shadow-2xs"
+                            aria-label="نسخ المصحف التاريخية (Corpus Coranicum)"
+                            title="نسخ المصحف والمخطوطات التاريخية لهذه الآية"
+                        >
+                            <AncientManuscriptIcon className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                        </a>
+                    )}
                     {onPlayAyah && (
                         <button
                             onClick={() => onPlayAyah(resultIndex)}

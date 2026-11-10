@@ -8,12 +8,9 @@ import { ALL_AUDIO_EDITIONS } from '../data/audioEditions';
 
 import AyahActionPopover from './AyahActionPopover';
 import SearchResultItem from './SearchResultItem';
-import SearchResultsHeader from './search/SearchResultsHeader';
-import SearchResultsToolbar from './search/SearchResultsToolbar';
-import SearchFiltersDrawer from './search/SearchFiltersDrawer';
-import NeighboringWords from './search/NeighboringWords';
-import DhikrModal from './DhikrModal';
-
+import UnifiedSearchHeaderBar from './search/UnifiedSearchHeaderBar';
+import QuickFilterCapsules from './search/QuickFilterCapsules';
+import { computeMuqattaatStats } from '../utils/muqattaatStats';
 
 interface SearchViewProps {
   query: string;
@@ -56,21 +53,17 @@ export const SearchView: React.FC<SearchViewProps> = ({
     const n = parseInt(normalizeDigits(query), 10);
     return isNaN(n) ? undefined : n;
   }, [searchType, query]);
-  const [isEditableQuery, setIsEditableQuery] = useState(false);
+
   const [editableQuery, setEditableQuery] = useState(query);
   const [isAllCopied, setIsAllCopied] = useState(false);
   const [isHighlightedCopied, setIsHighlightedCopied] = useState(false);
   const [copyHighlightedMode, setCopyHighlightedMode] = useState<number>(0);
   const [copyHighlightedToast, setCopyHighlightedToast] = useState<string>('');
+  const [isShareCopied, setIsShareCopied] = useState(false);
   
-  // Dhikr State
-  const [isDhikrModalOpen, setIsDhikrModalOpen] = useState(false);
-  const [dhikrRepeatAyah, setDhikrRepeatAyah] = useState<number>(3);
-  const [dhikrRepeatPlaylist, setDhikrRepeatPlaylist] = useState<number>(1);
-  const [dhikrDelay, setDhikrDelay] = useState<number>(0);
-  
+
   // Consume Settings from Context
-  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, activeEditions, fontSize, copyTextFormat, copyCitationFormat, showMuqattaatInSearch } = useSettingsContext();
+  const { displayEdition, fontStyle, selectedAudioEdition, setSelectedAudioEdition, fontSize, copyTextFormat, copyCitationFormat } = useSettingsContext();
 
   const itemRefs = useRef<React.RefObject<HTMLLIElement>[]>([]);
   
@@ -104,10 +97,6 @@ export const SearchView: React.FC<SearchViewProps> = ({
       return {};
     }
   }, [queryParams]);
-
-  const [filterSortOrder, setFilterSortOrder] = useState<'alpha' | 'freq'>(initialFilters.sort || 'alpha');
-  const [filterActiveTab, setFilterActiveTab] = useState<'phrases' | 'diacritics'>(initialFilters.tab || 'diacritics');
-  const [isShareCopied, setIsShareCopied] = useState(false);
 
   // Pagination / Batching for super-fast DOM rendering on frequent queries (like "الله")
   const INITIAL_BATCH_SIZE = 30;
@@ -171,12 +160,6 @@ export const SearchView: React.FC<SearchViewProps> = ({
       if (activeDiacriticFilter && activeDiacriticFilter.trim() !== '') {
         params.set('diacritic', activeDiacriticFilter);
       }
-      if (filterSortOrder && filterSortOrder !== 'alpha') {
-        params.set('sort', filterSortOrder);
-      }
-      if (filterActiveTab && filterActiveTab !== 'phrases') {
-        params.set('tab', filterActiveTab);
-      }
 
       const queryString = params.toString();
       const newHash = queryString ? `${pathPart}?${queryString}` : pathPart;
@@ -190,8 +173,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   }, [
     query, correctedQuery,
     searchType, isRootSearch, targetSurahNumber, position,
-    exactMatch, activePhraseFilter, activeDiacriticFilter,
-    filterSortOrder, filterActiveTab
+    exactMatch, activePhraseFilter, activeDiacriticFilter
   ]);
 
   const handleShareSearch = useCallback(() => {
@@ -253,6 +235,30 @@ export const SearchView: React.FC<SearchViewProps> = ({
     return filteredResults.slice(0, visibleCount);
   }, [filteredResults, visibleCount]);
 
+  // Muqatta'at statistics calculation for 29 surahs
+  const allMuqattaatStats = useMemo(() => {
+    return computeMuqattaatStats(
+      muqattaatSourceResults || displayedResults,
+      displayedResults,
+      correctedQuery || query,
+      exactMatch,
+      activeMuqattaatFilter,
+      activePhraseFilter,
+      activeDiacriticFilter,
+      effectiveEditionData
+    );
+  }, [
+    muqattaatSourceResults, 
+    displayedResults, 
+    correctedQuery, 
+    query, 
+    exactMatch, 
+    activeMuqattaatFilter, 
+    activePhraseFilter, 
+    activeDiacriticFilter, 
+    effectiveEditionData
+  ]);
+
   // Infinite scroll trigger via IntersectionObserver
   useEffect(() => {
     if (visibleCount >= filteredResults.length) return;
@@ -275,11 +281,6 @@ export const SearchView: React.FC<SearchViewProps> = ({
       if (currentSentinel) observer.unobserve(currentSentinel);
     };
   }, [visibleCount, filteredResults.length]);
-
-  const normalizedQueryForDiscussion = useMemo(() => {
-    if (searchType === 'number') return `topic:ayah-number:${query}`;
-    return normalizeArabicText(correctedQuery || query);
-  }, [query, correctedQuery, searchType]);
 
   useEffect(() => { setEditableQuery(query); }, [query]);
   useEffect(() => { onSearchComplete(); }, [results, onSearchComplete]);
@@ -321,41 +322,10 @@ export const SearchView: React.FC<SearchViewProps> = ({
     }
   }, [currentlyPlayingAyahGlobalNumber, displayedResults, visibleCount]);
 
-  const handleJumpToOccurrence = (target: number) => {
-    const occurrence = occurrencesMap[target - 1];
-    if (occurrence) {
-        if (occurrence.itemIndex >= visibleCount) {
-            setVisibleCount(occurrence.itemIndex + 20);
-        }
-        setTimeout(() => {
-            if (itemRefs.current[occurrence.itemIndex]?.current) {
-                const element = itemRefs.current[occurrence.itemIndex].current;
-                element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setPulsingWord({ itemIndex: occurrence.itemIndex, wordIndex: occurrence.wordIndex });
-                setTimeout(() => setPulsingWord(null), 3000);
-            }
-        }, 100);
-    }
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedQuery = editableQuery.trim();
-    if (trimmedQuery && trimmedQuery !== query) onNewSearch(trimmedQuery, undefined, undefined, isRootSearch);
-  };
-
   const handleSaveSearch = () => {
     const queryToSave = correctedQuery || query;
     if (queryToSave) onSaveSearch({ type: 'search', id: queryToSave, query: queryToSave, createdAt: Date.now() });
   };
-  
-  
-
-  const deferredResults = useDeferredValue(results);
-
-  
-
-  
 
   const handleCopyAll = () => {
     const textToCopy = formatResultsForExport(displayEditionData);
@@ -365,7 +335,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     });
   };
 
-    const handleCopyHighlightedWords = () => {
+  const handleCopyHighlightedWords = () => {
     if (phraseFilters.length === 0) return;
     let textToCopy = '';
     let toastMsg = '';
@@ -421,20 +391,6 @@ export const SearchView: React.FC<SearchViewProps> = ({
     }
   };
 
-  const handlePlayAllAsDhikr = () => {
-    setIsDhikrModalOpen(true);
-  };
-
-  const handleStartDhikrPlayback = () => {
-    if (displayedResults.length > 0) {
-      onStartPlayback(displayedResults, selectedAudioEdition, 0, {
-        isExplicitPlaylist: true,
-        repeatAyahTarget: dhikrRepeatAyah,
-        repeatPlaylistTarget: dhikrRepeatPlaylist,
-        delaySeconds: dhikrDelay,
-      });
-    }
-  };
 
   const handlePlaySingleAyah = useCallback((index: number) => {
     if (displayedResults.length > 0) {
@@ -484,6 +440,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         setActivePopover(null);
     });
   }, [copyTextFormat, copyCitationFormat, fontStyle, simpleCleanData]);
+
   const handleSearchByAyahText = (ayah: Ayah) => {
     const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah!.number);
     const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
@@ -491,6 +448,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     else if (ayah.text) onNewSearch(ayah.text, displayEdition.identifier, { surah: ayah.surah!.number, ayah: ayah.numberInSurah, wordIndex: 0 });
     setActivePopover(null);
   };
+
   const handlePlayFromAyah = (ayah: Ayah) => {
     const listToPlay = displayedResults.length > 0 ? displayedResults : results;
     let startIndex = listToPlay.findIndex(a => 
@@ -506,253 +464,193 @@ export const SearchView: React.FC<SearchViewProps> = ({
   };
 
   return (
-    <div className="animate-fade-in w-full max-w-4xl mx-auto px-2 sm:px-4 overflow-x-hidden">
-      {searchType !== 'number' && (
-          <div className="mb-6 flex flex-col gap-3 max-w-full">
-              <NeighboringWords neighboringWords={neighboringWords} visibleSuggestionsCount={visibleSuggestionsCount} onNeighborClick={(word) => onNewSearch(`${editableQuery.trim()} ${word}`)} onShowMore={handleShowMore}/>
-          </div>
-      )}
-      
-      <main className="bg-surface p-3.5 sm:p-6 md:p-8 rounded-lg shadow-md transition-colors duration-300 w-full max-w-full overflow-hidden">
-        {searchType === 'text' && (
-          <SearchFiltersDrawer 
-            phraseFilters={phraseFilters}
-            activePhraseFilter={activePhraseFilter}
-            setActivePhraseFilter={setActivePhraseFilter}
-            diacriticVariants={diacriticVariants}
-            activeDiacriticFilter={activeDiacriticFilter}
-            setActiveDiacriticFilter={setActiveDiacriticFilter}
-            resultsCount={displayedResults.length}
-            totalResultsCount={baseUnfilteredCount}
-            activeTab={filterActiveTab}
-            onTabChange={setFilterActiveTab}
-            sortOrder={filterSortOrder}
-            onSortOrderChange={setFilterSortOrder}
-          />
-        )}
-        <SearchResultsHeader 
-            searchType={searchType} query={query} correctedQuery={correctedQuery} targetSurahNumber={targetSurahNumber} activeMuqattaatFilter={activeMuqattaatFilter} setActiveMuqattaatFilter={setActiveMuqattaatFilter} showMuqattaatInSearch={showMuqattaatInSearch} baseResults={muqattaatSourceResults}
-            displayedResultsCount={displayedResults.length} resultsCount={displayedResults.length}
-            isSingleWordSearch={isSingleWordSearch} generalOccurrences={generalOccurrences}
-            exactOccurrences={exactOccurrences} exactMatch={exactMatch} setExactMatch={setExactMatch}
-            totalOccurrences={totalOccurrences} onJumpToOccurrence={handleJumpToOccurrence}
-            cachedAnalysisExists={cachedAnalysisExists} onNewSearch={onNewSearch}
-            isRootSearch={isRootSearch}
-            onToggleRootSearch={(val) => onNewSearch(query, undefined, undefined, val)}
-            displayedResults={displayedResults}
-            simpleCleanData={simpleCleanData}
-            activePhraseFilter={activePhraseFilter}
-            activeDiacriticFilter={activeDiacriticFilter}
-            displayEditionData={effectiveEditionData}
-            isDigitSum={isDigitSum}
-            onToggleDigitSum={onToggleDigitSum}
-            targetAyahNumber={targetNumberVal}
+    <div className="animate-fade-in w-full max-w-4xl mx-auto px-2 sm:px-4 overflow-x-hidden pb-12">
+      {/* 1. Unified Search Command Bar */}
+      <UnifiedSearchHeaderBar
+        searchType={searchType as 'text' | 'number'}
+        query={query}
+        correctedQuery={correctedQuery}
+        targetSurahNumber={targetSurahNumber}
+        displayedResultsCount={filteredResults.length}
+        totalResultsCount={displayedResults.length}
+        isSingleWordSearch={isSingleWordSearch}
+        generalOccurrences={generalOccurrences}
+        exactOccurrences={exactOccurrences}
+        exactMatch={exactMatch}
+        setExactMatch={setExactMatch}
+        isRootSearch={isRootSearch}
+        onToggleRootSearch={(val) => onNewSearch(query, undefined, undefined, val)}
+        isDigitSum={isDigitSum}
+        onToggleDigitSum={onToggleDigitSum}
+        allMuqattaatStats={allMuqattaatStats}
+        activeMuqattaatFilter={activeMuqattaatFilter}
+        onSelectMuqattaatFilter={setActiveMuqattaatFilter}
+        onClearMuqattaatFilter={() => setActiveMuqattaatFilter?.('')}
+        onPlayAll={handlePlayAll}
+        isPlaybackLoading={isPlaybackLoading}
+        onCopyAll={handleCopyAll}
+        isAllCopied={isAllCopied}
+        onDownloadAll={handleDownloadAll}
+        onShareSearch={handleShareSearch}
+        isShareCopied={isShareCopied}
+        onSaveSearch={handleSaveSearch}
+        onCopyHighlightedWords={handleCopyHighlightedWords}
+        isHighlightedCopied={isHighlightedCopied}
+        highlightedWordsCount={phraseFilters.length}
+        copyHighlightedToast={copyHighlightedToast}
+        onNewSearch={(newQ) => onNewSearch(newQ)}
+      />
+
+      {/* 2. Fast Horizontal Filter Capsules (Diacritics / Phrases / Neighbors) */}
+      {searchType === 'text' && (
+        <QuickFilterCapsules
+          query={query}
+          allResults={results}
+          displayedResults={displayedResults}
+          displayEditionData={effectiveEditionData}
+          diacriticVariants={diacriticVariants}
+          activeDiacriticFilter={activeDiacriticFilter}
+          onSelectDiacritic={setActiveDiacriticFilter}
+          phraseFilters={phraseFilters}
+          activePhraseFilter={activePhraseFilter}
+          onSelectPhrase={setActivePhraseFilter}
+          resultsCount={displayedResults.length}
+          totalResultsCount={baseUnfilteredCount}
+          neighboringWords={neighboringWords}
+          onNeighborClick={(word) => onNewSearch(`${editableQuery.trim()} ${word}`)}
         />
-        
-        {results.length > 0 && (
+      )}
+
+      {/* 3. Main Quran Results Stream */}
+      <main className="transition-colors duration-300 w-full max-w-full">
+        {displayedResults.length > 0 ? (
           <>
-            
-
-            <SearchResultsToolbar
-                isPlaybackLoading={isPlaybackLoading} allAudioEditions={ALL_AUDIO_EDITIONS}
-                onPlayAll={handlePlayAll} 
-                onPlayAllAsDhikr={handlePlayAllAsDhikr}
-                selectedAudioEdition={selectedAudioEdition}
-                onAudioEditionChange={setSelectedAudioEdition} searchType={searchType}
-                onSaveSearch={handleSaveSearch} onCopyAll={handleCopyAll}
-                isAllCopied={isAllCopied}
-                onShareSearch={handleShareSearch}
-                isShareCopied={isShareCopied}
-                onCopyHighlightedWords={handleCopyHighlightedWords}
-                isHighlightedCopied={isHighlightedCopied}
-                copyHighlightedMode={copyHighlightedMode}
-                copyHighlightedToast={copyHighlightedToast}
-                highlightedWordsCount={phraseFilters.length}
-                onDownloadAll={handleDownloadAll}
-            />
-          </>
-        )}
-        
-        {/* In-Results Live Filter Bar & Match Status */}
-        {displayedResults.length > 0 && (
-          <div className="mt-4 mb-2 space-y-2">
-            <div className="relative flex items-center bg-surface p-2 sm:p-2.5 rounded-xl border border-border-default shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                <SearchIcon className="w-4 h-4 text-primary shrink-0 ml-2" />
-                <input
-                    type="text"
-                    value={inResultsFilter}
-                    onChange={(e) => setInResultsFilter(e.target.value)}
-                    placeholder="تصفية فورية وتظليل داخل النتائج الحالية (مثال: الجنة، النار، الأيكة)..."
-                    className="w-full bg-transparent border-none text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
-                    aria-label="تصفية فورية في النتائج الحالية"
-                />
-                {inResultsFilter && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setInResultsFilter('');
-                            window.dispatchEvent(new CustomEvent('quran-live-search', { detail: { query: '' } }));
-                        }}
-                        className="px-2.5 py-1 rounded-lg text-text-muted hover:text-red-500 hover:bg-surface-hover transition-colors text-xs font-bold cursor-pointer"
-                        title="إلغاء التصفية وعرض كل النتائج"
-                    >
-                        ✕ مسح
-                    </button>
-                )}
-            </div>
-
-            {inResultsFilter.trim() && (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm animate-fade-in flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1.5">
-                            <span>🔍 تصفية نشطة:</span>
-                            <span className="px-2 py-0.5 rounded-md bg-surface border border-emerald-500/30 text-text-primary font-bold">
-                                "{inResultsFilter}"
-                            </span>
-                        </span>
-                        <span className="text-text-secondary font-semibold font-mono">
-                            ({filteredResults.length} من أصل {displayedResults.length} آية)
-                        </span>
-                        <span className="text-xs text-text-muted hidden md:inline">
-                            • الكلمات معلمة ومظللة بالأخضر الفاقع
-                        </span>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setInResultsFilter('');
-                            window.dispatchEvent(new CustomEvent('quran-live-search', { detail: { query: '' } }));
-                        }}
-                        className="px-3 py-1 rounded-lg bg-surface text-red-600 dark:text-red-400 hover:bg-red-500/10 border border-border-default font-bold text-xs cursor-pointer transition-colors"
-                    >
-                        إلغاء التصفية
-                    </button>
+            {filteredResults.length === 0 ? (
+              <div className="p-8 text-center bg-surface border border-border-default rounded-2xl space-y-3 shadow-xs">
+                <div className="text-3xl">🔍</div>
+                <div className="text-base font-bold text-text-primary">
+                  لا توجد آيات تحتوي على "{inResultsFilter}" ضمن نتائج البحث الحالية عن "{query}"
                 </div>
+                <p className="text-xs text-text-muted">
+                  يمكنك إلغاء التصفية للعودة لكافة النتائج ({displayedResults.length} آية)، أو الضغط على مفتاح الإدخال للبحث عنها في كامل المصحف الشريف.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setInResultsFilter('')}
+                  className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover transition-colors cursor-pointer"
+                >
+                  إلغاء التصفية وعرض كل النتائج
+                </button>
+              </div>
+            ) : (
+              <ul className="space-y-3.5">
+                {paginatedResults.map((ayah, index) => {
+                  const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah?.number);
+                  const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
+                  return (
+                    <SearchResultItem
+                      key={ayah.number}
+                      itemRef={itemRefs.current[index]}
+                      ayah={ayah}
+                      queryWords={searchType === 'number' ? [] : queryWords}
+                      currentQuery={query}
+                      onNewSearch={onNewSearch}
+                      displayEdition={displayEdition}
+                      displayEditionData={displayEditionData}
+                      searchEdition={searchEdition}
+                      imlaeiSimpleData={imlaeiSimpleData}
+                      simpleCleanData={simpleCleanData}
+                      fontSize={fontSize}
+                      fontStyle={fontStyle}
+                      searchType={searchType}
+                      isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
+                      isPlaybackLoading={isPlaybackLoading}
+                      pulsingWordIndex={pulsingWord?.itemIndex === index ? pulsingWord.wordIndex : -1}
+                      resultIndex={index}
+                      simpleAyahText={simpleAyah?.text || ''}
+                      onUthmaniWordClick={handleUthmaniWordClick}
+                      onSaveAyah={handleSaveClick}
+                      onCopyAyah={handleCopyAyah}
+                      onPlayAyah={handlePlaySingleAyah}
+                      copiedAyah={copiedAyah}
+                      isDigitSum={isDigitSum}
+                      targetAyahNumber={targetNumberVal}
+                      inResultsFilter={inResultsFilter}
+                      activeDiacriticFilter={activeDiacriticFilter}
+                      activePhraseFilter={activePhraseFilter}
+                      exactMatch={exactMatch}
+                    />
+                  );
+                })}
+              </ul>
             )}
+
+            {/* Seamless Load More Sentinel */}
+            {filteredResults.length > visibleCount && (
+              <div ref={loadMoreSentinelRef} className="mt-6 py-5 px-4 bg-surface border border-border-default rounded-2xl text-center space-y-2 shadow-xs">
+                <div className="text-xs sm:text-sm font-bold text-text-primary">
+                  تم عرض <span className="text-primary font-mono">{visibleCount}</span> من إجمالي <span className="text-primary font-mono">{filteredResults.length}</span> آية
+                </div>
+                <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
+                  <button
+                    onClick={() => setVisibleCount(prev => Math.min(prev + 50, filteredResults.length))}
+                    className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>عرض 50 آية إضافية</span>
+                  </button>
+                  <button
+                    onClick={() => setVisibleCount(filteredResults.length)}
+                    className="px-4 py-2 bg-surface text-text-primary border border-border-default hover:bg-surface-hover rounded-xl text-xs font-semibold active:scale-95 transition-all cursor-pointer shadow-2xs"
+                  >
+                    عرض كل النتائج ({filteredResults.length})
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-center p-12 bg-surface border border-border-default rounded-2xl text-text-muted shadow-xs">
+            لم يتم العثور على نتائج للبحث المحدد.
           </div>
         )}
-
-        <div className="mt-4">
-            {displayedResults.length > 0 ? (
-                <>
-                    {filteredResults.length === 0 ? (
-                        <div className="p-8 text-center bg-surface-subtle border border-border-default rounded-2xl space-y-3">
-                            <div className="text-3xl">🔍</div>
-                            <div className="text-base font-bold text-text-primary">
-                                لا توجد آيات تحتوي على "{inResultsFilter}" ضمن نتائج البحث الحالية عن "{query}"
-                            </div>
-                            <p className="text-xs text-text-muted">
-                                يمكنك إلغاء التصفية للعودة لكافة النتائج ({displayedResults.length} آية)، أو الضغط على مفتاح الإدخال ↵ للبحث عنها في كامل المصحف الشريف.
-                            </p>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setInResultsFilter('');
-                                    window.dispatchEvent(new CustomEvent('quran-live-search', { detail: { query: '' } }));
-                                }}
-                                className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-hover transition-colors cursor-pointer"
-                            >
-                                إلغاء التصفية وعرض كل النتائج
-                            </button>
-                        </div>
-                    ) : (
-                        <ul className="space-y-4">
-                            {paginatedResults.map((ayah, index) => {
-                                const simpleSurah = simpleCleanData.find(s => s.number === ayah.surah?.number);
-                                const simpleAyah = simpleSurah?.ayahs.find(a => a.numberInSurah === ayah.numberInSurah);
-                                return (
-                                    <SearchResultItem 
-                                        key={ayah.number} itemRef={itemRefs.current[index]} ayah={ayah} 
-                                        queryWords={searchType === 'number' ? [] : queryWords} currentQuery={query} onNewSearch={onNewSearch}
-                                        displayEdition={displayEdition} displayEditionData={displayEditionData} searchEdition={searchEdition}
-                                        imlaeiSimpleData={imlaeiSimpleData}
-                                        simpleCleanData={simpleCleanData}
-                                        fontSize={fontSize} fontStyle={fontStyle} searchType={searchType} isCurrentlyPlaying={ayah.number === currentlyPlayingAyahGlobalNumber}
-                                        isPlaybackLoading={isPlaybackLoading}
-                                        pulsingWordIndex={pulsingWord?.itemIndex === index ? pulsingWord.wordIndex : -1} resultIndex={index}
-                                        simpleAyahText={simpleAyah?.text || ''}
-                                        onUthmaniWordClick={handleUthmaniWordClick}
-                                        onSaveAyah={handleSaveClick}
-                                        onCopyAyah={handleCopyAyah}
-                                        onPlayAyah={handlePlaySingleAyah}
-                                        copiedAyah={copiedAyah}
-                                        isDigitSum={isDigitSum}
-                                        targetAyahNumber={targetNumberVal}
-                                        inResultsFilter={inResultsFilter}
-                                        activeDiacriticFilter={activeDiacriticFilter}
-                                        activePhraseFilter={activePhraseFilter}
-                                        exactMatch={exactMatch}
-                                    />
-                               );
-                            })}
-                        </ul>
-                    )}
-
-                    {filteredResults.length > visibleCount && (
-                        <div ref={loadMoreSentinelRef} className="mt-8 py-6 px-4 bg-surface-subtle border border-border-default rounded-2xl text-center space-y-3 shadow-xs">
-                            <div className="text-sm font-bold text-text-primary">
-                                تم عرض <span className="text-primary font-mono">{visibleCount}</span> من إجمالي <span className="text-primary font-mono">{filteredResults.length}</span> آية
-                            </div>
-                            <p className="text-xs text-text-muted">
-                                اسحب للأسفل لعرض المزيد تلقائياً، أو انقر أحد الخيارات التالية:
-                            </p>
-                            <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
-                                <button
-                                    onClick={() => setVisibleCount(prev => Math.min(prev + 50, filteredResults.length))}
-                                    className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-2"
-                                >
-                                    <SearchIcon className="w-4 h-4" />
-                                    <span>عرض 50 آية إضافية</span>
-                                </button>
-                                <button
-                                    onClick={() => setVisibleCount(filteredResults.length)}
-                                    className="px-4 py-2.5 bg-surface text-text-primary border border-border-default hover:bg-surface-hover rounded-xl text-sm font-semibold active:scale-95 transition-all cursor-pointer shadow-2xs"
-                                >
-                                    عرض كل النتائج ({filteredResults.length})
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </>
-            ) : (<div className="text-center p-10 text-lg text-text-muted">لم يتم العثور على نتائج.</div>)}
-        </div>
       </main>
-      
-       {wordPopoverState && (
-         <div ref={wordPopoverRef} className="absolute p-3 bg-surface rounded-lg shadow-lg border border-border-default flex items-center gap-2 z-20 animate-fade-in flex-wrap leading-loose"
-            style={(() => {
-                if (!wordPopoverState.triggerElement) return { opacity: 0, top: 0, left: 0 };
-                const rect = wordPopoverState.triggerElement.getBoundingClientRect();
-                return { top: `${rect.bottom + window.scrollY + 5}px`, left: `${rect.left + window.scrollX + rect.width / 2}px`, transform: 'translateX(-50%)' };
-            })()}
+
+      {/* 4. Advanced Tools Modal (Muqattaat 29-Surah Grid, Dhikr, Export, Digit Sum) */}
+
+      {/* Word Popover for search refinement */}
+      {wordPopoverState && (
+        <div ref={wordPopoverRef} className="absolute p-3 bg-surface rounded-xl shadow-xl border border-border-default flex items-center gap-2 z-20 animate-fade-in flex-wrap leading-loose"
+          style={(() => {
+              if (!wordPopoverState.triggerElement) return { opacity: 0, top: 0, left: 0 };
+              const rect = wordPopoverState.triggerElement.getBoundingClientRect();
+              return { top: `${rect.bottom + window.scrollY + 5}px`, left: `${rect.left + window.scrollX + rect.width / 2}px`, transform: 'translateX(-50%)' };
+          })()}
         >
-            {wordPopoverState.simpleText.split(' ').map((word, wordIndex) => {
-                const originalAyah = displayedResults[wordPopoverState.resultIndex];
-                return (
-                    <button key={wordIndex} onClick={() => { onNewSearch(word, 'quran-simple-clean', { surah: originalAyah.surah!.number, ayah: originalAyah.numberInSurah, wordIndex: wordIndex }); setWordPopoverState(null); }} className="px-2 py-1 bg-surface-subtle rounded-md hover:bg-primary/20 transition-colors">
-                        {word}
-                    </button>
-                );
-            })}
+          {wordPopoverState.simpleText.split(' ').map((word, wordIndex) => {
+              const originalAyah = displayedResults[wordPopoverState.resultIndex];
+              return (
+                  <button key={wordIndex} onClick={() => { onNewSearch(word, 'quran-simple-clean', { surah: originalAyah.surah!.number, ayah: originalAyah.numberInSurah, wordIndex: wordIndex }); setWordPopoverState(null); }} className="px-2.5 py-1 text-xs font-bold bg-surface-subtle hover:bg-primary/20 rounded-lg transition-colors cursor-pointer">
+                      {word}
+                  </button>
+              );
+          })}
         </div>
       )}
 
-       {activePopover && <AyahActionPopover activePopover={activePopover} onClose={() => setActivePopover(null)} onSave={handleSaveClick} onCopy={handleCopyAyah} onSearchText={handleSearchByAyahText} onSearchNumber={onSearchByAyahNumber} onPlayFrom={handlePlayFromAyah} copiedAyah={copiedAyah} />}
-
-       {isDhikrModalOpen && (
-         <DhikrModal
-           isOpen={isDhikrModalOpen}
-           onClose={() => setIsDhikrModalOpen(false)}
-           repeatAyahTarget={dhikrRepeatAyah}
-           setRepeatAyahTarget={setDhikrRepeatAyah}
-           repeatPlaylistTarget={dhikrRepeatPlaylist}
-           setRepeatPlaylistTarget={setDhikrRepeatPlaylist}
-           delaySeconds={dhikrDelay}
-           setDelaySeconds={setDhikrDelay}
-           onStartPlayback={handleStartDhikrPlayback}
-           playlistLength={displayedResults.length}
-         />
-       )}
+      {/* Ayah Action Popover */}
+      {activePopover && (
+        <AyahActionPopover 
+          activePopover={activePopover} 
+          onClose={() => setActivePopover(null)} 
+          onSave={handleSaveClick} 
+          onCopy={handleCopyAyah} 
+          onSearchText={handleSearchByAyahText} 
+          onSearchNumber={onSearchByAyahNumber} 
+          onPlayFrom={handlePlayFromAyah} 
+          copiedAyah={copiedAyah} 
+        />
+      )}
     </div>
   );
 };
+export default SearchView;
