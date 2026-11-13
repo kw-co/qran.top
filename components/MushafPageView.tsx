@@ -87,7 +87,6 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   useEffect(() => {
     if (fontStyle === 'mushaf') {
       injectMushafFontFaces();
-      setIsFontReady(true);
     } else {
       setIsFontReady(false);
     }
@@ -99,13 +98,14 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
     const loadDataAndFont = async () => {
       // Fetch verses data and ensure font for this page is ready simultaneously
-      const [data] = await Promise.all([
+      const [data, fontLoaded] = await Promise.all([
         fetchPageVersesV4(pageNumber),
         ensurePageFontLoaded(pageNumber)
       ]);
 
       if (isMounted) {
         setVerses(data);
+        setIsFontReady(Boolean(fontLoaded));
         setLoading(false);
         // Preload next and previous pages in background for instant flipping
         preloadAdjacentPageFonts(pageNumber);

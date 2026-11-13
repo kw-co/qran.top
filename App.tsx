@@ -13,16 +13,18 @@ import { safeLocalStorage } from './utils/storage';
 import AppRouter from './components/AppRouter';
 import TopProgressBar from './components/TopProgressBar';
 import SidePanel from './components/SidePanel';
-import AudioPlayerBar from './components/AudioPlayerBar';
-import Toolbox from './components/Toolbox';
+import { lazyRetry } from './utils/lazyRetry';
 
 import { ArrowUpIcon, RefreshIcon, WifiOffIcon, ArrowRightIcon, HomeIcon, CheckIcon } from './components/icons';
 import Header from './components/Header';
-import ExternalLinkModal from './components/ExternalLinkModal';
-import DownloadMushafModal from './components/DownloadMushafModal';
-import QuranSymbolInfoModal from './components/QuranSymbolInfoModal';
 import { OpenQuranSymbolModalOptions, findSajdahByAyah } from './data/quranSymbolsData';
 import { tryParseSingleAyahNumber, normalizeDigits, cleanAyahSearchQuery } from './utils/text';
+
+const AudioPlayerBar = lazyRetry(() => import('./components/AudioPlayerBar'));
+const Toolbox = lazyRetry(() => import('./components/Toolbox'));
+const ExternalLinkModal = lazyRetry(() => import('./components/ExternalLinkModal'));
+const DownloadMushafModal = lazyRetry(() => import('./components/DownloadMushafModal'));
+const QuranSymbolInfoModal = lazyRetry(() => import('./components/QuranSymbolInfoModal'));
 
 
 const App: React.FC = () => {
@@ -372,59 +374,65 @@ const App: React.FC = () => {
                         </div>
                     )}
 
-                    {isPageWithToolbox && <Toolbox
-                        isAudioPlayerVisible={!!playbackInfo}
-                        onStartPlayback={handleStartPlayback as (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void}
-                        isPlaybackLoading={!!playbackInfo?.trigger}
-                        currentPath={currentPath}
-                    />}
-                    {externalLinkUrl && <ExternalLinkModal url={externalLinkUrl} onClose={() => setExternalLinkUrl(null)} />}
-                    <DownloadMushafModal 
-                        isOpen={settings.isDownloadMushafModalOpen} 
-                        onClose={settings.closeDownloadMushafModal} 
-                    />
-                    <QuranSymbolInfoModal
-                        isOpen={symbolModalState.isOpen}
-                        onClose={() => setSymbolModalState(prev => ({ ...prev, isOpen: false }))}
-                        initialType={symbolModalState.initialType}
-                        initialSajdahNumber={symbolModalState.initialSajdahNumber}
-                        initialHizbNumber={symbolModalState.initialHizbNumber}
-                        initialQuarterNumber={symbolModalState.initialQuarterNumber}
-                        initialJuzNumber={symbolModalState.initialJuzNumber}
-                        onNavigateToAyah={(surah, ayah) => {
-                            setSymbolModalState(prev => ({ ...prev, isOpen: false }));
-                            window.location.hash = `#/surah/${surah}?ayah=${ayah}`;
-                        }}
-                        onNavigateToPage={(page) => {
-                            setSymbolModalState(prev => ({ ...prev, isOpen: false }));
-                            window.location.hash = `#/page/${page}`;
-                        }}
-                    />
-                    {playbackInfo && <AudioPlayerBar 
-                        playlist={playbackInfo.playlist} 
-                        currentIndex={playbackInfo.currentIndex}
-                        isPlaying={playbackInfo.isPlaying} 
-                        isLoading={!!playbackInfo?.trigger}
-                        onPlayPause={handlePlayPause} 
-                        onPlay={handlePlay} 
-                        onPause={handlePause} 
-                        onNext={handleNext} 
-                        onPrev={handlePrev}
-                        onEnded={handleNext} 
-                        onAyahEnded={handleAyahEnded}
-                        onClose={handleClosePlayback}
-                        audioEdition={selectedAudioEditionDetails}
-                        repeatAyahTarget={repeatAyahTarget}
-                        setRepeatAyahTarget={setRepeatAyahTarget}
-                        currentAyahRepeatCount={currentAyahRepeatCount}
-                        repeatPlaylistTarget={repeatPlaylistTarget}
-                        setRepeatPlaylistTarget={setRepeatPlaylistTarget}
-                        currentPlaylistCycle={currentPlaylistCycle}
-                        delaySeconds={delaySeconds}
-                        setDelaySeconds={setDelaySeconds}
-                        playbackSpeed={playbackSpeed}
-                        setPlaybackSpeed={setPlaybackSpeed}
-                    />}
+                    <React.Suspense fallback={null}>
+                        {isPageWithToolbox && <Toolbox
+                            isAudioPlayerVisible={!!playbackInfo}
+                            onStartPlayback={handleStartPlayback as (ayahs: Ayah[], audioEditionIdentifier: string, startIndex?: number) => void}
+                            isPlaybackLoading={!!playbackInfo?.trigger}
+                            currentPath={currentPath}
+                        />}
+                        {externalLinkUrl && <ExternalLinkModal url={externalLinkUrl} onClose={() => setExternalLinkUrl(null)} />}
+                        {settings.isDownloadMushafModalOpen && (
+                            <DownloadMushafModal 
+                                isOpen={settings.isDownloadMushafModalOpen} 
+                                onClose={settings.closeDownloadMushafModal} 
+                            />
+                        )}
+                        {symbolModalState.isOpen && (
+                            <QuranSymbolInfoModal
+                                isOpen={symbolModalState.isOpen}
+                                onClose={() => setSymbolModalState(prev => ({ ...prev, isOpen: false }))}
+                                initialType={symbolModalState.initialType}
+                                initialSajdahNumber={symbolModalState.initialSajdahNumber}
+                                initialHizbNumber={symbolModalState.initialHizbNumber}
+                                initialQuarterNumber={symbolModalState.initialQuarterNumber}
+                                initialJuzNumber={symbolModalState.initialJuzNumber}
+                                onNavigateToAyah={(surah, ayah) => {
+                                    setSymbolModalState(prev => ({ ...prev, isOpen: false }));
+                                    window.location.hash = `#/surah/${surah}?ayah=${ayah}`;
+                                }}
+                                onNavigateToPage={(page) => {
+                                    setSymbolModalState(prev => ({ ...prev, isOpen: false }));
+                                    window.location.hash = `#/page/${page}`;
+                                }}
+                            />
+                        )}
+                        {playbackInfo && <AudioPlayerBar 
+                            playlist={playbackInfo.playlist} 
+                            currentIndex={playbackInfo.currentIndex}
+                            isPlaying={playbackInfo.isPlaying} 
+                            isLoading={!!playbackInfo?.trigger}
+                            onPlayPause={handlePlayPause} 
+                            onPlay={handlePlay} 
+                            onPause={handlePause} 
+                            onNext={handleNext} 
+                            onPrev={handlePrev}
+                            onEnded={handleNext} 
+                            onAyahEnded={handleAyahEnded}
+                            onClose={handleClosePlayback}
+                            audioEdition={selectedAudioEditionDetails}
+                            repeatAyahTarget={repeatAyahTarget}
+                            setRepeatAyahTarget={setRepeatAyahTarget}
+                            currentAyahRepeatCount={currentAyahRepeatCount}
+                            repeatPlaylistTarget={repeatPlaylistTarget}
+                            setRepeatPlaylistTarget={setRepeatPlaylistTarget}
+                            currentPlaylistCycle={currentPlaylistCycle}
+                            delaySeconds={delaySeconds}
+                            setDelaySeconds={setDelaySeconds}
+                            playbackSpeed={playbackSpeed}
+                            setPlaybackSpeed={setPlaybackSpeed}
+                        />}
+                    </React.Suspense>
                     {showScroll && (
                         <button 
                             onClick={scrollToTop} 

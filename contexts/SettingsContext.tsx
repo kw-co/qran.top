@@ -45,6 +45,7 @@ interface SettingsContextType {
     isDownloadingFonts: boolean;
     setIsDownloadingFonts: (isDownloading: boolean) => void;
     isMushafDownloaded: boolean;
+    mushafCachedPagesCount: number;
     checkFonts: () => Promise<boolean>;
     removeMushafFonts: () => Promise<void>;
     cancelFontDownload: () => void;

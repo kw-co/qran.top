@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { QuranEdition, FontSize, FontStyleType, WordClickBehavior, MushafType, CopyTextFormat, CopyCitationFormat, CopyMultiFormat, MushafFrameStyle, AyahHighlightDuration } from '../types';
-import { downloadAllMushafFonts, checkMushafFontsDownloaded } from '../utils/mushafFonts';
+import { downloadAllMushafFonts, checkMushafFontsDownloaded, startSilentTrickleDownloadMushaf, getMushafCachedPagesCount } from '../utils/mushafFonts';
 
 const QURAN_EDITION_KEY = 'qran_app_edition';
 const FONT_SIZE_KEY = 'qran_app_font_size';
@@ -234,16 +234,31 @@ export const useSettings = () => {
         () => safeGetItem(DOWNLOADING_FONTS_KEY, 'false') === 'true'
     );
     const [isMushafDownloaded, setIsMushafDownloaded] = useState<boolean>(false);
+    const [mushafCachedPagesCount, setMushafCachedPagesCount] = useState<number>(0);
     const abortControllerRef = useRef<AbortController | null>(null);
 
     const checkFonts = useCallback(async () => {
-        const downloaded = await checkMushafFontsDownloaded();
+        const count = await getMushafCachedPagesCount();
+        setMushafCachedPagesCount(count);
+        const downloaded = count >= 604 || await checkMushafFontsDownloaded();
         setIsMushafDownloaded(downloaded);
         return downloaded;
     }, []);
 
     useEffect(() => {
-        checkFonts();
+        let isMounted = true;
+        checkFonts().then((alreadyDone) => {
+            if (!isMounted || alreadyDone) return;
+            // Automatically and silently trickle-download Madinah Mushaf pages in the background
+            startSilentTrickleDownloadMushaf((cachedCount, isComplete) => {
+                if (!isMounted) return;
+                setMushafCachedPagesCount(cachedCount);
+                if (isComplete) {
+                    setIsMushafDownloaded(true);
+                }
+            });
+        });
+        return () => { isMounted = false; };
     }, [checkFonts]);
 
     const cancelFontDownload = useCallback(() => {
@@ -265,7 +280,10 @@ export const useSettings = () => {
         
         try {
             await downloadAllMushafFonts(
-                (progress) => setFontDownloadProgress(progress),
+                (progress) => {
+                    setFontDownloadProgress(progress);
+                    setMushafCachedPagesCount(Math.min(604, Math.round((progress / 100) * 604)));
+                },
                 abortControllerRef.current.signal
             );
             // Finished successfully
@@ -273,6 +291,7 @@ export const useSettings = () => {
             setFontDownloadProgress(-1);
             safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
             setIsMushafDownloaded(true);
+            setMushafCachedPagesCount(604);
             
             // Auto-activate mushaf mode
             setFontStyle('mushaf');
@@ -293,6 +312,7 @@ export const useSettings = () => {
         const { deleteMushafFonts } = await import('../utils/mushafFonts');
         await deleteMushafFonts();
         setIsMushafDownloaded(false);
+        setMushafCachedPagesCount(0);
         setFontDownloadProgress(-1);
         safeSetItem(DOWNLOADING_FONTS_KEY, 'false');
         if (fontStyle === 'mushaf') {
@@ -374,6 +394,7 @@ export const useSettings = () => {
         fontDownloadProgress, setFontDownloadProgress,
         isDownloadingFonts, setIsDownloadingFonts,
         isMushafDownloaded,
+        mushafCachedPagesCount,
         checkFonts,
         removeMushafFonts,
         cancelFontDownload, startFontDownload,

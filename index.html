@@ -8,7 +8,7 @@
       
       // Safe version check for PWA updates
       (function() {
-        const APP_BUILD_VER = '1.0.12';
+        const APP_BUILD_VER = '1.2.2';
         try {
           const storedVer = localStorage.getItem('qran_app_build_version');
           if (!storedVer) {
@@ -18,8 +18,13 @@
       })();
     </script>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='50' font-family='Amiri Quran, serif' font-size='90' text-anchor='middle' dominant-baseline='central' fill='%2322c55e'%3E۞%3C/text%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="الباحث" />
     <title>الباحث</title>
     
     <!-- PWA Manifest & Theme Color -->
@@ -59,7 +64,7 @@
     }
     </script>
 
-    <!-- Step 1: Immediately set theme class if needed to prevent FOUC. Must be first. -->
+    <!-- Step 1: Immediately set theme class if needed to prevent FOUC and cleanup dev SW. Must be first. -->
     <script>
       (function() {
         const availableThemes = ['light', 'dark', 'duha', 'isha'];
@@ -67,7 +72,7 @@
         try {
             storedTheme = localStorage.getItem('theme');
         } catch (e) {}
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         let themeToSet = 'light'; // Default light theme
         
         if (storedTheme && availableThemes.includes(storedTheme)) {
@@ -83,8 +88,168 @@
         if (['dark', 'isha'].includes(themeToSet)) {
             document.documentElement.classList.add('dark');
         }
+
+        // In AI Studio Preview / Dev environments (*.run.app, localhost), unregister Service Workers
+        // so they never swallow Cloud Run 302 auth redirects or serve stale Vite dev modules.
+        const host = window.location.hostname;
+        const isPreviewEnv = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.run.app') || host.endsWith('.googleusercontent.com');
+        if (isPreviewEnv && 'serviceWorker' in navigator) {
+          const hadController = !!navigator.serviceWorker.controller;
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            if (regs && regs.length > 0) {
+              Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
+                if ('caches' in window) {
+                  caches.keys().then(function(keys) {
+                    keys.forEach(function(k) {
+                      if (k.indexOf('static') !== -1) caches.delete(k);
+                    });
+                  });
+                }
+                if (hadController && !sessionStorage.getItem('qran_sw_cleared_reload')) {
+                  sessionStorage.setItem('qran_sw_cleared_reload', '1');
+                  window.location.reload();
+                }
+              });
+            }
+          }).catch(function() {});
+        }
       })();
     </script>
+
+    <!-- Inline Critical CSS for Static Loader so it renders styled immediately before JS/CSS bundles finish -->
+    <style>
+      :root, .theme-light {
+        --color-background: #FAF7F2;
+        --color-surface-subtle: #F5F1EA;
+        --color-text-primary: #2A2521;
+        --color-text-secondary: #544E48;
+        --color-text-muted: #7C746C;
+        --color-primary: #15803D;
+        --color-border-subtle: #F2ECE2;
+      }
+      .theme-dark {
+        --color-background: #0F172A;
+        --color-surface-subtle: #182232;
+        --color-text-primary: #F8FAFC;
+        --color-text-secondary: #CBD5E1;
+        --color-text-muted: #94A3B8;
+        --color-primary: #10B981;
+        --color-border-subtle: #1E293B;
+      }
+      .theme-duha {
+        --color-background: #F8FAFC;
+        --color-surface-subtle: #F8FAFC;
+        --color-text-primary: #0F172A;
+        --color-text-secondary: #334155;
+        --color-text-muted: #64748B;
+        --color-primary: #2563EB;
+        --color-border-subtle: #F1F5F9;
+      }
+      .theme-isha {
+        --color-background: #111614;
+        --color-surface-subtle: #171D1A;
+        --color-text-primary: #E8EBE4;
+        --color-text-secondary: #B8C0B4;
+        --color-text-muted: #8A9586;
+        --color-primary: #D97706;
+        --color-border-subtle: #1F2823;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--color-background);
+        color: var(--color-text-primary);
+        font-family: 'Tajawal', system-ui, -apple-system, sans-serif;
+      }
+      .static-loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background-color: var(--color-background);
+        color: var(--color-text-primary);
+        padding: 1.5rem;
+        box-sizing: border-box;
+        text-align: center;
+        opacity: 1;
+        transition: opacity 0.3s ease-out;
+        user-select: none;
+        font-family: 'Tajawal', system-ui, -apple-system, sans-serif;
+      }
+      .loader-star-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 6rem;
+        height: 6rem;
+        margin-bottom: 1.5rem;
+      }
+      .loader-star-aura {
+        position: absolute;
+        inset: 0.5rem;
+        border-radius: 1rem;
+        background-color: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        transform: rotate(45deg);
+        animation: spinSlow 12s linear infinite;
+      }
+      .loader-star-aura-inner {
+        position: absolute;
+        inset: 0.5rem;
+        border-radius: 1rem;
+        background-color: rgba(34, 197, 94, 0.05);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        transform: rotate(-12deg);
+      }
+      .loader-star-char {
+        position: relative;
+        font-size: 3.75rem;
+        color: var(--color-primary);
+        font-family: 'Scheherazade New', 'Amiri Quran', serif;
+        font-weight: bold;
+        line-height: 1;
+      }
+      .loader-brand-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: var(--color-text-primary);
+        margin-bottom: 0.25rem;
+      }
+      .loader-brand-sub {
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+        margin-bottom: 1.5rem;
+      }
+      .loader-status-text {
+        font-size: 0.85rem;
+        color: var(--color-text-secondary);
+        padding: 0.5rem 1rem;
+        background-color: var(--color-surface-subtle);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: 0.75rem;
+      }
+      .loader-retry-btn {
+        display: none;
+        margin-top: 1.25rem;
+        padding: 0.6rem 1.25rem;
+        background-color: var(--color-primary);
+        color: #ffffff;
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+      @keyframes spinSlow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,11 +257,11 @@
     <noscript>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Amiri+Quran&family=Scheherazade+New:wght@400;700&family=Tajawal:wght@400;500;700&display=swap">
     </noscript>
-  
+    <link rel="stylesheet" href="/index.css" />
   </head>
   <body>
     <!-- Static loader to prevent blank screen before React mounts -->
-    <div class="static-loader">
+    <div class="static-loader" id="static-loader">
       <div class="loader-star-box">
         <div class="loader-star-aura"></div>
         <div class="loader-star-aura-inner"></div>
@@ -104,11 +269,44 @@
       </div>
       <div class="loader-brand-title">الباحث</div>
       <div class="loader-brand-sub">رفيقك الأمثل لتدبر القرآن الكريم</div>
-      <div class="loader-status-text">جاري تحضير المصحف الشريف...</div>
+      <div class="loader-status-text" id="loader-status-text">جاري تحضير المصحف الشريف...</div>
+      <button type="button" class="loader-retry-btn" id="loader-retry-btn" onclick="window.__qranForceReload && window.__qranForceReload()">
+        تحديث وإعادة المحاولة
+      </button>
     </div>
 
     <div id="root"></div>
     
+    <script>
+      window.__qranForceReload = function() {
+        try {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
+            });
+          }
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              keys.forEach(function(k) {
+                if (k.indexOf('static') !== -1) caches.delete(k);
+              });
+            });
+          }
+        } catch (e) {}
+        setTimeout(function() {
+          window.location.reload();
+        }, 150);
+      };
+
+      // Show retry button if initial bundle takes longer than 8 seconds on slow mobile network
+      setTimeout(function() {
+        var loader = document.getElementById('static-loader');
+        var btn = document.getElementById('loader-retry-btn');
+        if (loader && btn) {
+          btn.style.display = 'inline-block';
+        }
+      }, 8000);
+    </script>
     <script type="module" src="/index.tsx"></script>
     <noscript>
       <p>This application requires JavaScript to run. Please enable it in your browser settings.</p>

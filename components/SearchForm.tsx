@@ -16,7 +16,7 @@ interface PermissionModalState {
     message: string;
 }
 
-const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, initialQuery = '', placeholder = 'ابحث في القرآن الكريم... (مثال: الصلاة، الزكاة)', buttonText = 'بحث' }) => {
+const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, initialQuery = '', placeholder = 'ابحث في المصحف الشريف...', buttonText = 'بحث' }) => {
         const [query, setQuery] = useState(initialQuery);
     const [isListening, setIsListening] = useState(false);
     const [modalState, setModalState] = useState<PermissionModalState>({ show: false, type: 'request', title: '', message: '' });
@@ -217,7 +217,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, ini
 
     return (
         <>
-                        <form onSubmit={handleSubmit} className="flex-grow w-full max-w-xl flex items-center relative">
+            <form onSubmit={handleSubmit} className="flex-grow w-full max-w-xl flex items-center relative">
                 <div className="relative w-full">
                     <input
                         id="search-quran-input"
@@ -227,17 +227,17 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, disabled = false, ini
                         value={query}
                         onChange={(e) => handleInputChange(e.target.value)}
                         onFocus={() => setShowDropdown(true)}
-                        placeholder={disabled ? "جاري تحميل بيانات البحث..." : placeholder}
-                        className="w-full text-base h-10 pl-14 pr-4 bg-surface border-2 border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                        placeholder={disabled ? "جاري التحميل..." : placeholder}
+                        className="w-full text-sm sm:text-base h-9 sm:h-10 pl-12 sm:pl-14 pr-3 sm:pr-4 bg-surface-subtle hover:bg-surface border border-border-default/70 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                         aria-label="بحث في المصحف الشريف"
                         disabled={disabled}
                     />
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <div className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 sm:gap-1">
                         <button type="button" onClick={handleVoiceSearch} className={`p-1 text-text-subtle rounded-full ${isListening ? 'text-red-500 animate-pulse-mic' : 'hover:text-primary'} disabled:opacity-50 disabled:cursor-not-allowed`} aria-label="بحث صوتي" title="بحث صوتي" disabled={disabled}>
-                            <MicrophoneIcon className="w-4 h-4" />
+                            <MicrophoneIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
                         <button type="submit" className="p-1 text-text-subtle hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed" aria-label="بحث" disabled={disabled}>
-                            <SearchIcon className="w-4 h-4" />
+                            <SearchIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
                     </div>
                 </div>

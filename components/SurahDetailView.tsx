@@ -3,7 +3,7 @@ import { ShamarlyPageView } from "./ShamarlyPageView";
 import { getShamarlyPageForAyah } from "../data/shamarlyIndex";
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { SurahData, SavedAyahItem, Ayah } from '../types';
-import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, SparklesIcon, ShareIcon, DocumentDuplicateIcon, DownloadIcon, ArrowUpTrayIcon, AncientManuscriptIcon } from './icons';
+import { SpinnerIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CopyIcon, SparklesIcon, ShareIcon, DocumentDuplicateIcon, DownloadIcon, ArrowUpTrayIcon, AncientManuscriptIcon, UthmaniScriptIcon, MadinahMushafIcon, ShamarlyMushafIcon } from './icons';
 import { safeLocalStorage } from '../utils/storage';
 import AyahActionPopover from './AyahActionPopover';
 import AyahRenderer from './AyahRenderer';
@@ -164,7 +164,7 @@ ${fullText}`;
   const prevHighlightAyahNumber = useRef<number | null>(null);
 
   // Consume Settings from Context
-  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar, mushafFrameStyle, mushafType, setMushafType, hideMushafFrames, ayahHighlightDuration } = useSettingsContext();
+  const { displayEdition, fontSize, fontStyle, setFontStyle, setSelectedEdition, copyTextFormat, copyCitationFormat, copyMultiFormat, showBottomNavBar, mushafFrameStyle, mushafType, setMushafType, hideMushafFrames, ayahHighlightDuration, isShamarlyDownloaded, enableShamarlyInHeader } = useSettingsContext();
   const researchData = useResearchData();
 
   // Manage temporary or permanent ayah highlight based on settings
@@ -692,8 +692,79 @@ ${fullText}`;
     setActivePopover(null);
   };
 
+  const isUthmaniActive = fontStyle !== 'mushaf';
+  const isMadinahActive = fontStyle === 'mushaf' && mushafType === 'madinah';
+  const isShamarlyActive = fontStyle === 'mushaf' && mushafType === 'shamarly';
+
+  const handleSelectUthmani = () => {
+    setFontStyle('uthmani');
+    setSelectedEdition('quran-uthmani-quran-academy');
+  };
+
+  const handleSelectMadinah = () => {
+    setMushafType('madinah');
+    setFontStyle('mushaf');
+    setSelectedEdition('quran-uthmani-quran-academy');
+  };
+
+  const handleSelectShamarly = () => {
+    setMushafType('shamarly');
+    setFontStyle('mushaf');
+    setSelectedEdition('quran-uthmani-quran-academy');
+  };
+
   return (
     <div className="animate-fade-in w-full max-w-4xl mx-auto px-4">
+      {/* Unified Reading Mode Segmented Switcher (Inside Reading Page Only) */}
+      <div className="flex items-center justify-center mb-2 pt-1 select-none" dir="rtl">
+        <div
+          className="inline-flex items-center bg-surface-subtle p-1 rounded-xl border border-border-default/80 shadow-xs gap-1"
+          role="group"
+          aria-label="نمط عرض المصحف"
+        >
+          <button
+            type="button"
+            onClick={handleSelectUthmani}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all cursor-pointer active:scale-95 ${
+              isUthmaniActive
+                ? 'bg-primary text-white font-bold shadow-xs'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover font-medium'
+            }`}
+          >
+            <UthmaniScriptIcon className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>الرسم العثماني</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSelectMadinah}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all cursor-pointer active:scale-95 ${
+              isMadinahActive
+                ? 'bg-primary text-white font-bold shadow-xs'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover font-medium'
+            }`}
+          >
+            <MadinahMushafIcon className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>مصحف المدينة</span>
+          </button>
+
+          {(isShamarlyDownloaded || enableShamarlyInHeader) && (
+            <button
+              type="button"
+              onClick={handleSelectShamarly}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-all cursor-pointer active:scale-95 ${
+                isShamarlyActive
+                  ? 'bg-primary text-white font-bold shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover font-medium'
+              }`}
+            >
+              <ShamarlyMushafIcon className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>مصحف الشمرلي</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="rounded-lg">
         {fontStyle === 'mushaf' ? (
             mushafType === 'shamarly' ? (

@@ -43,6 +43,22 @@ export const QuranStructureView: React.FC<QuranStructureViewProps> = () => {
 
     const sections: StructureSection[] = useMemo(() => [
         {
+            id: 'hijazi-calligraphy',
+            title: "مختبر الخط الحجازي ومخطوطات المصاحف المبكرة",
+            description: "محاكي تفاعلي لرسم المصاحف المبكرة بالخط الحجازي اللين المائل (مع تجريد النقط ونقط أبي الأسود الدؤلي الأحمر)، وأطلس كامل لأشكال الحروف الـ 28 عبر المصاحف الخمسة (برلين، برمنجهام، توبنجن، لندن، باريس) والنقوش الحجرية المؤرخة منذ 22 هـ.",
+            icon: <span className="text-2xl font-bold">📜</span>,
+            href: "#/hijazi",
+            category: 'research',
+            categoryName: 'دراسات وبحوث المخطوطات',
+            badge: "دراسة ومحاكي خط حجازي ⚡",
+            highlights: ["محاكي الخط الحجازي اللين", "أطلس الحروف الـ 28 (جدول 1)", "المصاحف الـ 5 والنقوش المؤرخة", "نقط أبي الأسود الأحمر"],
+            bg: "bg-amber-500/10 dark:bg-amber-900/15",
+            borderColor: "border-amber-500/40 dark:border-amber-600/50",
+            hoverBorder: "hover:border-amber-500",
+            accentColor: "text-amber-800 dark:text-amber-300",
+            buttonText: "فتح مختبر الخط الحجازي والدراسة ⟵"
+        },
+        {
             id: 'mizan-waw',
             title: "ميزان الحرف الأوسط (ميزان الواو وسائر الحروف الـ 28)",
             description: "البحث في جميع مفردات القرآن الكريم الثلاثية واعتماد حرف الوسط (كالواو أو الألف أو الياء أو أي حرف هجائي) كميزان يكافئ الحرفين الجانبيين (مثل: هود ⟵ هـ = د، قال ⟵ ق = ل)، مع تجميع شبكة المقابلات للأحرف النورانية الـ 14.",

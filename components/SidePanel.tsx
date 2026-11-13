@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, UserCircleIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, CheckIcon, LightBulbIcon, SparklesIcon } from './icons';
+import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, LightBulbIcon, SparklesIcon, CheckIcon, LogoIcon } from './icons';
+import ThemeToggleButton from './ThemeToggleButton';
 import { openExternalLink } from '../utils/navigation';
+import { useSettingsContext } from '../contexts/SettingsContext';
 
 interface SidePanelProps {
     isOpen: boolean;
@@ -41,8 +43,6 @@ const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
             if (outcome === 'accepted') {
                 setDeferredPrompt(null);
             }
-        } else {
-            alert('لتثبيت التطبيق من المتصفح: \nفي هواتف أندرويد (Chrome): اضغط على القائمة (ثلاث نقاط) ثم "تثبيت التطبيق" أو "إضافة للشاشة الرئيسية".\nفي هواتف آيفون (Safari): اضغط على زر المشاركة ثم "إضافة إلى الصفحة الرئيسية".');
         }
         onClose();
     };
@@ -61,11 +61,11 @@ const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
                     </button>
                 </div>
                 <div className="p-5 space-y-4">
-                    <button
-                        onClick={() => {
-                            window.open('https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1', '_blank');
-                            onClose();
-                        }}
+                    <a
+                        href="https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={onClose}
                         className="w-full flex items-center gap-4 p-4 rounded-xl border border-border-default bg-surface-subtle hover:bg-surface-hover transition-colors text-right group"
                     >
                         <div className="p-2 bg-[#22c55e]/10 text-[#22c55e] rounded-full group-hover:scale-110 transition-transform">
@@ -75,7 +75,7 @@ const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
                             <div className="font-bold text-text-primary text-lg">جوجل بلاي (Google Play)</div>
                             <div className="text-sm text-text-secondary">تحميل التطبيق لأجهزة الأندرويد</div>
                         </div>
-                    </button>
+                    </a>
                     
                     <button
                         onClick={handleInstallBrowser}
@@ -102,6 +102,16 @@ const SidePanel: React.FC<SidePanelProps> = ({
 }) => {
     const { promptInstall } = usePWAInstall();
     const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+    const { isMushafDownloaded, mushafCachedPagesCount } = useSettingsContext();
+
+    const handleForceUpdate = () => {
+        const win = window as any;
+        if (typeof win.__qranForceReload === 'function') {
+            win.__qranForceReload();
+        } else {
+            window.location.reload();
+        }
+    };
 
     return (
         <>
@@ -120,39 +130,71 @@ const SidePanel: React.FC<SidePanelProps> = ({
                 aria-label="القائمة الجانبية"
             >
                 <div className="flex flex-col h-full">
+                    {/* Brand & Theme Header Bar inside SidePanel */}
+                    <div className="px-4 py-3.5 border-b border-border-subtle flex items-center justify-between bg-surface-subtle/60">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onNavigate('#/');
+                                onClose();
+                            }}
+                            className="flex items-center gap-2 cursor-pointer focus:outline-none"
+                        >
+                            <LogoIcon className="w-6 h-6 text-primary flex-shrink-0" />
+                            <span className="text-lg font-extrabold text-text-primary tracking-tight">
+                                الباحث
+                            </span>
+                        </button>
+
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium text-text-muted">المظهر</span>
+                            <ThemeToggleButton />
+                        </div>
+                    </div>
+
                     {/* Content */}
-                    <div className="p-4 pt-8">
+                    <div className="p-4 pt-3">
                         <nav className="space-y-1">
                             <NavLink href="#/" icon={<HomeIcon className="w-5 h-5" />} label="الفهرس" onNavigate={onNavigate} isActive={currentPath === '#/'} />
-
+                            <NavLink href="#/history" icon={<BookmarkIcon className="w-5 h-5 text-primary" />} label="الدفتر وسجل القراءة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/history') || currentPath.startsWith('#/saved')} />
                             <NavLink href="#/khatmah" icon={<BookOpenIcon className="w-5 h-5 text-emerald-500" />} label="الختمة الجماعية" onNavigate={onNavigate} isActive={currentPath.startsWith('#/khatmah') || currentPath.startsWith('#/khatmiyah')} />
-                            <NavLink href="#/structure" icon={<SparklesIcon className="w-5 h-5 text-amber-500" />} label="بنية المصحف الشريف" onNavigate={onNavigate} isActive={currentPath.startsWith('#/structure') || currentPath.startsWith('#/mizan') || currentPath.startsWith('#/cipher-lab') || currentPath.startsWith('#/word-geometry') || currentPath.startsWith('#/noorani')} />
-                            
-
-
+                            <NavLink href="#/structure" icon={<SparklesIcon className="w-5 h-5 text-amber-500" />} label="بنية المصحف الشريف" onNavigate={onNavigate} isActive={currentPath.startsWith('#/structure') || currentPath.startsWith('#/hijazi') || currentPath.startsWith('#/mizan') || currentPath.startsWith('#/cipher-lab') || currentPath.startsWith('#/word-geometry') || currentPath.startsWith('#/noorani')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />
                             <NavLink href="#/settings" icon={<CogIcon className="w-5 h-5" />} label="الإعدادات" onNavigate={onNavigate} isActive={currentPath.startsWith('#/settings')} />
 
                             {/* PWA Install Button */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (promptInstall) {
+                            {promptInstall && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
                                         promptInstall();
-                                    } else {
-                                        alert('لتثبيت التطبيق من المتصفح: \nفي هواتف أندرويد (Chrome): اضغط على القائمة (ثلاث نقاط) ثم "تثبيت التطبيق" أو "إضافة للشاشة الرئيسية".\nفي هواتف آيفون (Safari): اضغط على زر المشاركة ثم "إضافة إلى الصفحة الرئيسية".');
-                                    }
-                                    onClose();
-                                }}
-                                className="w-full flex items-center justify-between p-2.5 rounded-lg text-base transition-colors text-text-secondary hover:bg-surface-hover hover:text-primary cursor-pointer text-right group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    <span className="whitespace-nowrap font-medium text-text-primary">تثبيت التطبيق</span>
-                                </div>
-                            </button>
+                                        onClose();
+                                    }}
+                                    className="w-full flex items-center justify-between p-2.5 rounded-lg text-base transition-colors text-text-secondary hover:bg-surface-hover hover:text-primary cursor-pointer text-right group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        <span className="whitespace-nowrap font-medium text-text-primary">تثبيت التطبيق</span>
+                                    </div>
+                                </button>
+                            )}
+
+                            {/* Subtle Offline Status Indicator */}
+                            <div className="mt-3 pt-2.5 border-t border-border-subtle px-2 py-2 rounded-lg bg-surface-subtle/70 text-xs text-text-secondary flex items-center justify-between">
+                                <span className="font-medium">جاهزية العمل بدون إنترنت</span>
+                                {isMushafDownloaded || mushafCachedPagesCount >= 604 ? (
+                                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                                        <CheckIcon className="w-3.5 h-3.5" />
+                                        مكتمل
+                                    </span>
+                                ) : (
+                                    <span className="font-mono text-[11px] text-primary font-semibold" title="يتم تجهيز صفحات مصحف المدينة تلقائياً بالخلفية">
+                                        {mushafCachedPagesCount}/604
+                                    </span>
+                                )}
+                            </div>
 
                             {/* External Links */}
                             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border-subtle">
@@ -215,11 +257,11 @@ const SidePanel: React.FC<SidePanelProps> = ({
                         </div>
                         <div className="flex flex-col items-center gap-1 mt-1">
                             <button 
-                                onClick={() => window.location.reload()}
+                                onClick={handleForceUpdate}
                                 className="text-xs font-mono text-text-muted hover:text-primary transition-colors cursor-pointer select-none flex items-center gap-2 focus:outline-none active:scale-95 p-1"
-                                title="انقر هنا لإعادة تحميل التطبيق وتحديث الإصدار"
+                                title="انقر هنا لتحديث التطبيق ومسح الكاش القديم"
                             >
-                                <span>v1.0.12</span>
+                                <span>v1.2.2 (تحديث فوري)</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>

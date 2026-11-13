@@ -2,12 +2,12 @@ import React from 'react';
 import type { Ayah, SurahData, Collections, SavedItem } from '../types';
 
 import HomeView from './HomeView';
-import SurahDetailView from './SurahDetailView';
-import { SearchView } from './SearchView';
-import HistoryView from './HistoryView';
-import FingerprintToolView from './FingerprintToolView';
 import { lazyRetry } from '../utils/lazyRetry';
 
+const SurahDetailView = lazyRetry(() => import('./SurahDetailView'));
+const SearchView = lazyRetry(() => import('./SearchView'));
+const HistoryView = lazyRetry(() => import('./HistoryView'));
+const FingerprintToolView = lazyRetry(() => import('./FingerprintToolView'));
 const SettingsView = lazyRetry(() => import('./SettingsView'));
 const SavedView = lazyRetry(() => import('./SavedView'));
 const WordAnalysisView = lazyRetry(() => import('./WordAnalysisView'));
@@ -26,6 +26,7 @@ const NooraniReverseCipherView = lazyRetry(() => import('./NooraniReverseCipherV
 const WordSurahGeometryView = lazyRetry(() => import('./WordSurahGeometryView'));
 const NooraniCipherLabView = lazyRetry(() => import('./NooraniCipherLabView'));
 const MizanWawView = lazyRetry(() => import('./MizanWawView'));
+const HijaziCalligraphyView = lazyRetry(() => import('./HijaziCalligraphyView'));
 
 import { QURAN_INDEX } from '../quranIndex';
 import { JUZ_INDEX, HIZB_INDEX } from '../quranPartitions';
@@ -250,6 +251,15 @@ const AppRouter: React.FC<AppRouterProps> = (props) => {
 
     const renderRoute = () => {
         if (isInitialLoading) return null;
+        if (pathParts[0] === 'hijazi' || pathParts[0] === 'hijazi-calligraphy') {
+            return (
+                <HijaziCalligraphyView
+                    simpleCleanData={allQuranData?.['quran-simple-clean'] || (Array.isArray(quranData) ? quranData : [])}
+                    uthmaniData={allQuranData?.['quran-uthmani-quran-academy'] || (Array.isArray(quranData) ? quranData : [])}
+                    onSearch={handleSearch}
+                />
+            );
+        }
         if (pathParts[0] === 'mizan-waw' || pathParts[0] === 'waw-balance' || pathParts[0] === 'mizan') {
             return (
                 <MizanWawView 

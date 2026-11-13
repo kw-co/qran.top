@@ -284,47 +284,172 @@ export async function playSmartWordAudio(
 }
 
 
-export async function fetchPageVersesV4(pageNumber: number): Promise<QuranV4Verse[]> {
+const pageMemoryCache = new Map<number, QuranV4Verse[]>();
+
+function normalizeCachedPageVerses(verses: QuranV4Verse[]): QuranV4Verse[] {
+    verses.forEach(v => {
+        if (!v.text_uthmani && v.words) {
+            v.text_uthmani = v.words
+                .filter(w => w.char_type_name === 'word')
+                .map(w => w.text_uthmani)
+                .filter(Boolean)
+                .join(' ');
+        }
+    });
+    return verses;
+}
+
+/**
+ * Offline fallback synthesizer: constructs a 15-line page structure from local IndexedDB Quran edition
+ * if the user is offline and the v4 page layout has not yet been trickle-cached.
+ */
+async function synthesizeOfflinePageVerses(pageNumber: number): Promise<QuranV4Verse[]> {
     try {
-        const cacheKey = `quran_v4_page_v3_${pageNumber}`;
-        const localCached = localStorage.getItem(cacheKey);
-        if (localCached) {
-            const cachedVerses: QuranV4Verse[] = JSON.parse(localCached);
-            cachedVerses.forEach(v => {
-                if (!v.text_uthmani && v.words) {
-                    v.text_uthmani = v.words
-                        .filter(w => w.char_type_name === 'word')
-                        .map(w => w.text_uthmani)
-                        .filter(Boolean)
-                        .join(' ');
+        const surahs =
+            (await idbGet<any[]>('edition_quran-uthmani-quran-academy')) ||
+            (await idbGet<any[]>('edition_quran-simple-clean'));
+        if (!surahs || !Array.isArray(surahs)) return [];
+
+        const pageAyahs: Array<{ surahNum: number; ayah: any }> = [];
+        for (const surah of surahs) {
+            if (!surah?.ayahs) continue;
+            for (const ayah of surah.ayahs) {
+                if (ayah.page === pageNumber) {
+                    pageAyahs.push({ surahNum: surah.number, ayah });
                 }
-            });
-            return cachedVerses;
+            }
         }
-        
-        const url = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&fields=text_uthmani&word_fields=text_uthmani,location,audio_url,char_type_name,line_number,page_number,code_v1,v1_page`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`API response error: ${res.status}`);
-        
-        const data = await res.json();
-        if (data.verses && data.verses.length > 0) {
-            data.verses.forEach((v: QuranV4Verse) => {
-                if (!v.text_uthmani && v.words) {
-                    v.text_uthmani = v.words
-                        .filter(w => w.char_type_name === 'word')
-                        .map(w => w.text_uthmani)
-                        .filter(Boolean)
-                        .join(' ');
-                }
+
+        if (pageAyahs.length === 0) return [];
+
+        const maxLines = pageNumber === 1 || pageNumber === 2 ? 8 : 15;
+        const allWordsFlat: Array<{ surahNum: number; ayah: any; wordText: string; isEnd: boolean; pos: number }> = [];
+
+        for (const { surahNum, ayah } of pageAyahs) {
+            const rawWords = String(ayah.text || '').trim().split(/\s+/).filter(Boolean);
+            rawWords.forEach((wText, idx) => {
+                allWordsFlat.push({
+                    surahNum,
+                    ayah,
+                    wordText: wText,
+                    isEnd: false,
+                    pos: idx + 1
+                });
             });
-            try {
-                localStorage.setItem(cacheKey, JSON.stringify(data.verses));
-            } catch (e) {}
-            return data.verses;
+            allWordsFlat.push({
+                surahNum,
+                ayah,
+                wordText: ayah.numberInSurah.toLocaleString('ar-EG'),
+                isEnd: true,
+                pos: rawWords.length + 1
+            });
         }
-        return [];
-    } catch (error) {
-        console.warn(`[QuranApiV4] Failed to fetch page ${pageNumber}:`, error);
+
+        const totalTokens = Math.max(1, allWordsFlat.length);
+        const verseMap = new Map<string, QuranV4Verse>();
+        let globalWordId = pageNumber * 10000;
+
+        allWordsFlat.forEach((token, idx) => {
+            const lineNum = Math.min(maxLines, Math.max(1, Math.floor((idx / totalTokens) * maxLines) + 1));
+            const verseKey = `${token.surahNum}:${token.ayah.numberInSurah}`;
+            if (!verseMap.has(verseKey)) {
+                verseMap.set(verseKey, {
+                    id: token.ayah.number || idx + 1,
+                    verse_number: token.ayah.numberInSurah,
+                    verse_key: verseKey,
+                    text_uthmani: token.ayah.text || '',
+                    juz_number: token.ayah.juz || 1,
+                    words: []
+                });
+            }
+            verseMap.get(verseKey)!.words.push({
+                id: ++globalWordId,
+                position: token.pos,
+                text_uthmani: token.wordText,
+                location: `${verseKey}:${token.pos}`,
+                line_number: lineNum,
+                page_number: pageNumber,
+                char_type_name: token.isEnd ? 'end' : 'word'
+            });
+        });
+
+        return Array.from(verseMap.values());
+    } catch {
         return [];
     }
 }
+
+export async function fetchPageVersesV4(pageNumber: number): Promise<QuranV4Verse[]> {
+    if (pageMemoryCache.has(pageNumber)) {
+        return pageMemoryCache.get(pageNumber)!;
+    }
+
+    const cacheKey = `quran_v4_page_v3_${pageNumber}`;
+
+    try {
+        // 1. Check fast IndexedDB first
+        const idbCached = await idbGet<QuranV4Verse[]>(cacheKey);
+        if (idbCached && Array.isArray(idbCached) && idbCached.length > 0) {
+            const normalized = normalizeCachedPageVerses(idbCached);
+            pageMemoryCache.set(pageNumber, normalized);
+            return normalized;
+        }
+
+        // 2. Check legacy localStorage fallback
+        const localCached = localStorage.getItem(cacheKey);
+        if (localCached) {
+            const cachedVerses: QuranV4Verse[] = normalizeCachedPageVerses(JSON.parse(localCached));
+            pageMemoryCache.set(pageNumber, cachedVerses);
+            idbSet(cacheKey, cachedVerses).catch(() => {});
+            return cachedVerses;
+        }
+
+        // 3. If offline, synthesize immediately from local IndexedDB Quran edition
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            return await synthesizeOfflinePageVerses(pageNumber);
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        try {
+            const url = `https://api.quran.com/api/v4/verses/by_page/${pageNumber}?words=true&fields=text_uthmani&word_fields=text_uthmani,location,audio_url,char_type_name,line_number,page_number,code_v1,v1_page`;
+            const res = await fetch(url, { signal: controller.signal });
+            if (!res.ok) throw new Error(`API response error: ${res.status}`);
+
+            const data = await res.json();
+            if (data.verses && data.verses.length > 0) {
+                const normalized = normalizeCachedPageVerses(data.verses);
+                pageMemoryCache.set(pageNumber, normalized);
+                idbSet(cacheKey, normalized).catch(() => {});
+                return normalized;
+            }
+        } finally {
+            clearTimeout(timer);
+        }
+
+        return await synthesizeOfflinePageVerses(pageNumber);
+    } catch (error) {
+        console.warn(`[QuranApiV4] Fallback to offline page synthesis for page ${pageNumber}:`, error);
+        return await synthesizeOfflinePageVerses(pageNumber);
+    }
+}
+
+/**
+ * Silently prefetches and caches a page's v4 word/line layout into IndexedDB for background trickle loading
+ */
+export async function prefetchPageVersesV4Silent(pageNumber: number): Promise<boolean> {
+    if (pageMemoryCache.has(pageNumber)) return true;
+    const cacheKey = `quran_v4_page_v3_${pageNumber}`;
+    try {
+        const existing = await idbGet<QuranV4Verse[]>(cacheKey);
+        if (existing && Array.isArray(existing) && existing.length > 0) {
+            return true;
+        }
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+        const verses = await fetchPageVersesV4(pageNumber);
+        return verses.length > 0 && verses.some(v => v.words.some(w => !!w.code_v1));
+    } catch {
+        return false;
+    }
+}
+
