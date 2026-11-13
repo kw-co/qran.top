@@ -4,7 +4,7 @@ const BUILD_VER_STORAGE_KEY = 'qran_app_build_version';
 
 export const useServiceWorkerUpdater = () => {
     useEffect(() => {
-        if (!('serviceWorker' in navigator)) return;
+        if (typeof window === 'undefined') return;
 
         const host = window.location.hostname;
         const isPreviewOrDev =
@@ -14,68 +14,67 @@ export const useServiceWorkerUpdater = () => {
             host.endsWith('.googleusercontent.com');
 
         if (isPreviewOrDev) {
-            navigator.serviceWorker
-                .getRegistrations()
-                .then(registrations => {
-                    registrations.forEach(reg => reg.unregister());
-                })
-                .catch(() => {});
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker
+                    .getRegistrations()
+                    .then(registrations => {
+                        registrations.forEach(reg => reg.unregister());
+                    })
+                    .catch(() => {});
+            }
             return;
         }
 
-        let isReloading = false;
-        const triggerSeamlessReload = () => {
-            if (isReloading) return;
-            isReloading = true;
-            window.location.reload();
-        };
-
-        // Reload once when a newly installed Service Worker claims control
-        const handleControllerChange = () => {
-            triggerSeamlessReload();
-        };
-        navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-
         let swReg: ServiceWorkerRegistration | null = null;
 
-        // Register with updateViaCache: 'none' so installed mobile PWAs never use a stale HTTP-cached service-worker.js
-        navigator.serviceWorker
-            .register('./service-worker.js', { scope: './', updateViaCache: 'none' })
-            .then(reg => {
-                swReg = reg;
-                reg.update().catch(() => {});
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker
+                .register('./service-worker.js', { scope: './', updateViaCache: 'none' })
+                .then(reg => {
+                    swReg = reg;
+                    reg.update().catch(() => {});
 
-                if (reg.waiting) {
-                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                }
+                    if (reg.waiting) {
+                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
 
-                reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    if (!newWorker) return;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            newWorker.postMessage({ type: 'SKIP_WAITING' });
-                        }
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        if (!newWorker) return;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        });
                     });
-                });
-            })
-            .catch(error => console.warn('Service Worker registration failed:', error));
+                })
+                .catch(error => console.warn('Service Worker registration failed:', error));
+        }
 
-        // 1-byte version.json check whenever the PWA starts or comes back to foreground
+        /**
+         * Sends 1 lightweight request to ./version.json when online:
+         * - If offline or version matches stored version -> does nothing (runs from local cache).
+         * - If remote version is newer -> shows 1 notification and updates UI cache while keeping Quran data & fonts intact.
+         */
+        let isChecking = false;
         const checkRemoteVersion = async () => {
+            if (isChecking) return;
             if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+            isChecking = true;
             try {
                 if (swReg) {
                     swReg.update().catch(() => {});
                 }
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2500);
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
                 const res = await fetch(`./version.json?t=${Date.now()}`, {
                     cache: 'no-store',
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
                 if (!res.ok) return;
+
                 const data = await res.json();
                 const remoteVer = data?.v;
                 if (!remoteVer) return;
@@ -87,17 +86,29 @@ export const useServiceWorkerUpdater = () => {
                 }
 
                 if (localVer !== remoteVer) {
-                    localStorage.setItem(BUILD_VER_STORAGE_KEY, remoteVer);
-                    if ('caches' in window) {
-                        const keys = await caches.keys();
-                        await Promise.all(
-                            keys.map(k => (k.includes('static') ? caches.delete(k) : Promise.resolve()))
-                        );
+                    // Dispatch a single toast notification and trigger the cache-preserving force reload
+                    window.dispatchEvent(
+                        new CustomEvent('app-toast', {
+                            detail: {
+                                message: 'تتوفر نسخة حديثة من البرنامج — جاري التحديث تلقائياً...',
+                                type: 'info'
+                            }
+                        })
+                    );
+                    const win = window as any;
+                    if (typeof win.__qranForceReload === 'function') {
+                        setTimeout(() => {
+                            win.__qranForceReload(remoteVer);
+                        }, 600);
+                    } else {
+                        localStorage.setItem(BUILD_VER_STORAGE_KEY, remoteVer);
+                        window.location.reload();
                     }
-                    triggerSeamlessReload();
                 }
             } catch {
-                // Offline or slow network — silently continue with cached version
+                // Offline or slow network — silently continue running offline
+            } finally {
+                isChecking = false;
             }
         };
 
@@ -112,14 +123,18 @@ export const useServiceWorkerUpdater = () => {
         window.addEventListener('online', checkRemoteVersion);
 
         return () => {
-            navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('online', checkRemoteVersion);
         };
     }, []);
 
     const handleUpdate = useCallback(() => {
-        window.location.reload();
+        const win = window as any;
+        if (typeof win.__qranForceReload === 'function') {
+            win.__qranForceReload();
+        } else {
+            window.location.reload();
+        }
     }, []);
 
     return { showUpdateNotification: false, handleUpdate };

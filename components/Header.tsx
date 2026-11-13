@@ -18,12 +18,27 @@ interface HeaderProps {
 
 const Logo: React.FC = () => {
     const [adminClickCount, setAdminClickCount] = useState(0);
+    const lastTapRef = React.useRef<number>(0);
+
+    const triggerForceReload = () => {
+        const win = window as any;
+        if (typeof win.__qranForceReload === 'function') {
+            win.__qranForceReload();
+        } else {
+            window.location.reload();
+        }
+    };
 
     const handleLogoClick = (e: React.MouseEvent) => {
-        if (e.detail === 2) {
-            window.location.reload();
+        const now = Date.now();
+        // Support rapid double-tap on mobile (< 380ms) as well as desktop e.detail === 2
+        if (e.detail === 2 || (now - lastTapRef.current > 0 && now - lastTapRef.current < 380)) {
+            lastTapRef.current = 0;
+            triggerForceReload();
             return;
         }
+        lastTapRef.current = now;
+
         const newCount = adminClickCount + 1;
         setAdminClickCount(newCount);
         if (newCount >= 12) {
@@ -32,14 +47,16 @@ const Logo: React.FC = () => {
             return;
         }
         
-        // Always navigate home on logo click
-        window.location.hash = '#/';
+        // Navigate home on single logo click
+        if (window.location.hash !== '#/' && window.location.hash !== '') {
+            window.location.hash = '#/';
+        }
     };
 
     const handleDoubleClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        window.location.reload();
+        triggerForceReload();
     };
 
     return (
@@ -48,7 +65,7 @@ const Logo: React.FC = () => {
             onDoubleClick={handleDoubleClick}
             dir="ltr" 
             className="flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none pl-0.5 sm:pl-1 active:scale-95 transition-transform" 
-            title="انقر للرئيسية - انقر مرتين لإعادة تحميل وتحديث التطبيق"
+            title="انقر للرئيسية - انقر مرتين لتحديث التطبيق لأحدث إصدار"
         >
             <LogoIcon className="w-7 h-7 text-primary flex-shrink-0" />
             <span className="hidden md:inline text-lg sm:text-xl font-bold text-text-primary tracking-tighter whitespace-nowrap">

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, LightBulbIcon, SparklesIcon, CheckIcon, LogoIcon } from './icons';
+import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, LightBulbIcon, CheckIcon, LogoIcon } from './icons';
 import ThemeToggleButton from './ThemeToggleButton';
 import { openExternalLink } from '../utils/navigation';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -24,27 +24,22 @@ const NavLink: React.FC<{ href: string; icon: React.ReactNode; label: string; on
     </a>
 );
 
-const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-    useEffect(() => {
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        };
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    }, []);
+const DownloadAppModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    promptInstall: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
+    isInstalled: boolean;
+}> = ({ isOpen, onClose, promptInstall, isInstalled }) => {
+    const [showManualGuide, setShowManualGuide] = useState(false);
 
     const handleInstallBrowser = async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                setDeferredPrompt(null);
-            }
+        const result = await promptInstall();
+        if (result === 'accepted' || result === 'dismissed') {
+            onClose();
+        } else {
+            // Native prompt is unavailable (e.g., iOS Safari, already installed, or browser requires menu action)
+            setShowManualGuide(true);
         }
-        onClose();
     };
 
     if (!isOpen) return null;
@@ -53,8 +48,14 @@ const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 animate-fade-in" onClick={onClose} dir="rtl">
             <div className="bg-surface border border-border-default rounded-2xl shadow-xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
                 <div className="p-5 border-b border-border-default flex justify-between items-center bg-surface-subtle">
-                    <h3 className="text-xl font-bold text-text-primary">تحميل التطبيق</h3>
-                    <button onClick={onClose} className="text-text-muted hover:text-text-primary focus:outline-none p-1 rounded-full hover:bg-surface-hover transition-colors">
+                    <h3 className="text-xl font-bold text-text-primary">تحميل وتثبيت التطبيق</h3>
+                    <button
+                        onClick={() => {
+                            setShowManualGuide(false);
+                            onClose();
+                        }}
+                        className="text-text-muted hover:text-text-primary focus:outline-none p-1 rounded-full hover:bg-surface-hover transition-colors cursor-pointer"
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -78,8 +79,9 @@ const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
                     </a>
                     
                     <button
+                        type="button"
                         onClick={handleInstallBrowser}
-                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-border-default bg-surface-subtle hover:bg-surface-hover transition-colors text-right group"
+                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-border-default bg-surface-subtle hover:bg-surface-hover transition-colors text-right group cursor-pointer"
                     >
                         <div className="p-2 bg-primary/10 text-primary rounded-full group-hover:scale-110 transition-transform">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,10 +89,36 @@ const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
                             </svg>
                         </div>
                         <div>
-                            <div className="font-bold text-text-primary text-lg">المتصفح (PWA)</div>
-                            <div className="text-sm text-text-secondary">تثبيت مباشر وسريع لجميع الأجهزة</div>
+                            <div className="font-bold text-text-primary text-lg">المتصفح المباشر (PWA)</div>
+                            <div className="text-sm text-text-secondary">
+                                {isInstalled ? 'التطبيق مثبت بالفعل على جهازك' : 'تثبيت مباشر وسريع لجميع الأجهزة'}
+                            </div>
                         </div>
                     </button>
+
+                    {showManualGuide && (
+                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs sm:text-sm space-y-2 text-text-primary animate-fade-in">
+                            {isInstalled ? (
+                                <p className="font-bold text-emerald-700 dark:text-emerald-400">
+                                    ✓ التطبيق مثبت بالفعل على شاشة هاتفك الرئيسية.
+                                </p>
+                            ) : (
+                                <>
+                                    <div className="font-bold text-amber-800 dark:text-amber-300">
+                                        لتثبيت التطبيق مباشرة من المتصفح:
+                                    </div>
+                                    <ul className="space-y-1.5 text-text-secondary list-disc list-inside leading-relaxed">
+                                        <li>
+                                            <strong className="text-text-primary">في متصفح كروم (أندرويد):</strong> اضغط على قائمة المتصفح (<strong>⋮</strong> أعلى الشاشة) ثم اختر <strong>«تثبيت التطبيق»</strong> أو <strong>«الإضافة إلى الشاشة الرئيسية»</strong>.
+                                        </li>
+                                        <li>
+                                            <strong className="text-text-primary">في سفاري (آيفون/آيباد):</strong> اضغط على زر <strong>المشاركة (Share)</strong> بالأسفل ثم اختر <strong>«إضافة إلى الصفحة الرئيسية»</strong>.
+                                        </li>
+                                    </ul>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -100,7 +128,7 @@ const DownloadAppModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
 const SidePanel: React.FC<SidePanelProps> = ({
     isOpen, onClose, currentPath, onNavigate
 }) => {
-    const { promptInstall } = usePWAInstall();
+    const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
     const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
     const { isMushafDownloaded, mushafCachedPagesCount } = useSettingsContext();
 
@@ -112,6 +140,31 @@ const SidePanel: React.FC<SidePanelProps> = ({
             window.location.reload();
         }
     };
+
+    const handleInstallClick = async () => {
+        if (isInstallable) {
+            const res = await promptInstall();
+            if (res === 'accepted' || res === 'dismissed') {
+                onClose();
+                return;
+            }
+        }
+        setIsDownloadMenuOpen(true);
+    };
+
+    const isStructureActive =
+        currentPath.startsWith('#/structure') ||
+        currentPath.startsWith('#/hijazi') ||
+        currentPath.startsWith('#/mizan') ||
+        currentPath.startsWith('#/cipher-lab') ||
+        currentPath.startsWith('#/word-geometry') ||
+        currentPath.startsWith('#/noorani') ||
+        currentPath.startsWith('#/alm') ||
+        currentPath.startsWith('#/hm') ||
+        currentPath.startsWith('#/fingerprint') ||
+        currentPath.startsWith('#/letter-matrix') ||
+        currentPath.startsWith('#/alphabet-scanner') ||
+        currentPath.startsWith('#/syllable-cluster');
 
     return (
         <>
@@ -158,28 +211,8 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             <NavLink href="#/" icon={<HomeIcon className="w-5 h-5" />} label="الفهرس" onNavigate={onNavigate} isActive={currentPath === '#/'} />
                             <NavLink href="#/history" icon={<BookmarkIcon className="w-5 h-5 text-primary" />} label="الدفتر وسجل القراءة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/history') || currentPath.startsWith('#/saved')} />
                             <NavLink href="#/khatmah" icon={<BookOpenIcon className="w-5 h-5 text-emerald-500" />} label="الختمة الجماعية" onNavigate={onNavigate} isActive={currentPath.startsWith('#/khatmah') || currentPath.startsWith('#/khatmiyah')} />
-                            <NavLink href="#/structure" icon={<SparklesIcon className="w-5 h-5 text-amber-500" />} label="بنية المصحف الشريف" onNavigate={onNavigate} isActive={currentPath.startsWith('#/structure') || currentPath.startsWith('#/hijazi') || currentPath.startsWith('#/mizan') || currentPath.startsWith('#/cipher-lab') || currentPath.startsWith('#/word-geometry') || currentPath.startsWith('#/noorani')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />
                             <NavLink href="#/settings" icon={<CogIcon className="w-5 h-5" />} label="الإعدادات" onNavigate={onNavigate} isActive={currentPath.startsWith('#/settings')} />
-
-                            {/* PWA Install Button */}
-                            {promptInstall && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        promptInstall();
-                                        onClose();
-                                    }}
-                                    className="w-full flex items-center justify-between p-2.5 rounded-lg text-base transition-colors text-text-secondary hover:bg-surface-hover hover:text-primary cursor-pointer text-right group"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        <span className="whitespace-nowrap font-medium text-text-primary">تثبيت التطبيق</span>
-                                    </div>
-                                </button>
-                            )}
 
                             {/* Subtle Offline Status Indicator */}
                             <div className="mt-3 pt-2.5 border-t border-border-subtle px-2 py-2 rounded-lg bg-surface-subtle/70 text-xs text-text-secondary flex items-center justify-between">
@@ -222,7 +255,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
                          <div className="flex items-center justify-center gap-4">
                             <button
                                 onClick={() => { onClose(); onNavigate('#/about'); }}
-                                className={`p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/about') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
+                                className={`p-2 rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/about') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
                                 aria-label="عن التطبيق والدليل"
                                 title="عن التطبيق والدليل"
                             >
@@ -230,7 +263,7 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             </button>
                             <button
                                 onClick={() => { onClose(); onNavigate('#/privacy-policy'); }}
-                                className={`p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/privacy-policy') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
+                                className={`p-2 rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/privacy-policy') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
                                 aria-label="سياسة الخصوصية"
                                 title="سياسة الخصوصية"
                             >
@@ -238,17 +271,17 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             </button>
                             <button
                                 onClick={() => { onClose(); onNavigate('#/structure'); }}
-                                className={`p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${currentPath.startsWith('#/structure') ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
+                                className={`p-2 rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 ${isStructureActive ? 'bg-surface-active text-primary-text-strong' : 'bg-surface-subtle text-text-secondary hover:bg-surface-hover'}`}
                                 aria-label="بنية المصحف الشريف"
                                 title="بنية المصحف الشريف"
                             >
                                 <LightBulbIcon className="w-6 h-6" />
                             </button>
                             <button
-                                onClick={() => setIsDownloadMenuOpen(true)}
-                                className="p-2 bg-surface-subtle text-primary rounded-full hover:bg-surface-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
-                                aria-label="تحميل التطبيق"
-                                title="تحميل التطبيق"
+                                onClick={handleInstallClick}
+                                className="p-2 bg-surface-subtle text-primary rounded-full hover:bg-surface-hover transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+                                aria-label="تحميل وتثبيت التطبيق"
+                                title="تحميل وتثبيت التطبيق"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -280,7 +313,12 @@ const SidePanel: React.FC<SidePanelProps> = ({
                     </div>
                 </div>
             </aside>
-            <DownloadAppModal isOpen={isDownloadMenuOpen} onClose={() => setIsDownloadMenuOpen(false)} />
+            <DownloadAppModal
+                isOpen={isDownloadMenuOpen}
+                onClose={() => setIsDownloadMenuOpen(false)}
+                promptInstall={promptInstall}
+                isInstalled={isInstalled}
+            />
         </>
     );
 };

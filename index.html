@@ -5,14 +5,27 @@
       window.onerror = function(msg) {
         if (msg === 'Script error.') return true;
       };
+
+      // Capture PWA install prompt early before React mounts
+      window.__deferredPwaPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__deferredPwaPrompt = e;
+      });
       
-      // Safe version check for PWA updates
+      // Safe version check & clean URL after cache-busted update
       (function() {
         const APP_BUILD_VER = '1.2.2';
         try {
           const storedVer = localStorage.getItem('qran_app_build_version');
           if (!storedVer) {
             localStorage.setItem('qran_app_build_version', APP_BUILD_VER);
+          }
+          if (window.location.search && window.location.search.indexOf('_u=') !== -1) {
+            // Also refresh the clean root pathname in the browser's HTTP cache
+            fetch(window.location.pathname, { cache: 'reload' }).catch(function() {});
+            const cleanUrl = window.location.pathname + (window.location.hash || '');
+            window.history.replaceState(null, '', cleanUrl);
           }
         } catch (e) {}
       })();
@@ -278,24 +291,54 @@
     <div id="root"></div>
     
     <script>
-      window.__qranForceReload = function() {
+      /**
+       * Performs a guaranteed, cache-bypassing update of the application shell & tools
+       * while 100% preserving offline Quran texts, Mushaf pages, and fonts.
+       */
+      window.__qranForceReload = async function(newVersionOpt) {
+        if (window.__qranIsUpdatingNow) return;
+        window.__qranIsUpdatingNow = true;
+
         try {
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              regs.forEach(function(r) { r.unregister(); });
-            });
+          if (newVersionOpt) {
+            localStorage.setItem('qran_app_build_version', newVersionOpt);
           }
-          if ('caches' in window) {
-            caches.keys().then(function(keys) {
-              keys.forEach(function(k) {
-                if (k.indexOf('static') !== -1) caches.delete(k);
-              });
-            });
-          }
+
+          // Show immediate visual confirmation banner
+          var banner = document.createElement('div');
+          banner.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:#15803d;color:#fff;padding:10px 20px;border-radius:14px;font-family:Tajawal,sans-serif;font-size:14px;font-weight:700;box-shadow:0 10px 25px rgba(0,0,0,0.25);display:flex;align-items:center;gap:8px;direction:rtl;white-space:nowrap;';
+          banner.innerHTML = '<span>⟳ جاري تحديث البرنامج لأحدث إصدار...</span>';
+          document.body.appendChild(banner);
         } catch (e) {}
-        setTimeout(function() {
-          window.location.reload();
-        }, 150);
+
+        try {
+          // 1. Delete ONLY UI/static caches — keep Quran data ('data') and Mushaf ('mushaf') caches intact!
+          if ('caches' in window) {
+            var keys = await caches.keys();
+            await Promise.all(
+              keys.map(function(k) {
+                var isDataOrFonts = k.indexOf('data') !== -1 || k.indexOf('mushaf') !== -1 || k.indexOf('font') !== -1;
+                if (!isDataOrFonts) {
+                  return caches.delete(k);
+                }
+                return Promise.resolve();
+              })
+            );
+          }
+
+          // 2. Unregister existing Service Workers so the fresh navigation fetches the new SW & HTML directly
+          if ('serviceWorker' in navigator) {
+            var regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(function(r) { return r.unregister(); }));
+          }
+
+          // 3. Force browser HTTP disk cache to overwrite the root HTML entry
+          await fetch(window.location.pathname, { cache: 'reload' }).catch(function() {});
+        } catch (e) {}
+
+        // 4. Navigate with a unique cache-busting query param (which is cleaned on boot via replaceState)
+        var targetUrl = window.location.pathname + '?_u=' + Date.now() + (window.location.hash || '');
+        window.location.replace(targetUrl);
       };
 
       // Show retry button if initial bundle takes longer than 8 seconds on slow mobile network
