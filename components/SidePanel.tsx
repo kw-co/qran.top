@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, ChartBarIcon, InformationCircleIcon, GooglePlayIcon, BookOpenIcon, LightBulbIcon, CheckIcon, LogoIcon } from './icons';
+import { HomeIcon, BookmarkIcon, CogIcon, ShieldCheckIcon, ChartBarIcon, InformationCircleIcon, BookOpenIcon, LightBulbIcon, CheckIcon, LogoIcon } from './icons';
 import ThemeToggleButton from './ThemeToggleButton';
 import { openExternalLink } from '../utils/navigation';
 import { useSettingsContext } from '../contexts/SettingsContext';
@@ -24,112 +24,11 @@ const NavLink: React.FC<{ href: string; icon: React.ReactNode; label: string; on
     </a>
 );
 
-const DownloadAppModal: React.FC<{
-    isOpen: boolean;
-    onClose: () => void;
-    promptInstall: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
-    isInstalled: boolean;
-}> = ({ isOpen, onClose, promptInstall, isInstalled }) => {
-    const [showManualGuide, setShowManualGuide] = useState(false);
-
-    const handleInstallBrowser = async () => {
-        const result = await promptInstall();
-        if (result === 'accepted' || result === 'dismissed') {
-            onClose();
-        } else {
-            // Native prompt is unavailable (e.g., iOS Safari, already installed, or browser requires menu action)
-            setShowManualGuide(true);
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 animate-fade-in" onClick={onClose} dir="rtl">
-            <div className="bg-surface border border-border-default rounded-2xl shadow-xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
-                <div className="p-5 border-b border-border-default flex justify-between items-center bg-surface-subtle">
-                    <h3 className="text-xl font-bold text-text-primary">تحميل وتثبيت التطبيق</h3>
-                    <button
-                        onClick={() => {
-                            setShowManualGuide(false);
-                            onClose();
-                        }}
-                        className="text-text-muted hover:text-text-primary focus:outline-none p-1 rounded-full hover:bg-surface-hover transition-colors cursor-pointer"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                <div className="p-5 space-y-4">
-                    <a
-                        href="https://play.google.com/store/apps/details?id=com.dev12three.qrantop&pli=1"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={onClose}
-                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-border-default bg-surface-subtle hover:bg-surface-hover transition-colors text-right group"
-                    >
-                        <div className="p-2 bg-[#22c55e]/10 text-[#22c55e] rounded-full group-hover:scale-110 transition-transform">
-                            <GooglePlayIcon className="w-8 h-8" />
-                        </div>
-                        <div>
-                            <div className="font-bold text-text-primary text-lg">جوجل بلاي (Google Play)</div>
-                            <div className="text-sm text-text-secondary">تحميل التطبيق لأجهزة الأندرويد</div>
-                        </div>
-                    </a>
-                    
-                    <button
-                        type="button"
-                        onClick={handleInstallBrowser}
-                        className="w-full flex items-center gap-4 p-4 rounded-xl border border-border-default bg-surface-subtle hover:bg-surface-hover transition-colors text-right group cursor-pointer"
-                    >
-                        <div className="p-2 bg-primary/10 text-primary rounded-full group-hover:scale-110 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </div>
-                        <div>
-                            <div className="font-bold text-text-primary text-lg">المتصفح المباشر (PWA)</div>
-                            <div className="text-sm text-text-secondary">
-                                {isInstalled ? 'التطبيق مثبت بالفعل على جهازك' : 'تثبيت مباشر وسريع لجميع الأجهزة'}
-                            </div>
-                        </div>
-                    </button>
-
-                    {showManualGuide && (
-                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs sm:text-sm space-y-2 text-text-primary animate-fade-in">
-                            {isInstalled ? (
-                                <p className="font-bold text-emerald-700 dark:text-emerald-400">
-                                    ✓ التطبيق مثبت بالفعل على شاشة هاتفك الرئيسية.
-                                </p>
-                            ) : (
-                                <>
-                                    <div className="font-bold text-amber-800 dark:text-amber-300">
-                                        لتثبيت التطبيق مباشرة من المتصفح:
-                                    </div>
-                                    <ul className="space-y-1.5 text-text-secondary list-disc list-inside leading-relaxed">
-                                        <li>
-                                            <strong className="text-text-primary">في متصفح كروم (أندرويد):</strong> اضغط على قائمة المتصفح (<strong>⋮</strong> أعلى الشاشة) ثم اختر <strong>«تثبيت التطبيق»</strong> أو <strong>«الإضافة إلى الشاشة الرئيسية»</strong>.
-                                        </li>
-                                        <li>
-                                            <strong className="text-text-primary">في سفاري (آيفون/آيباد):</strong> اضغط على زر <strong>المشاركة (Share)</strong> بالأسفل ثم اختر <strong>«إضافة إلى الصفحة الرئيسية»</strong>.
-                                        </li>
-                                    </ul>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const SidePanel: React.FC<SidePanelProps> = ({
     isOpen, onClose, currentPath, onNavigate
 }) => {
-    const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
-    const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+    const { isInstalled, promptInstall } = usePWAInstall();
+    const [isInstallingNow, setIsInstallingNow] = useState(false);
     const { isMushafDownloaded, mushafCachedPagesCount } = useSettingsContext();
 
     const handleForceUpdate = () => {
@@ -141,15 +40,64 @@ const SidePanel: React.FC<SidePanelProps> = ({
         }
     };
 
-    const handleInstallClick = async () => {
-        if (isInstallable) {
-            const res = await promptInstall();
-            if (res === 'accepted' || res === 'dismissed') {
+    /**
+     * Direct 1-Click PWA Install — triggers the native install prompt immediately
+     * without opening any intermediate selection modal.
+     */
+    const handleDirectPWAInstall = async () => {
+        if (isInstallingNow) return;
+        setIsInstallingNow(true);
+
+        try {
+            const result = await promptInstall();
+            if (result === 'accepted') {
+                onClose();
+                window.dispatchEvent(
+                    new CustomEvent('app-toast', {
+                        detail: {
+                            message: 'جاري تنزيل وتثبيت التطبيق على شاشة هاتفك الرئيسية...',
+                            type: 'success'
+                        }
+                    })
+                );
+                return;
+            }
+            if (result === 'dismissed') {
                 onClose();
                 return;
             }
+            if (result === 'already_installed') {
+                onClose();
+                window.dispatchEvent(
+                    new CustomEvent('app-toast', {
+                        detail: {
+                            message: 'التطبيق مثبت بالفعل على جهازك وتصفحه الآن كنسخة مثبتة.',
+                            type: 'info'
+                        }
+                    })
+                );
+                return;
+            }
+
+            // If result === 'unavailable':
+            // On Android Chrome, Chrome blocks beforeinstallprompt ONLY if an older WebAPK of qran.top is STILL installed on the phone!
+            // On iOS Safari, Apple WebKit requires tapping Share -> Add to Home Screen.
+            onClose();
+            const ua = navigator.userAgent.toLowerCase();
+            const isIOS = /iphone|ipad|ipod/.test(ua);
+            window.dispatchEvent(
+                new CustomEvent('app-toast', {
+                    detail: {
+                        message: isIOS
+                            ? 'لتثبيت التطبيق على آيفون: اضغط زر المشاركة (Share) بالأسفل ثم «إضافة إلى الصفحة الرئيسية».'
+                            : 'التطبيق مثبت مسبقاً على جهازك! لإعادة تثبيته من جديد، احذف أيقونة التطبيق القديمة من هاتفك أولاً ثم اضغط تثبيت.',
+                        type: 'info'
+                    }
+                })
+            );
+        } finally {
+            setIsInstallingNow(false);
         }
-        setIsDownloadMenuOpen(true);
     };
 
     const isStructureActive =
@@ -213,6 +161,23 @@ const SidePanel: React.FC<SidePanelProps> = ({
                             <NavLink href="#/khatmah" icon={<BookOpenIcon className="w-5 h-5 text-emerald-500" />} label="الختمة الجماعية" onNavigate={onNavigate} isActive={currentPath.startsWith('#/khatmah') || currentPath.startsWith('#/khatmiyah')} />
                             <NavLink href="#/analysis" icon={<ChartBarIcon className="w-5 h-5" />} label="تحليل مفردة" onNavigate={onNavigate} isActive={currentPath.startsWith('#/analysis')} />
                             <NavLink href="#/settings" icon={<CogIcon className="w-5 h-5" />} label="الإعدادات" onNavigate={onNavigate} isActive={currentPath.startsWith('#/settings')} />
+
+                            {/* Direct 1-Click PWA Install Button inside the Menu */}
+                            {!isInstalled && (
+                                <button
+                                    type="button"
+                                    onClick={handleDirectPWAInstall}
+                                    disabled={isInstallingNow}
+                                    className="w-full flex items-center gap-3 p-2.5 rounded-lg text-base font-bold text-primary bg-primary/10 hover:bg-primary/15 border border-primary/20 transition-colors cursor-pointer text-right mt-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    <span className="whitespace-nowrap">
+                                        {isInstallingNow ? 'جاري التثبيت...' : 'تثبيت التطبيق مباشرة'}
+                                    </span>
+                                </button>
+                            )}
 
                             {/* Subtle Offline Status Indicator */}
                             <div className="mt-3 pt-2.5 border-t border-border-subtle px-2 py-2 rounded-lg bg-surface-subtle/70 text-xs text-text-secondary flex items-center justify-between">
@@ -278,10 +243,10 @@ const SidePanel: React.FC<SidePanelProps> = ({
                                 <LightBulbIcon className="w-6 h-6" />
                             </button>
                             <button
-                                onClick={handleInstallClick}
+                                onClick={handleDirectPWAInstall}
                                 className="p-2 bg-surface-subtle text-primary rounded-full hover:bg-surface-hover transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
-                                aria-label="تحميل وتثبيت التطبيق"
-                                title="تحميل وتثبيت التطبيق"
+                                aria-label="تثبيت التطبيق مباشرة"
+                                title="تثبيت التطبيق مباشرة"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -313,12 +278,6 @@ const SidePanel: React.FC<SidePanelProps> = ({
                     </div>
                 </div>
             </aside>
-            <DownloadAppModal
-                isOpen={isDownloadMenuOpen}
-                onClose={() => setIsDownloadMenuOpen(false)}
-                promptInstall={promptInstall}
-                isInstalled={isInstalled}
-            />
         </>
     );
 };

@@ -1,7 +1,6 @@
 {
-  "id": "./",
   "short_name": "الباحث",
-  "name": "الباحث - رفيقك الأمثل لتدبر القرآن الكريم",
+  "name": "الباحث",
   "description": "الباحث: رفيقك الأمثل لتدبر القرآن الكريم. ابحث بدقة، تصفح بالرسم العثماني، واكتشف المعاني والروابط القرآنية بكل سهولة.",
   "icons": [
     {
@@ -32,6 +31,7 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "prefer_related_applications": false,
   "theme_color": "#166534",
   "background_color": "#FAF7F2"
 }

@@ -6,12 +6,21 @@
         if (msg === 'Script error.') return true;
       };
 
-      // Capture PWA install prompt early before React mounts
+      // Capture PWA install prompt early before React mounts & register SW immediately on production
       window.__deferredPwaPrompt = null;
       window.addEventListener('beforeinstallprompt', function(e) {
         e.preventDefault();
         window.__deferredPwaPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
       });
+
+      (function() {
+        var host = window.location.hostname;
+        var isPreviewEnv = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.run.app') || host.endsWith('.googleusercontent.com');
+        if (!isPreviewEnv && 'serviceWorker' in navigator) {
+          navigator.serviceWorker.register('./service-worker.js', { scope: './', updateViaCache: 'none' }).catch(function() {});
+        }
+      })();
       
       // Safe version check & clean URL after cache-busted update
       (function() {
@@ -293,7 +302,7 @@
     <script>
       /**
        * Performs a guaranteed, cache-bypassing update of the application shell & tools
-       * while 100% preserving offline Quran texts, Mushaf pages, and fonts.
+       * while 100% preserving offline Quran texts, Mushaf pages, fonts, AND Service Worker installability.
        */
       window.__qranForceReload = async function(newVersionOpt) {
         if (window.__qranIsUpdatingNow) return;
@@ -326,10 +335,17 @@
             );
           }
 
-          // 2. Unregister existing Service Workers so the fresh navigation fetches the new SW & HTML directly
+          // 2. Update active Service Workers (do NOT unregister on production so PWA install prompt stays active!)
           if ('serviceWorker' in navigator) {
             var regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(function(r) { return r.unregister(); }));
+            await Promise.all(
+              regs.map(function(r) {
+                if (r.waiting) {
+                  r.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+                return r.update().catch(function() {});
+              })
+            );
           }
 
           // 3. Force browser HTTP disk cache to overwrite the root HTML entry

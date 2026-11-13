@@ -1,6 +1,6 @@
 // service-worker.js
 
-const STATIC_CACHE_NAME = 'qran-top-static-v37'; // Auto-stamped on every build by vite.config.ts
+const STATIC_CACHE_NAME = 'qran-top-static-v38'; // Auto-stamped on every build by vite.config.ts
 const DATA_CACHE_NAME = 'qran-top-data-v23'; // Persistent cache for Quran texts & Mushaf fonts (never deleted on UI updates)
 
 const IS_PREVIEW_HOST =
@@ -47,20 +47,20 @@ async function cacheUrlsResiliently(cacheName, urls) {
   return results;
 }
 
+// Install event: activate IMMEDIATELY so Chrome fires beforeinstallprompt in < 50ms,
+// while warming the static and data caches asynchronously in the background!
 self.addEventListener('install', event => {
   if (IS_PREVIEW_HOST) {
     event.waitUntil(self.skipWaiting());
     return;
   }
-  event.waitUntil(
-    (async () => {
-      await Promise.allSettled([
-        cacheUrlsResiliently(STATIC_CACHE_NAME, STATIC_FILES_TO_CACHE),
-        cacheUrlsResiliently(DATA_CACHE_NAME, CORE_DATA_URLS)
-      ]);
-      return self.skipWaiting();
-    })()
-  );
+  // Background warm-up (does not block SW activation or beforeinstallprompt)
+  Promise.allSettled([
+    cacheUrlsResiliently(STATIC_CACHE_NAME, STATIC_FILES_TO_CACHE),
+    cacheUrlsResiliently(DATA_CACHE_NAME, CORE_DATA_URLS)
+  ]).catch(() => {});
+
+  event.waitUntil(self.skipWaiting());
 });
 
 // Activate event: delete old UI static caches while strictly preserving Quran data & Mushaf font caches.
@@ -128,7 +128,6 @@ self.addEventListener('fetch', event => {
   }
 
   // Strategy 1 (Persistent Offline Cache First): Quran Data, Mushaf Page Fonts (.woff2), & Web Fonts
-  // These are NEVER deleted during app UI updates and load in 0ms offline.
   const isQuranDataOrFont =
     url.pathname.includes('/fonts/') ||
     url.pathname.endsWith('.woff2') ||
@@ -165,7 +164,6 @@ self.addEventListener('fetch', event => {
   }
 
   // Strategy 2 (Network First with Offline Fallback): App Shell, UI Components, and Tools (.html, .js, .css)
-  // Always fetches fresh UI code when online (bypassing HTTP disk cache) and falls back to STATIC_CACHE_NAME when offline.
   const isAppShellFile =
     request.mode === 'navigate' ||
     url.pathname.endsWith('/') ||
